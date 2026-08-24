@@ -1,0 +1,97 @@
+import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // 1. Exclude static files, images, auth callbacks, and signout routes
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/auth/callback') ||
+    pathname.startsWith('/auth/signout') ||
+    pathname.includes('.') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next();
+  }
+
+  // 2. Legacy route redirect: /arena -> /home
+  if (pathname === '/arena' || pathname.startsWith('/arena/')) {
+    return NextResponse.redirect(new URL('/home', request.url));
+  }
+
+  // 3. Allow public published passport URLs (e.g. /passport/pub-123)
+  if (pathname.startsWith('/passport/') && pathname !== '/passport') {
+    return NextResponse.next();
+  }
+
+  // 4. Create base response object for cookie mutation
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // If Supabase keys are missing, allow request to proceed in Local Mode
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return response;
+  }
+
+  // 5. Instantiate @supabase/ssr server client with getAll and setAll handlers
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
+        response = NextResponse.next({
+          request,
+        });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
+
+  // 6. Refresh user session via getUser() (NOT getSession())
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // 7. Protected route check
+  const protectedRoutes = ['/home', '/history', '/passport', '/profile', '/quest', '/calibrate'];
+  const isProtectedRoute = protectedRoutes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  if (isProtectedRoute && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    url.searchParams.set('next', pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // Return mutated response object with updated cookies
+  return response;
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files with extensions (e.g. .svg, .png, .jpg, .jpeg, .webp, .gif)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};

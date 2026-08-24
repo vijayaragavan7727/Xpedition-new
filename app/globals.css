@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #07060F;
+  --panel: #120E22;
+  --raised: #1A1430;
+  --line: #2E2450;
+  --violet: #A855F7;
+  --violet-hot: #C77DFF;
+  --cyan: #22D3EE;
+  --magenta: #FF00FF;
+  --text: #F2EEFF;
+  --muted: #9B93B8;
+  --danger: #FF4D6D;
+  --success: #34E5C4;
+}
+
+body {
+  background-color: var(--ink);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Signature Gradient Text & Background */
+.bg-signature-gradient {
+  background: linear-gradient(96deg, var(--cyan), var(--violet) 55%, #F472F6);
+}
+
+.text-gradient {
+  background: linear-gradient(96deg, var(--cyan), var(--violet) 55%, #F472F6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass Card with Masked Gradient Border */
+.card-glass-neon {
+  position: relative;
+  background: rgba(18, 14, 34, 0.55);
+  backdrop-filter: blur(28px) saturate(1.15);
+  -webkit-backdrop-filter: blur(28px) saturate(1.15);
+  border-radius: 18px;
+  padding: 36px 32px;
+  box-shadow:
+    0 40px 90px -24px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.card-glass-neon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 1px;
+  background: linear-gradient(140deg, rgba(34, 211, 238, 0.65), rgba(168, 85, 247, 0.55) 50%, rgba(255, 255, 255, 0.06));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .card-glass-neon {
+    background: rgba(18, 14, 34, 0.94);
+  }
+}
+
+/* Card Scrim Radial Pool */
+.card-scrim-pool {
+  position: absolute;
+  width: 640px;
+  height: 640px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(7, 6, 15, 0.80) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+/* CSS Neon City Fallback Background */
+.neon-city-fallback {
+  position: relative;
+  background-color: #07060F;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 12px,
+      rgba(34, 211, 238, 0.10) 12px,
+      rgba(34, 211, 238, 0.10) 16px,
+      transparent 16px,
+      transparent 32px,
+      rgba(168, 85, 247, 0.12) 32px,
+      rgba(168, 85, 247, 0.12) 38px
+    ),
+    linear-gradient(135deg, #07060F 0%, #1A0B2E 100%);
+  background-size: 160px 100%, 100% 100%;
+}
+
+/* Ambient Slow Drift Animation for Backdrop L0 */
+.ambient-drift-neon {
+  will-change: transform;
+  animation: slowDriftNeon 45s ease-in-out infinite alternate;
+}
+
+@keyframes slowDriftNeon {
+  0% {
+    transform: scale(1.04) translate3d(-8px, -4px, 0);
+  }
+  100% {
+    transform: scale(1.07) translate3d(8px, 4px, 0);
+  }
+}
+
+/* Motion gating for prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ambient-drift-neon {
+    animation: none !important;
+    transform: scale(1.04) !important;
+  }
+}
