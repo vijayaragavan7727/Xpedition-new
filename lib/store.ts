@@ -236,17 +236,20 @@ export interface NextTargetResult {
   masteryPercentage: number;
   reason: string;
   inProgress: boolean;
+  hasAttempts: boolean;
   lastCompletedConceptName?: string;
 }
 
 export function selectNextTarget(store: UserStoreData): NextTargetResult {
   const activeGraph = store.graphs?.find((g) => g.id === store.activeGraphId) || store.graphs?.[0];
   const concepts = activeGraph?.concepts || [];
+  const attempts = activeGraph?.attempts || [];
   const activeSession = activeGraph?.activeSession;
 
   // 1. If an in-progress session exists and has uncompleted items, return it directly
   if (activeSession && activeSession.conceptId && activeSession.currentIndex < activeSession.totalLength) {
     const concept = concepts.find((c) => c.id === activeSession.conceptId);
+    const hasAtt = attempts.some((a) => a.conceptId === activeSession.conceptId);
     return {
       conceptId: activeSession.conceptId,
       conceptName: activeSession.conceptName || concept?.name || activeGraph?.goalText || 'Active Topic',
@@ -256,6 +259,7 @@ export function selectNextTarget(store: UserStoreData): NextTargetResult {
       masteryPercentage: concept?.masteryPercentage ?? 0,
       reason: `Resume session in progress (${activeSession.currentIndex} of ${activeSession.totalLength} completed)`,
       inProgress: true,
+      hasAttempts: hasAtt,
       lastCompletedConceptName: activeSession.lastCompletedConceptName,
     };
   }
@@ -271,6 +275,7 @@ export function selectNextTarget(store: UserStoreData): NextTargetResult {
       masteryPercentage: 0,
       reason: 'Initial skill practice',
       inProgress: false,
+      hasAttempts: false,
       lastCompletedConceptName: activeSession?.lastCompletedConceptName,
     };
   }
@@ -283,6 +288,7 @@ export function selectNextTarget(store: UserStoreData): NextTargetResult {
   });
 
   const target = sorted[0];
+  const hasAtt = attempts.some((a) => a.conceptId === target.id);
   const itemsNeeded = Math.max(3, Math.min(6, Math.ceil((100 - target.masteryPercentage) / 15)));
 
   let reason = `Recommended to boost mastery from ${target.masteryPercentage}%`;
@@ -299,6 +305,7 @@ export function selectNextTarget(store: UserStoreData): NextTargetResult {
     masteryPercentage: target.masteryPercentage,
     reason,
     inProgress: false,
+    hasAttempts: hasAtt,
     lastCompletedConceptName: activeSession?.lastCompletedConceptName,
   };
 }

@@ -20,7 +20,7 @@ export default function HomePage() {
   const fadingConcepts = storeData.concepts.filter((c) => c.retentionRisk > 0.35);
   const hasSkillGraph = storeData.concepts.length > 0;
 
-  // Single Source of Truth computation for Next Target
+  // Single Source of Truth target computation
   const target = selectNextTarget(storeData);
 
   // Context greeting line logic
@@ -43,6 +43,19 @@ export default function HomePage() {
   };
 
   const recentAttempts: Attempt[] = storeData.attempts.slice(-3).reverse();
+  const attemptConceptIds = new Set((storeData.attempts || []).map((a) => a.conceptId));
+
+  // Determine Continue Card Link & Label
+  const showLearnFirst = !target.hasAttempts && !target.inProgress;
+  const continueHref = showLearnFirst
+    ? `/learn/${encodeURIComponent(target.conceptId)}`
+    : `/quest?concept=${encodeURIComponent(target.conceptId)}`;
+  
+  const continueLabel = showLearnFirst
+    ? `Learn: ${target.conceptName}`
+    : target.inProgress
+      ? `Resume quest: ${target.conceptName} (${target.currentIndex} of ${target.totalLength} done)`
+      : `Continue quest: ${target.conceptName}`;
 
   return (
     <div className="space-y-6 select-none relative">
@@ -62,7 +75,7 @@ export default function HomePage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <span className="font-mono text-[11px] tracking-eyebrow uppercase text-muted font-bold">
-                {target.inProgress ? 'RESUME QUEST SESSION' : 'NEXT RECOMMENDED TARGET'}
+                {target.inProgress ? 'RESUME QUEST SESSION' : showLearnFirst ? 'FIRST TIME LESSON' : 'NEXT RECOMMENDED TARGET'}
               </span>
               <span className="font-mono text-[11px] text-cyan font-medium">
                 {target.inProgress
@@ -87,6 +100,11 @@ export default function HomePage() {
                     {target.currentIndex} of {target.totalLength} done
                   </span>
                 )}
+                {showLearnFirst && (
+                  <span className="font-mono text-[9px] uppercase px-2 py-0.5 rounded bg-violet/20 text-violet font-bold border border-violet/30">
+                    Interactive Lesson Required
+                  </span>
+                )}
               </h2>
 
               <div className="h-2.5 w-full bg-raised/80 rounded-full overflow-hidden p-0.5 border border-line/40">
@@ -104,10 +122,10 @@ export default function HomePage() {
 
             <div className="space-y-2 pt-1">
               <Link
-                href={`/quest?concept=${encodeURIComponent(target.conceptId)}`}
+                href={continueHref}
                 className="w-full h-[46px] rounded-[10px] bg-signature-gradient text-white font-sans font-semibold text-[15px] flex items-center justify-center gap-2 hover:brightness-108 hover:shadow-[0_8px_30px_-6px_rgba(168,85,247,0.55)] active:translate-y-[1px] transition-all cursor-pointer"
               >
-                <span>{target.inProgress ? `Resume quest (Item ${target.currentIndex + 1} of ${target.totalLength})` : 'Continue quest'}</span>
+                <span>{continueLabel}</span>
                 <span>→</span>
               </Link>
             </div>
@@ -124,6 +142,70 @@ export default function HomePage() {
             </Link>
           </div>
         )}
+      </section>
+
+      {/* SKILL GRAPH CONCEPTS BREAKDOWN */}
+      <section className="bg-[#120E22]/90 border border-line/60 rounded-[16px] p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-line/40 pb-3">
+          <span className="font-mono text-[10px] tracking-eyebrow uppercase text-muted font-bold">
+            SKILL GRAPH CONCEPTS ({storeData.concepts.length})
+          </span>
+          <span className="font-mono text-xs text-cyan">
+            Active Goal: {storeData.goalText}
+          </span>
+        </div>
+
+        <div className="space-y-2.5">
+          {storeData.concepts.map((concept) => {
+            const hasAtt = attemptConceptIds.has(concept.id);
+            const conceptHref = hasAtt
+              ? `/quest?concept=${encodeURIComponent(concept.id)}`
+              : `/learn/${encodeURIComponent(concept.id)}`;
+
+            return (
+              <div
+                key={concept.id}
+                className="p-3.5 rounded-[12px] bg-panel/70 border border-line/40 flex items-center justify-between gap-3 hover:border-cyan/50 transition-all"
+              >
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Link href={conceptHref} className="font-sans text-sm text-text font-semibold hover:text-cyan truncate">
+                      {concept.name}
+                    </Link>
+                    {!hasAtt && (
+                      <span className="font-mono text-[8px] uppercase px-1.5 py-0.5 rounded bg-violet/20 text-violet font-bold shrink-0">
+                        New
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-1.5 w-28 bg-raised rounded-full overflow-hidden">
+                      <div className="h-full bg-cyan rounded-full" style={{ width: `${concept.masteryPercentage}%` }} />
+                    </div>
+                    <span className="font-mono text-[10px] text-muted">{concept.masteryPercentage}% mastery</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0 font-mono text-xs">
+                  {hasAtt ? (
+                    <>
+                      <Link href={`/learn/${encodeURIComponent(concept.id)}`} className="text-muted hover:text-cyan text-[11px] underline">
+                        Review lesson
+                      </Link>
+                      <Link href={`/quest?concept=${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-raised border border-line text-text hover:border-cyan">
+                        Practice →
+                      </Link>
+                    </>
+                  ) : (
+                    <Link href={`/learn/${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-signature-gradient text-white font-sans font-semibold text-xs">
+                      Start Lesson →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {/* RECENT ATTEMPTS AUDIT */}
