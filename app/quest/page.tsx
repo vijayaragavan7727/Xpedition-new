@@ -4,9 +4,9 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { StateHud } from '@/components/StateHud';
-import { SeededItem } from '@/lib/seed';
 import { getStoreData, recordAttempt, saveActiveSession, clearActiveSession, selectNextTarget, setGraphContent, Attempt, FlowState } from '@/lib/store';
-import { selectQuest } from '@/lib/engine/difficulty';
+import { selectQuest, TARGET_SUCCESS, idealDifficulty } from '@/lib/engine/difficulty';
+import { MotivationState, Quest as SeededItem } from '@/lib/types';
 
 const SESSION_STORAGE_KEY = 'xpedition_active_quest_session';
 
@@ -121,15 +121,15 @@ function QuestContent() {
     const candidatePool = targetConceptId ? pool.filter((i) => i.conceptId === targetConceptId) : pool;
 
     for (let i = 0; i < totalLen; i++) {
-      const nextItem = selectQuest(candidatePool, currentTheta, store.flowState, seenIds);
+      const { quest: nextItem } = selectQuest(candidatePool, currentTheta, store.flowState || 'flow', seenIds);
       if (nextItem) {
-        sessionItems.push(nextItem);
+        sessionItems.push(nextItem as SeededItem);
         seenIds.add(nextItem.id);
       } else {
         // If targeted concept items are exhausted, search across the broader path pool
-        const nextPathItem = selectQuest(pool, currentTheta, store.flowState, seenIds);
+        const { quest: nextPathItem } = selectQuest(pool, currentTheta, store.flowState || 'flow', seenIds);
         if (nextPathItem) {
-          sessionItems.push(nextPathItem);
+          sessionItems.push(nextPathItem as SeededItem);
           seenIds.add(nextPathItem.id);
         } else {
           break;
@@ -303,48 +303,53 @@ function QuestContent() {
     const recentAttempts = [...session.attempts, {
       id: currentItem.id, // Store quest item ID on attempt for exact exclusion
       conceptId: currentItem.conceptId,
-      conceptName: currentItem.conceptName,
+      conceptName: currentItem.conceptName || 'Core Concept',
       isCorrect,
       timestamp: Date.now(),
     }];
 
-    if (!isCorrect && (hesitationSeconds > 10 || hintCount > 0 || retryCount > 0)) {
-      setCurrentFlowState('frustrated');
-      setTargetSuccessRate(92);
-      setAbilityTheta(0.20);
-      setNextDifficultyB(0.15);
+    const nextMotivation: MotivationState =
+      !isCorrect && (hesitationSeconds > 10 || hintCount > 0 || retryCount > 0)
+        ? 'frustrated'
+        : isCorrect && hesitationSeconds < 4 && hintCount === 0 && retryCount === 0
+          ? 'bored'
+          : 'flow';
+
+    const currentStoreData = getStoreData();
+    const currentTheta = currentStoreData.calibratedTheta ?? -0.4;
+    const targetProb = TARGET_SUCCESS[nextMotivation] ?? 0.78;
+    const idealDiff = idealDifficulty(currentTheta, targetProb);
+
+    setCurrentFlowState(nextMotivation);
+    setTargetSuccessRate(Math.round(targetProb * 100));
+    setAbilityTheta(Number(currentTheta.toFixed(2)));
+    setNextDifficultyB(Number(idealDiff.toFixed(2)));
+
+    if (nextMotivation === 'frustrated') {
       setWhySignals([
         'Elevated hesitation latency (>10s)',
         'Option selection changed multiple times',
         'Scaffolding hint opened',
-        'Incorrect answer submitted',
+        'Incorrect answer submitted — target success set to 92%',
       ]);
-    } else if (isCorrect && hesitationSeconds < 4 && hintCount === 0 && retryCount === 0) {
-      setCurrentFlowState('bored');
-      setTargetSuccessRate(62);
-      setAbilityTheta(0.85);
-      setNextDifficultyB(0.90);
+    } else if (nextMotivation === 'bored') {
       setWhySignals([
         'Sub-4s instant response latency',
         'Zero retries or scaffolding needed',
-        'High consecutive accuracy',
+        'High consecutive accuracy — target success set to 62%',
       ]);
-    } else if (isCorrect) {
-      setCurrentFlowState('flow');
-      setTargetSuccessRate(78);
-      setAbilityTheta(0.55);
-      setNextDifficultyB(0.60);
+    } else {
       setWhySignals([
         'Steady response latency',
         'High accuracy trend',
-        'Optimal challenge match',
+        'Optimal challenge match — target success set to 78%',
       ]);
     }
 
     const newAttempt: Attempt = {
       id: currentItem.id, // Exact quest ID stored for seenIds filtering
       conceptId: currentItem.conceptId,
-      conceptName: currentItem.conceptName,
+      conceptName: currentItem.conceptName || 'Core Concept',
       isCorrect,
       timestamp: Date.now(),
     };
@@ -383,7 +388,7 @@ function QuestContent() {
 
       saveActiveSession({
         conceptId: session.conceptId || currentItem.conceptId,
-        conceptName: currentItem.conceptName,
+        conceptName: currentItem.conceptName || 'Core Concept',
         currentIndex: nextIndex,
         totalLength: session.totalLength,
         completedItemIds: session.items.slice(0, nextIndex).map((i) => i.id),
