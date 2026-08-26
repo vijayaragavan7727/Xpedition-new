@@ -50,8 +50,8 @@ export default function LearnPage() {
 
     const cName = concept?.name || store.goalText || 'Core Concept';
     const cSummary = (concept as any)?.summary || '';
-    const lang = activeGraph?.learnerProfile?.language || 'english';
-    const level = activeGraph?.learnerProfile?.startingLevel || 'Complete beginner';
+    const lang = activeGraph?.learnerProfile?.language || store.learnerProfile?.language || 'english';
+    const level = activeGraph?.learnerProfile?.startingLevel || store.learnerProfile?.startingLevel || 'Complete beginner';
     const mastery = concept?.masteryPercentage || 0;
 
     setConceptName(cName);

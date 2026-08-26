@@ -1,11 +1,46 @@
 'use client';
 
+import { updateTheta, thetaToPercent } from '@/lib/engine/mastery';
+
+export function computeItemHash(prompt: string, options: string[]): string {
+  const normPrompt = (prompt || '').trim().toLowerCase();
+  const normOptions = (options || []).map((o) => (o || '').trim().toLowerCase()).join('||');
+  const raw = `${normPrompt}||${normOptions}`;
+
+  // FNV-1a 32-bit hash algorithm producing an 8-character hex string
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < raw.length; i++) {
+    hash ^= raw.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  const hex = (hash >>> 0).toString(16).padStart(8, '0');
+  return `item_${hex}`;
+}
+
 export interface Attempt {
   id: string;
   conceptId: string;
   conceptName: string;
   isCorrect: boolean;
   timestamp: number;
+  confidence?: 'known' | 'unsure';
+  isSolo?: boolean;
+  isVoid?: boolean;
+  chosenIndex?: number;
+  chosenText?: string;
+  correctIndex?: number;
+  itemHash?: string;
+}
+
+export interface DistractorStat {
+  itemHash: string;
+  chosenIndex: number;
+  chosenText: string;
+  prompt?: string;
+  timesChosen: number;
+  timesThisWasCorrect: number;
+  firstSeen: number;
+  lastSeen: number;
 }
 
 export interface ConceptMastery {
@@ -16,11 +51,16 @@ export interface ConceptMastery {
   retentionRisk: number; // 0 to 1 scale. >0.35 means fading
   ptsSinceCalibration: number;
   baselineTheta?: number; // Frozen starting ability from 5-item calibration
+  thetaAssisted?: number;
+  thetaSolo?: number; // undefined/null if < 3 attempts
+  soloAttemptsCount?: number;
 }
 
 export type FlowState = 'flow' | 'bored' | 'frustrated' | 'drifting' | 'unknown';
 
 export interface LearnerProfileData {
+  name?: string;
+  voiceMuted?: boolean;
   pathType: 'goal' | 'syllabus';
   topic: string;
   language: 'english' | 'tanglish' | 'tamil';
@@ -30,7 +70,7 @@ export interface LearnerProfileData {
   deadlineDate?: string;
   testDate?: string;
   syllabusText?: string;
-  learningMode?: 'tutor' | 'quest';
+  learningMode?: 'tutor' | 'quest' | 'read';
   currentStep?: number;
   studyPlan?: {
     totalHours: number;
@@ -63,6 +103,7 @@ export interface SkillGraph {
   learnerProfile?: LearnerProfileData;
   isSeededFallback?: boolean;
   activeSession?: ActiveSessionState;
+  distractorStats?: DistractorStat[];
 }
 
 export interface UserStoreData {
@@ -82,6 +123,7 @@ export interface UserStoreData {
   learnerProfile?: LearnerProfileData;
   isSeededFallback?: boolean;
   activeSession?: ActiveSessionState;
+  distractorStats?: DistractorStat[];
 }
 
 export interface FeedbackRecord {
@@ -404,8 +446,10 @@ export function saveLearnerProfile(profile: Partial<LearnerProfileData>): UserSt
   };
 
   activeGraph.learnerProfile = updatedProfile;
+  current.learnerProfile = updatedProfile;
   if (updatedProfile.topic) {
     activeGraph.goalText = updatedProfile.topic;
+    current.goalText = updatedProfile.topic;
   }
 
   saveStoreData(current);
@@ -458,20 +502,69 @@ export function recordAttempt(attempt: Attempt): UserStoreData {
 
   activeGraph.attempts = [...(activeGraph.attempts || []), attempt];
 
+  // Accumulate distractor stats (item quality telemetry)
+  if (attempt.itemHash && attempt.chosenIndex !== undefined) {
+    const statsList = activeGraph.distractorStats || [];
+    const statIndex = statsList.findIndex(
+      (s) => s.itemHash === attempt.itemHash && s.chosenIndex === attempt.chosenIndex
+    );
+
+    if (statIndex >= 0) {
+      statsList[statIndex].timesChosen += 1;
+      if (attempt.isCorrect) statsList[statIndex].timesThisWasCorrect += 1;
+      statsList[statIndex].lastSeen = Date.now();
+      if (attempt.chosenText) statsList[statIndex].chosenText = attempt.chosenText;
+    } else {
+      statsList.push({
+        itemHash: attempt.itemHash,
+        chosenIndex: attempt.chosenIndex,
+        chosenText: attempt.chosenText || `Option ${attempt.chosenIndex + 1}`,
+        timesChosen: 1,
+        timesThisWasCorrect: attempt.isCorrect ? 1 : 0,
+        firstSeen: Date.now(),
+        lastSeen: Date.now(),
+      });
+    }
+
+    activeGraph.distractorStats = statsList;
+    current.distractorStats = statsList;
+  }
+
   // Update active concept mastery
   activeGraph.concepts = (activeGraph.concepts || []).map((concept) => {
     if (concept.id === attempt.conceptId) {
-      const delta = attempt.isCorrect ? 8 : -3;
-      const newMastery = Math.min(100, Math.max(0, concept.masteryPercentage + delta));
-      const newPts = concept.ptsSinceCalibration + (attempt.isCorrect ? 8 : 0);
-      const newRisk = attempt.isCorrect ? Math.max(0.05, concept.retentionRisk - 0.15) : Math.min(0.9, concept.retentionRisk + 0.2);
+      if (attempt.isVoid) {
+        // Voided attempts do NOT update thetaAssisted or thetaSolo
+        return concept;
+      }
 
-      return {
-        ...concept,
-        masteryPercentage: newMastery,
-        ptsSinceCalibration: newPts,
-        retentionRisk: newRisk,
-      };
+      if (attempt.isSolo) {
+        // SOLO ATTEMPT: Update thetaSolo ONLY
+        const currentSoloTheta = concept.thetaSolo ?? concept.thetaAssisted ?? -0.4;
+        const newSoloTheta = updateTheta(currentSoloTheta, attempt.isCorrect);
+        const newSoloCount = (concept.soloAttemptsCount || 0) + 1;
+
+        return {
+          ...concept,
+          thetaSolo: newSoloTheta,
+          soloAttemptsCount: newSoloCount,
+        };
+      } else {
+        // ASSISTED ATTEMPT: Update thetaAssisted ONLY
+        const currentAssistedTheta = concept.thetaAssisted ?? concept.baselineTheta ?? -0.4;
+        const newAssistedTheta = updateTheta(currentAssistedTheta, attempt.isCorrect);
+        const newMastery = thetaToPercent(newAssistedTheta);
+        const newPts = concept.ptsSinceCalibration + (attempt.isCorrect ? 8 : 0);
+        const newRisk = attempt.isCorrect ? Math.max(0.05, concept.retentionRisk - 0.15) : Math.min(0.9, concept.retentionRisk + 0.2);
+
+        return {
+          ...concept,
+          thetaAssisted: newAssistedTheta,
+          masteryPercentage: newMastery,
+          ptsSinceCalibration: newPts,
+          retentionRisk: newRisk,
+        };
+      }
     }
     return concept;
   });

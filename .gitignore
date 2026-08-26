@@ -25,6 +25,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# art assets
+# art & lottie assets
 public/art/*
 !public/art/README.md
+public/lottie/*
+!public/lottie/README.md

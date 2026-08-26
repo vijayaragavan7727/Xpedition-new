@@ -17,8 +17,10 @@ interface LessonCheckpoint {
 }
 
 interface LessonResponse {
-  chunks: LessonChunk[];
-  checkpoint: LessonCheckpoint;
+  chunks?: LessonChunk[];
+  checkpoint?: LessonCheckpoint;
+  error?: boolean;
+  message?: string;
   provider?: string;
   latencyMs?: number;
   cached?: boolean;
@@ -34,6 +36,7 @@ export async function POST(request: Request) {
       language = 'english',
       startingLevel = 'Complete beginner',
       masteryPercentage = 0,
+      isQuickLearn = false,
       bypassCache = false,
     } = body;
 
@@ -42,69 +45,49 @@ export async function POST(request: Request) {
     const masteryNum = Number(masteryPercentage) || 0;
 
     // Cache bucketing
-    let masteryBand = 'new';
-    if (masteryNum > 60) masteryBand = 'revision';
-    else if (masteryNum > 0) masteryBand = 'partial';
+    let masteryBand = isQuickLearn ? 'quick' : 'new';
+    if (!isQuickLearn) {
+      if (masteryNum > 60) masteryBand = 'revision';
+      else if (masteryNum > 0) masteryBand = 'partial';
+    }
 
     let levelBand = 'beginner';
     const normLevel = String(startingLevel).toLowerCase();
     if (normLevel.includes('deeper') || normLevel.includes('advanced')) levelBand = 'advanced';
     else if (normLevel.includes('basic') || normLevel.includes('intermediate')) levelBand = 'intermediate';
 
-    // Fallback Lesson Generator if AI keys missing or offline
-    const createFallbackLesson = (): LessonResponse => {
-      const fallbackChunks: LessonChunk[] = [
-        {
-          say: `When you need to process data or understand ${conceptName}, you start by identifying the main bottleneck. Without this concept, your system runs inefficiently or produces wrong output.`,
-        },
-        {
-          say: `${conceptName} breaks the problem into predictable, structured steps. Here is how it works in practice:`,
-          code: `# Practical example of ${conceptName}\ndef process_example(data):\n    # Apply core rule\n    return [item for item in data if item]`,
-        },
-        {
-          say: `A very common mistake is confusing the input setup with the execution result. Always verify your inputs before running the process.`,
-        },
-      ];
-
-      return {
-        chunks: fallbackChunks,
-        checkpoint: {
-          ask: `What is the primary purpose of ${conceptName}?`,
-          options: [
-            `To solve the core problem systematically`,
-            `To slow down execution`,
-            `To delete input data`,
-            `To skip validation`,
-          ],
-          answerIndex: 0,
-          why: `${conceptName} structures the solution into verifiable steps. Verifying inputs prevents unexpected runtime errors.`,
-        },
-      };
-    };
-
+    // Strict No-Template Policy: Never fabricate fake lessons.
     if (!groqApiKey && !geminiApiKey) {
-      return NextResponse.json(createFallbackLesson());
+      return NextResponse.json({
+        error: true,
+        message: 'No AI API keys configured (GROQ_API_KEY / GEMINI_API_KEY).',
+      }, { status: 503 });
     }
 
     const isRevision = masteryBand === 'revision';
-    const chunkCountRule = isRevision
-      ? 'Generate EXACTLY 2 concise revision chunks (this is a review for a learner with >60% mastery).'
-      : 'Generate 3 to 5 chunks.';
+    const chunkCountRule = isQuickLearn
+      ? 'Generate EXACTLY 2 to 3 concise, fast-paced chunks for a quick 2-minute answer.'
+      : isRevision
+        ? 'Generate EXACTLY 2 concise revision chunks (this is a review for a learner with >60% mastery).'
+        : 'Generate 3 to 5 chunks.';
 
-    let languageRule = 'Write strictly in clear, conversational English.';
+    let languageRule = 'CRITICAL LANGUAGE DIRECTIVE: Write strictly in clear, conversational English.';
     if (language === 'tanglish') {
-      languageRule = `Write strictly in TANGLISH (Tamil language written in Latin script, with all technical terms kept in English).
-Example Tanglish tone: "Namma idhula main problem enna-na, data structure heavy-ah irukkumbodhu query slow aagum. Solution enna-na indexing verify panradhu thaan." Do NOT use Tamil script (தமிழ்). Use Latin script only.`;
+      languageRule = `CRITICAL LANGUAGE DIRECTIVE: Write EVERY SINGLE CHUNK AND CHECKPOINT strictly in TANGLISH — Tamil language written in Latin script, with all technical terms left in English. Example: "Indha concept-la main problem enna-na, 19th century-la European powers Africa-va split panna fight pannanga." Do NOT write pure English. Do NOT use Tamil script (தமிழ்). Write Tamil in Latin script only.`;
     } else if (language === 'tamil') {
-      languageRule = 'Write in Tamil script, keeping technical terms in English.';
+      languageRule = `CRITICAL LANGUAGE DIRECTIVE: Write EVERY SINGLE CHUNK AND CHECKPOINT strictly in TAMIL SCRIPT (தமிழ்), keeping technical terms in English. Do NOT write in English.`;
     }
 
-    const systemPrompt = `You are a world-class, engaging technical tutor.
+    console.log('[Language Diagnostic 3] Provider System Prompt Language Directive:', languageRule);
+
+    const systemPrompt = `${languageRule}
+
+You are a world-class, engaging technical and academic tutor.
 Return ONLY valid minified JSON without markdown code fences, prose, or commentary.
 Required JSON Schema:
 {
   "chunks": [
-    { "say": "40-70 words conversational chunk text", "code": "optional code snippet string or omit" }
+    { "say": "40-70 words conversational chunk text containing REAL subject facts and mechanics", "code": "optional code snippet string or omit" }
   ],
   "checkpoint": {
     "ask": "Simple 1-sentence attention check question",
@@ -116,15 +99,20 @@ Required JSON Schema:
 
 STRICT TEACHING & STRUCTURE RULES:
 1. ${chunkCountRule} Each chunk MUST be 40 to 70 words long (the length someone speaks in 20 seconds).
-2. CHUNK 1 MUST OPEN WITH THE PROBLEM THE CONCEPT SOLVES. Never start with a definition like "X is a...". Open directly with a concrete problem!
-3. Language style: ${languageRule}
-4. NO headings, NO bullet points, NO filler phrases like "In this lesson we will" or "Let's dive in".
-5. One concrete example: If programming/code topic, put the snippet string in the "code" field. If science or theory, describe the concrete example in one natural sentence in "say".
-6. Explicitly name the single most common misunderstanding in one of the middle chunks.
-7. The checkpoint question tests basic attention/comprehension of the chunks. Provide 4 clear options and a valid 0-based answerIndex.
-8. Adapt to starting level "${startingLevel}":
+2. CHUNK 1 MUST OPEN WITH THE REAL-WORLD PROBLEM OR HISTORICAL CONTEXT OF THE SUBJECT. Never start with a definition like "X is a...". Open directly with the real subject context (e.g. for history, specific dates/nations; for science, natural phenomena; for code, architectural bottlenecks).
+3. NO generic filler phrases like "In this lesson we will", "Let's dive in", or programming jargon for non-code subjects.
+4. One concrete example: If programming/code topic, put the snippet string in the "code" field. If history or science, describe the specific historical event or natural mechanism in natural sentences in "say".
+5. Explicitly name the single most common misunderstanding in one of the middle chunks.
+6. The checkpoint question tests basic attention/comprehension of the chunks. Provide 4 clear options and a valid 0-based answerIndex.
+7. Adapt to starting level "${startingLevel}":
    - "Complete beginner": Simpler example, extra scaffolding.
-   - "Know it, going deeper": Skip basics, jump directly to subtleties and memory/performance edge cases.`;
+   - "Know it, going deeper": Skip basics, jump directly to subtleties and historical/technical edge cases.
+8. PERSONALITY REMARK: Once per lesson (not every chunk), add one short remark that fits the moment naturally:
+   — after a tricky concept: acknowledge it is hard ("Idhu konjam kastam-a irukkum, adhu normal.")
+   — after a correct checkpoint: a genuine reaction ("Correct! Neenga nenaichadha vida faster-a pidicheenga.")
+   — when naming a common misunderstanding: light solidarity ("Ellaarum mudhal-la indha thappaiye panraanga, neenga matum illa.")
+
+   One remark only. It must sound like a person, not a script. Never forced, never every chunk.`;
 
     const userPrompt = `Concept Name: "${conceptName}"
 Concept Summary: "${conceptSummary}"
@@ -132,7 +120,7 @@ Learner Language: ${language}
 Starting Level: ${startingLevel}
 Current Mastery: ${masteryPercentage}% (${masteryBand} band)
 
-Generate the complete interactive lesson now.`;
+Generate the complete authentic lesson now.`;
 
     const cacheKey = `lesson:${conceptName.toLowerCase().trim()}:${language}:${levelBand}:${masteryBand}`;
 
@@ -166,20 +154,16 @@ Generate the complete interactive lesson now.`;
       });
     }
 
-    return NextResponse.json(createFallbackLesson());
+    // Explicit notice on AI generation failure — NEVER serve hardcoded template
+    return NextResponse.json({
+      error: true,
+      message: 'AI provider returned invalid lesson format.',
+    }, { status: 502 });
   } catch (e) {
     console.error('Lesson API Error:', e);
     return NextResponse.json({
-      chunks: [
-        { say: `To solve complex problems, you need to break down how data and logic flow.` },
-        { say: `Always verify your assumptions before running production steps.` },
-      ],
-      checkpoint: {
-        ask: `What is the first step in applying this concept?`,
-        options: [`Verify assumptions`, `Ignore errors`, `Delete data`, `Skip testing`],
-        answerIndex: 0,
-        why: `Verifying assumptions ensures you don't build on top of invalid data.`,
-      },
-    });
+      error: true,
+      message: 'Lesson API unexpected error.',
+    }, { status: 500 });
   }
 }

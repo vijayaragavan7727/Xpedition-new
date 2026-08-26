@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { StateHud } from '@/components/StateHud';
-import { getStoreData, recordAttempt, saveActiveSession, clearActiveSession, selectNextTarget, setGraphContent, Attempt, FlowState } from '@/lib/store';
+import { getStoreData, recordAttempt, saveActiveSession, clearActiveSession, selectNextTarget, setGraphContent, computeItemHash, Attempt, FlowState } from '@/lib/store';
 import { selectQuest, TARGET_SUCCESS, idealDifficulty } from '@/lib/engine/difficulty';
 import { MotivationState, Quest as SeededItem } from '@/lib/types';
 
@@ -17,6 +17,7 @@ interface SessionState {
   initialFlowState: FlowState;
   conceptId?: string;
   totalLength: number;
+  isSolo?: boolean;
 }
 
 function QuestContent() {
@@ -25,12 +26,18 @@ function QuestContent() {
 
   const conceptParam = searchParams.get('concept');
   const lenParam = searchParams.get('len');
+  const modeParam = searchParams.get('mode');
+  const isSoloRequested = modeParam === 'solo';
 
   const [session, setSession] = useState<SessionState | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [userConfidence, setUserConfidence] = useState<'known' | 'unsure' | null>(null);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [isExhausted, setIsExhausted] = useState<boolean>(false);
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
+  const [showSoloPreScreen, setShowSoloPreScreen] = useState<boolean>(isSoloRequested);
+
+  const isSoloMode = Boolean(session?.isSolo || (isSoloRequested && showSoloPreScreen));
 
   // Telemetry metrics
   const [hesitationSeconds, setHesitationSeconds] = useState<number>(0);
@@ -70,7 +77,7 @@ function QuestContent() {
 
     const targetConceptId = conceptParam || (target.inProgress ? target.conceptId : undefined);
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !isSoloRequested) {
       const stored = localStorage.getItem(SESSION_STORAGE_KEY);
       if (stored) {
         try {
@@ -88,10 +95,10 @@ function QuestContent() {
       }
     }
 
-    let totalLen = target.totalLength || 6;
-    if (lenParam) {
+    let totalLen = isSoloRequested ? 6 : (target.totalLength || 6);
+    if (lenParam && !isSoloRequested) {
       totalLen = parseInt(lenParam, 10) || 3;
-    } else if (store.flowState === 'drifting') {
+    } else if (store.flowState === 'drifting' && !isSoloRequested) {
       totalLen = 4;
     }
 
@@ -117,7 +124,10 @@ function QuestContent() {
 
     // Adaptive Selection via lib/engine/difficulty.ts (excluding seen items)
     const sessionItems: SeededItem[] = [];
-    const currentTheta = store.calibratedTheta ?? -0.4;
+    const currentTheta = isSoloRequested
+      ? (store.concepts?.find((c) => c.id === targetConceptId)?.thetaSolo ?? store.calibratedTheta ?? -0.4)
+      : (store.calibratedTheta ?? -0.4);
+    
     const candidatePool = targetConceptId ? pool.filter((i) => i.conceptId === targetConceptId) : pool;
 
     for (let i = 0; i < totalLen; i++) {
@@ -146,7 +156,7 @@ function QuestContent() {
     // Resume position if persistent activeSession exists for this concept
     let initialIndex = 0;
     const activeSession = store.activeSession;
-    if (activeSession && activeSession.conceptId === (targetConceptId || sessionItems[0]?.conceptId) && activeSession.currentIndex < sessionItems.length) {
+    if (!isSoloRequested && activeSession && activeSession.conceptId === (targetConceptId || sessionItems[0]?.conceptId) && activeSession.currentIndex < sessionItems.length) {
       initialIndex = activeSession.currentIndex;
     }
 
@@ -157,24 +167,27 @@ function QuestContent() {
       initialFlowState: store.flowState,
       conceptId: targetConceptId || sessionItems[0]?.conceptId,
       totalLength: sessionItems.length,
+      isSolo: isSoloRequested,
     };
 
     setSession(newSession);
     setCurrentFlowState(store.flowState || 'flow');
 
-    saveActiveSession({
-      conceptId: newSession.conceptId || sessionItems[0]?.conceptId || '',
-      conceptName: sessionItems[0]?.conceptName || 'Core Concept',
-      currentIndex: initialIndex,
-      totalLength: sessionItems.length,
-      completedItemIds: [],
-      updatedAt: Date.now(),
-    });
+    if (!isSoloRequested) {
+      saveActiveSession({
+        conceptId: newSession.conceptId || sessionItems[0]?.conceptId || '',
+        conceptName: sessionItems[0]?.conceptName || 'Core Concept',
+        currentIndex: initialIndex,
+        totalLength: sessionItems.length,
+        completedItemIds: [],
+        updatedAt: Date.now(),
+      });
+    }
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
     }
-  }, [conceptParam, lenParam]);
+  }, [conceptParam, lenParam, modeParam]);
 
   // Handle regenerating a fresh item bank when exhausted
   const handleRegenerateBank = async () => {
@@ -212,6 +225,161 @@ function QuestContent() {
       console.error('Failed to regenerate item bank:', err);
     } finally {
       setIsRegenerating(false);
+    }
+  };
+
+  const handleStartSoloSession = () => {
+    setShowSoloPreScreen(false);
+  };
+
+  const handleExitQuest = () => {
+    if (session?.isSolo && session.attempts.length > 0) {
+      // Void mid-session exit attempts
+      session.attempts.forEach((att) => {
+        const voidAttempt: Attempt = { ...att, isSolo: true, isVoid: true };
+        recordAttempt(voidAttempt);
+      });
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+    router.push('/home');
+  };
+
+  const handleOptionSelect = (idx: number) => {
+    if (isSubmitted) return;
+    if (selectedOption !== null && selectedOption !== idx) {
+      setRetryCount((prev) => prev + 1);
+    }
+    setSelectedOption(idx);
+  };
+
+  const handleToggleHint = () => {
+    if (session?.isSolo) return; // No hints in Solo mode
+    if (!showHint) {
+      setHintCount((prev) => prev + 1);
+    }
+    setShowHint(!showHint);
+  };
+
+  const handleSubmitAnswer = () => {
+    if (selectedOption === null || isSubmitted || !session) return;
+
+    setIsSubmitted(true);
+    const currentItem = session.items[session.currentIndex];
+    const isCorrect = selectedOption === currentItem.correctIndex;
+
+    const recentAttempts = [...session.attempts, {
+      id: currentItem.id,
+      conceptId: currentItem.conceptId,
+      conceptName: currentItem.conceptName || 'Core Concept',
+      isCorrect,
+      confidence: userConfidence || undefined,
+      isSolo: session.isSolo || false,
+      timestamp: Date.now(),
+    }];
+
+    const nextMotivation: MotivationState =
+      !isCorrect && (hesitationSeconds > 10 || hintCount > 0 || retryCount > 0)
+        ? 'frustrated'
+        : isCorrect && hesitationSeconds < 4 && hintCount === 0 && retryCount === 0
+          ? 'bored'
+          : 'flow';
+
+    const currentStoreData = getStoreData();
+    const currentTheta = currentStoreData.calibratedTheta ?? -0.4;
+    const targetProb = TARGET_SUCCESS[nextMotivation] ?? 0.78;
+    const idealDiff = idealDifficulty(currentTheta, targetProb);
+
+    setCurrentFlowState(nextMotivation);
+    setTargetSuccessRate(Math.round(targetProb * 100));
+    setAbilityTheta(Number(currentTheta.toFixed(2)));
+    setNextDifficultyB(Number(idealDiff.toFixed(2)));
+
+    if (nextMotivation === 'frustrated') {
+      setWhySignals([
+        'Elevated hesitation latency (>10s)',
+        'Option selection changed multiple times',
+        session.isSolo ? 'Incorrect answer submitted — Solo mode (Interventions suppressed)' : 'Incorrect answer submitted — target success set to 92%',
+      ]);
+    } else if (nextMotivation === 'bored') {
+      setWhySignals([
+        'Sub-4s instant response latency',
+        'High consecutive accuracy — target success set to 62%',
+      ]);
+    } else {
+      setWhySignals([
+        'Steady response latency',
+        'Optimal challenge match — target success set to 78%',
+      ]);
+    }
+
+    const itemHash = computeItemHash(currentItem.prompt || (currentItem as any).ask || '', currentItem.options);
+
+    const newAttempt: Attempt = {
+      id: currentItem.id,
+      conceptId: currentItem.conceptId,
+      conceptName: currentItem.conceptName || 'Core Concept',
+      isCorrect,
+      confidence: userConfidence || undefined,
+      isSolo: session.isSolo || false,
+      timestamp: Date.now(),
+      chosenIndex: selectedOption,
+      chosenText: currentItem.options[selectedOption],
+      correctIndex: currentItem.correctIndex ?? currentItem.answerIndex ?? 0,
+      itemHash,
+    };
+
+    recordAttempt(newAttempt);
+
+    const updatedSession: SessionState = {
+      ...session,
+      attempts: recentAttempts,
+    };
+
+    setSession(updatedSession);
+  };
+
+  const handleNextItem = () => {
+    if (!session) return;
+    const currentItem = session.items[session.currentIndex];
+    const isLastItem = session.currentIndex === session.totalLength - 1;
+
+    if (isLastItem) {
+      if (!session.isSolo) {
+        clearActiveSession(currentItem.conceptName);
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+      }
+      router.push(`/session-summary${session.isSolo ? '?mode=solo' : ''}`);
+    } else {
+      const nextIndex = session.currentIndex + 1;
+      const updatedSession: SessionState = {
+        ...session,
+        currentIndex: nextIndex,
+      };
+      setSession(updatedSession);
+      setSelectedOption(null);
+      setUserConfidence(null);
+      setIsSubmitted(false);
+      setShowHint(false);
+      setHesitationSeconds(0);
+
+      if (!session.isSolo) {
+        saveActiveSession({
+          conceptId: session.conceptId || currentItem.conceptId,
+          conceptName: currentItem.conceptName || 'Core Concept',
+          currentIndex: nextIndex,
+          totalLength: session.totalLength,
+          completedItemIds: session.items.slice(0, nextIndex).map((i) => i.id),
+          updatedAt: Date.now(),
+        });
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      }
     }
   };
 
@@ -260,7 +428,7 @@ function QuestContent() {
               href="/home"
               className="block font-mono text-xs text-muted hover:text-text pt-1"
             >
-              ← Back to Home
+              Not now
             </Link>
           </div>
         </div>
@@ -279,141 +447,30 @@ function QuestContent() {
   const currentItem = session.items[session.currentIndex];
   const isLastItem = session.currentIndex === session.totalLength - 1;
 
-  const handleOptionSelect = (idx: number) => {
-    if (isSubmitted) return;
-    if (selectedOption !== null && selectedOption !== idx) {
-      setRetryCount((prev) => prev + 1);
-    }
-    setSelectedOption(idx);
-  };
-
-  const handleToggleHint = () => {
-    if (!showHint) {
-      setHintCount((prev) => prev + 1);
-    }
-    setShowHint(!showHint);
-  };
-
-  const handleSubmitAnswer = () => {
-    if (selectedOption === null || isSubmitted) return;
-
-    setIsSubmitted(true);
-    const isCorrect = selectedOption === currentItem.correctIndex;
-
-    const recentAttempts = [...session.attempts, {
-      id: currentItem.id, // Store quest item ID on attempt for exact exclusion
-      conceptId: currentItem.conceptId,
-      conceptName: currentItem.conceptName || 'Core Concept',
-      isCorrect,
-      timestamp: Date.now(),
-    }];
-
-    const nextMotivation: MotivationState =
-      !isCorrect && (hesitationSeconds > 10 || hintCount > 0 || retryCount > 0)
-        ? 'frustrated'
-        : isCorrect && hesitationSeconds < 4 && hintCount === 0 && retryCount === 0
-          ? 'bored'
-          : 'flow';
-
-    const currentStoreData = getStoreData();
-    const currentTheta = currentStoreData.calibratedTheta ?? -0.4;
-    const targetProb = TARGET_SUCCESS[nextMotivation] ?? 0.78;
-    const idealDiff = idealDifficulty(currentTheta, targetProb);
-
-    setCurrentFlowState(nextMotivation);
-    setTargetSuccessRate(Math.round(targetProb * 100));
-    setAbilityTheta(Number(currentTheta.toFixed(2)));
-    setNextDifficultyB(Number(idealDiff.toFixed(2)));
-
-    if (nextMotivation === 'frustrated') {
-      setWhySignals([
-        'Elevated hesitation latency (>10s)',
-        'Option selection changed multiple times',
-        'Scaffolding hint opened',
-        'Incorrect answer submitted — target success set to 92%',
-      ]);
-    } else if (nextMotivation === 'bored') {
-      setWhySignals([
-        'Sub-4s instant response latency',
-        'Zero retries or scaffolding needed',
-        'High consecutive accuracy — target success set to 62%',
-      ]);
-    } else {
-      setWhySignals([
-        'Steady response latency',
-        'High accuracy trend',
-        'Optimal challenge match — target success set to 78%',
-      ]);
-    }
-
-    const newAttempt: Attempt = {
-      id: currentItem.id, // Exact quest ID stored for seenIds filtering
-      conceptId: currentItem.conceptId,
-      conceptName: currentItem.conceptName || 'Core Concept',
-      isCorrect,
-      timestamp: Date.now(),
-    };
-
-    recordAttempt(newAttempt);
-
-    const updatedSession: SessionState = {
-      ...session,
-      attempts: recentAttempts,
-    };
-
-    setSession(updatedSession);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
-    }
-  };
-
-  const handleNextItem = () => {
-    if (isLastItem) {
-      clearActiveSession(currentItem.conceptName);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(SESSION_STORAGE_KEY);
-      }
-      router.push('/session-summary');
-    } else {
-      const nextIndex = session.currentIndex + 1;
-      const updatedSession: SessionState = {
-        ...session,
-        currentIndex: nextIndex,
-      };
-      setSession(updatedSession);
-      setSelectedOption(null);
-      setIsSubmitted(false);
-      setShowHint(false);
-      setHesitationSeconds(0);
-
-      saveActiveSession({
-        conceptId: session.conceptId || currentItem.conceptId,
-        conceptName: currentItem.conceptName || 'Core Concept',
-        currentIndex: nextIndex,
-        totalLength: session.totalLength,
-        completedItemIds: session.items.slice(0, nextIndex).map((i) => i.id),
-        updatedAt: Date.now(),
-      });
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
-      }
-    }
-  };
-
   return (
     <div className="min-h-[100dvh] bg-ink text-text select-none relative pb-[120px] lg:pb-8">
       {/* Top Header Bar */}
       <header className="h-[60px] px-4 sm:px-6 border-b border-line/60 flex items-center justify-between bg-[#120E22]/80 backdrop-blur-xl sticky top-0 z-30">
         <div className="flex items-center gap-3">
-          <Link href="/home" className="text-muted hover:text-text font-mono text-xs flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleExitQuest}
+            className="text-muted hover:text-text font-mono text-xs flex items-center gap-1 cursor-pointer"
+          >
             ✕ Exit
-          </Link>
+          </button>
           <span className="h-4 w-[1px] bg-line" />
           <span className="font-mono text-xs text-cyan font-semibold">
             {session.currentIndex + 1} / {session.totalLength}
           </span>
         </div>
+
+        {session.isSolo && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-600/20 border border-violet-500/40 text-violet-300 font-mono text-[10px] uppercase font-bold tracking-wider animate-pulse">
+            <span>🔒</span>
+            <span>SOLO MODE — NO HELP REACHABLE</span>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <span className="font-mono text-[10px] uppercase text-muted tracking-eyebrow hidden sm:inline font-bold">
@@ -429,17 +486,19 @@ function QuestContent() {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
         
         {/* Dynamic Learner State HUD Strip */}
-        <StateHud
-          flowState={currentFlowState}
-          hesitationSeconds={hesitationSeconds}
-          retryCount={retryCount}
-          hintCount={hintCount}
-          tabSwitchCount={tabSwitchCount}
-          abilityTheta={abilityTheta}
-          nextDifficultyB={nextDifficultyB}
-          targetSuccessRate={targetSuccessRate}
-          whySignals={whySignals}
-        />
+        {!session.isSolo && (
+          <StateHud
+            flowState={currentFlowState}
+            hesitationSeconds={hesitationSeconds}
+            retryCount={retryCount}
+            hintCount={hintCount}
+            tabSwitchCount={tabSwitchCount}
+            abilityTheta={abilityTheta}
+            nextDifficultyB={nextDifficultyB}
+            targetSuccessRate={targetSuccessRate}
+            whySignals={whySignals}
+          />
+        )}
 
         {/* Quest Item Card */}
         <div className="bg-[#120E22]/90 border border-line rounded-[20px] p-6 sm:p-8 space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
@@ -452,53 +511,109 @@ function QuestContent() {
             </h1>
           </div>
 
-          {/* Options */}
-          <div className="space-y-3">
-            {currentItem.options.map((optionText, idx) => {
-              const isSelected = selectedOption === idx;
-              const isCorrect = idx === currentItem.correctIndex;
+          {/* CONFIDENCE ASK (BEFORE OPTIONS ARE REVEALED) */}
+          {userConfidence === null ? (
+            <div className="p-5 rounded-[16px] bg-[#1A1430]/90 border border-violet/40 space-y-4 animate-fadeIn my-2 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
+              <div className="text-center space-y-1">
+                <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
+                  CONFIDENCE CHECK
+                </span>
+                <h2 className="font-sans font-semibold text-base sm:text-lg text-text">
+                  Do you know this?
+                </h2>
+              </div>
 
-              let optionStyle = 'bg-[#1A1430]/85 border-white/[0.09] hover:border-cyan text-text';
-
-              if (isSubmitted) {
-                if (isCorrect) {
-                  optionStyle = 'bg-success/15 border-success text-success font-semibold';
-                } else if (isSelected) {
-                  optionStyle = 'bg-danger/15 border-danger text-danger font-semibold';
-                } else {
-                  optionStyle = 'bg-[#1A1430]/40 border-transparent text-muted/50';
-                }
-              } else if (isSelected) {
-                optionStyle = 'bg-raised border-cyan text-text shadow-[0_0_15px_rgba(0,229,255,0.2)]';
-              }
-
-              return (
+              <div className="grid grid-cols-2 gap-3.5 max-w-sm mx-auto pt-1">
                 <button
-                  key={idx}
                   type="button"
-                  disabled={isSubmitted}
-                  onClick={() => handleOptionSelect(idx)}
-                  className={`w-full min-h-[52px] p-4 rounded-[12px] border text-left font-sans text-sm flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
+                  onClick={() => setUserConfidence('known')}
+                  className="h-[48px] px-4 rounded-[12px] bg-cyan/15 border border-cyan/50 hover:border-cyan text-cyan font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer hover:bg-cyan/25 active:scale-98 shadow-[0_0_15px_rgba(0,229,255,0.2)]"
                 >
-                  <div className="flex items-center gap-3 pr-2">
-                    <span className="font-mono text-xs font-bold text-muted min-w-[20px]">
-                      {String.fromCharCode(65 + idx)}.
-                    </span>
-                    <span className="leading-snug">{optionText}</span>
-                  </div>
-
-                  {isSubmitted && isCorrect && (
-                    <span className="w-5 h-5 rounded-full bg-success text-ink flex items-center justify-center font-bold text-xs shrink-0">
-                      ✓
-                    </span>
-                  )}
+                  <span className="text-base">✓</span>
+                  <span>I know this</span>
                 </button>
-              );
-            })}
-          </div>
 
-          {/* Explanation Banner */}
-          {isSubmitted && (
+                <button
+                  type="button"
+                  onClick={() => setUserConfidence('unsure')}
+                  className="h-[48px] px-4 rounded-[12px] bg-raised border border-line hover:border-muted text-text font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer hover:bg-raised/80 active:scale-98"
+                >
+                  <span className="text-base">?</span>
+                  <span>Not sure</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* OPTIONS (REVEALED ONLY AFTER CONFIDENCE SELECTION) */
+            <div className="space-y-3 animate-fadeIn">
+              {currentItem.options.map((optionText, idx) => {
+                const isSelected = selectedOption === idx;
+                const isCorrect = idx === currentItem.correctIndex;
+
+                let optionStyle = 'bg-[#1A1430]/85 border-white/[0.09] hover:border-cyan text-text';
+
+                if (isSubmitted) {
+                  if (session.isSolo) {
+                    // Solo Mode: NO MID-SESSION FEEDBACK (No green/red)
+                    optionStyle = isSelected
+                      ? 'bg-violet-600/30 border-violet text-text font-semibold'
+                      : 'bg-[#1A1430]/40 border-transparent text-muted/50';
+                  } else {
+                    if (isCorrect) {
+                      optionStyle = 'bg-success/15 border-success text-success font-semibold';
+                    } else if (isSelected) {
+                      optionStyle = 'bg-danger/15 border-danger text-danger font-semibold';
+                    } else {
+                      optionStyle = 'bg-[#1A1430]/40 border-transparent text-muted/50';
+                    }
+                  }
+                } else if (isSelected) {
+                  optionStyle = 'bg-raised border-cyan text-text shadow-[0_0_15px_rgba(0,229,255,0.2)]';
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={isSubmitted}
+                    onClick={() => handleOptionSelect(idx)}
+                    className={`w-full min-h-[52px] p-4 rounded-[12px] border text-left font-sans text-sm flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
+                  >
+                    <div className="flex items-center gap-3 pr-2">
+                      <span className="font-mono text-xs font-bold text-muted min-w-[20px]">
+                        {String.fromCharCode(65 + idx)}.
+                      </span>
+                      <span className="leading-snug">{optionText}</span>
+                    </div>
+
+                    {!session.isSolo && isSubmitted && isCorrect && (
+                      <span className="w-5 h-5 rounded-full bg-success text-ink flex items-center justify-center font-bold text-xs shrink-0">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* THE BLIND-SPOT MOMENT (ONLY IN ASSISTED MODE) */}
+          {!session.isSolo && isSubmitted && userConfidence === 'known' && selectedOption !== currentItem.correctIndex && (
+            <div className="p-5 rounded-[14px] bg-amber-500/15 border border-amber-500/50 space-y-2 animate-fadeIn shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                <span className="font-mono text-xs font-bold text-amber-300 uppercase tracking-wide">
+                  Worth stopping on.
+                </span>
+              </div>
+              <p className="font-sans text-xs text-amber-200/90 leading-relaxed font-normal">
+                You expected to get this. That gap between what you think you know and what you do know is where exams and interviews catch people out.
+              </p>
+            </div>
+          )}
+
+          {/* Explanation Banner (ONLY IN ASSISTED MODE) */}
+          {!session.isSolo && isSubmitted && (
             <div className="p-4 rounded-[12px] bg-panel border border-line space-y-1 animate-fadeIn">
               <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
                 EXPLANATION
@@ -509,8 +624,8 @@ function QuestContent() {
             </div>
           )}
 
-          {/* Scaffolding Hint */}
-          {showHint && (
+          {/* Scaffolding Hint (ONLY IN ASSISTED MODE) */}
+          {!session.isSolo && showHint && (
             <div className="p-3.5 rounded-[12px] bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-sans animate-fadeIn">
               💡 <strong>Hint:</strong> Focus on the primary metabolic output or key enzyme action involved.
             </div>
@@ -518,13 +633,19 @@ function QuestContent() {
 
           {/* Action Bar */}
           <div className="flex items-center justify-between pt-2 border-t border-line/50">
-            <button
-              type="button"
-              onClick={handleToggleHint}
-              className="font-mono text-xs text-muted hover:text-cyan transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <span>{showHint ? 'Hide Hint' : '💡 Hint'}</span>
-            </button>
+            {!session.isSolo ? (
+              <button
+                type="button"
+                onClick={handleToggleHint}
+                className="font-mono text-xs text-muted hover:text-cyan transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <span>{showHint ? 'Hide Hint' : '💡 Hint'}</span>
+              </button>
+            ) : (
+              <span className="font-mono text-[10px] uppercase text-violet-400 font-bold tracking-wider">
+                🔒 Solo (No Assistance)
+              </span>
+            )}
 
             {!isSubmitted ? (
               <button

@@ -196,28 +196,44 @@ export const TopBar: React.FC = () => {
               </div>
 
               {fadingConcepts.length > 0 ? (
-                <div className="space-y-2.5">
+                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {fadingConcepts.map((concept) => (
                     <div
                       key={concept.id}
-                      className="p-2.5 bg-raised/80 border-l-2 border-l-amber-400 rounded-r-[6px] flex flex-col gap-1"
+                      className="p-2.5 bg-raised/80 border-l-2 border-l-amber-400 rounded-r-[6px] flex flex-col gap-1.5"
                     >
                       <div className="flex items-center justify-between text-xs font-medium text-text">
-                        <span>{concept.name}</span>
-                        <span className="font-mono text-[10px] text-amber-400">
+                        <span className="truncate max-w-[170px]">{concept.name}</span>
+                        <span className="font-mono text-[10px] text-amber-400 shrink-0">
                           {Math.round(concept.retentionRisk * 100)}% risk
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted">
+                      <p className="text-[11px] text-muted leading-tight">
                         Memory is fading. Re-check recommended to lock in mastery.
                       </p>
+                      <div className="flex justify-end pt-1">
+                        <Link
+                          href={`/tutor/${concept.id}`}
+                          onClick={() => setShowNotifications(false)}
+                          className="font-mono text-[10px] text-cyan hover:underline font-bold flex items-center gap-1"
+                        >
+                          <span>Review Concept</span>
+                          <span>→</span>
+                        </Link>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted py-2 text-center">
-                  No retention alerts. All concept memories are stable.
-                </p>
+                <div className="py-5 text-center space-y-2">
+                  <div className="w-9 h-9 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto font-mono text-sm shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+                    ✓
+                  </div>
+                  <p className="text-xs font-sans text-text font-semibold">No alerts right now</p>
+                  <p className="text-[11px] font-sans text-muted max-w-[200px] mx-auto leading-normal">
+                    All concept memories are locked in and stable.
+                  </p>
+                </div>
               )}
             </div>
           )}

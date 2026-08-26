@@ -45,6 +45,17 @@ export const AuthCard: React.FC = () => {
     return { isValid: true, isLocalMode: false, message: null };
   }, []);
 
+  // Auto-redirect signed-in users landing on login card
+  React.useEffect(() => {
+    if (isSupabaseConfigured && supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          window.location.href = '/home';
+        }
+      });
+    }
+  }, []);
+
   // Switch between Sign In and Create Account with 180ms cross-fade
   const toggleAuthMode = (mode: boolean) => {
     if (mode === isSignUp) return;

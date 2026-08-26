@@ -2,11 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getStoreData, calculateStreak, selectNextTarget, UserStoreData, Attempt } from '@/lib/store';
 import { FeedbackSheet } from '@/components/FeedbackSheet';
+import { calibrationScore, blindSpots } from '@/lib/engine/calibration';
+import { computeGap, thetaToPercent } from '@/lib/engine/mastery';
 
 export default function HomePage() {
+  const router = useRouter();
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
+  const [quickQuery, setQuickQuery] = useState<string>('');
 
   useEffect(() => {
     setStoreData(getStoreData());
@@ -31,6 +36,12 @@ export default function HomePage() {
     contextLine = `${fadingConcepts.length} ${fadingConcepts.length === 1 ? 'concept is' : 'concepts are'} starting to fade.`;
   }
 
+  const handleQuickLearnSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickQuery.trim()) return;
+    router.push(`/tutor/quick?q=${encodeURIComponent(quickQuery.trim())}`);
+  };
+
   const formatRelativeTime = (timestamp: number) => {
     const diffMs = Date.now() - timestamp;
     const diffMins = Math.floor(diffMs / 60000);
@@ -45,17 +56,33 @@ export default function HomePage() {
   const recentAttempts: Attempt[] = storeData.attempts.slice(-3).reverse();
   const attemptConceptIds = new Set((storeData.attempts || []).map((a) => a.conceptId));
 
-  // Determine Continue Card Link & Label
-  const showLearnFirst = !target.hasAttempts && !target.inProgress;
-  const continueHref = showLearnFirst
-    ? `/learn/${encodeURIComponent(target.conceptId)}`
+  // Determine Continue Card Link & Label based on Learning Mode
+  const learningMode = storeData.learnerProfile?.learningMode || 'tutor';
+  const showLessonFirst = !target.hasAttempts && !target.inProgress && learningMode !== 'quest';
+  const lessonPath = learningMode === 'read' ? '/learn' : '/tutor';
+
+  const continueHref = showLessonFirst
+    ? `${lessonPath}/${encodeURIComponent(target.conceptId)}`
     : `/quest?concept=${encodeURIComponent(target.conceptId)}`;
   
-  const continueLabel = showLearnFirst
+  const continueLabel = showLessonFirst
     ? `Learn: ${target.conceptName}`
     : target.inProgress
       ? `Resume quest: ${target.conceptName} (${target.currentIndex} of ${target.totalLength} done)`
       : `Continue quest: ${target.conceptName}`;
+
+  const calScore = calibrationScore(storeData.attempts);
+  const calLabel =
+    calScore === null
+      ? 'Calibrating...'
+      : calScore > 0.25
+        ? 'Overconfident'
+        : calScore < -0.25
+          ? 'Cautious'
+          : 'Accurate';
+
+  const detectedBlindSpots = blindSpots(storeData.attempts, storeData.concepts);
+  const blindSpotConceptIds = new Set(detectedBlindSpots.map((bs) => bs.conceptId));
 
   return (
     <div className="space-y-6 select-none relative">
@@ -69,13 +96,63 @@ export default function HomePage() {
         </p>
       </section>
 
+      {/* STAT STRIP (CALIBRATION SLOTS REWARDS) */}
+      <section className="grid grid-cols-3 gap-3">
+        <div className="bg-[#120E22]/90 border border-line/60 rounded-[14px] p-3.5 text-center space-y-1">
+          <span className="block font-mono text-[9px] uppercase text-muted font-bold">DAILY STREAK</span>
+          <span className="block font-mono text-base sm:text-lg font-bold text-cyan">{streak} Days 🔥</span>
+        </div>
+
+        <div className="bg-[#120E22]/90 border border-line/60 rounded-[14px] p-3.5 text-center space-y-1">
+          <span className="block font-mono text-[9px] uppercase text-muted font-bold">CALIBRATION</span>
+          <span className="block font-mono text-xs sm:text-sm font-bold text-violet truncate">{calLabel}</span>
+        </div>
+
+        <div className="bg-[#120E22]/90 border border-line/60 rounded-[14px] p-3.5 text-center space-y-1">
+          <span className="block font-mono text-[9px] uppercase text-muted font-bold">BLIND SPOTS</span>
+          <span className={`block font-mono text-base sm:text-lg font-bold ${detectedBlindSpots.length > 0 ? 'text-amber-400' : 'text-text'}`}>
+            {detectedBlindSpots.length}
+          </span>
+        </div>
+      </section>
+
+      {/* QUICK LEARN ENTRY (1-TEXTBOX NO INTAKE PATH) */}
+      <section className="bg-[#120E22]/90 border border-line rounded-[16px] p-4 sm:p-5 backdrop-blur-xl">
+        <form onSubmit={handleQuickLearnSubmit} className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] tracking-eyebrow uppercase text-cyan font-bold flex items-center gap-1.5">
+              <span>⚡</span> QUICK LEARN — ASK A SINGLE QUESTION
+            </span>
+            <span className="font-mono text-[9px] text-muted">2-Min Lesson & Passport Credit</span>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={quickQuery}
+              onChange={(e) => setQuickQuery(e.target.value)}
+              placeholder="e.g. what is entropy, or how to write a follow-up email"
+              className="flex-1 h-[42px] px-3.5 rounded-[10px] bg-panel border border-line/60 font-sans text-xs text-text placeholder:text-muted/60 focus:outline-none focus:border-cyan transition-all"
+            />
+            <button
+              type="submit"
+              disabled={!quickQuery.trim()}
+              className="h-[42px] px-5 rounded-[10px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center gap-1 hover:brightness-108 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+            >
+              <span>Get Answer</span>
+              <span>→</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
       {/* CONTINUE CARD */}
       <section className="card-glass-neon p-6 rounded-[16px]">
         {hasSkillGraph ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <span className="font-mono text-[11px] tracking-eyebrow uppercase text-muted font-bold">
-                {target.inProgress ? 'RESUME QUEST SESSION' : showLearnFirst ? 'FIRST TIME LESSON' : 'NEXT RECOMMENDED TARGET'}
+                {target.inProgress ? 'RESUME QUEST SESSION' : showLessonFirst ? 'FIRST TIME LESSON' : 'NEXT RECOMMENDED TARGET'}
               </span>
               <span className="font-mono text-[11px] text-cyan font-medium">
                 {target.inProgress
@@ -100,7 +177,7 @@ export default function HomePage() {
                     {target.currentIndex} of {target.totalLength} done
                   </span>
                 )}
-                {showLearnFirst && (
+                {showLessonFirst && (
                   <span className="font-mono text-[9px] uppercase px-2 py-0.5 rounded bg-violet/20 text-violet font-bold border border-violet/30">
                     Interactive Lesson Required
                   </span>
@@ -158,9 +235,18 @@ export default function HomePage() {
         <div className="space-y-2.5">
           {storeData.concepts.map((concept) => {
             const hasAtt = attemptConceptIds.has(concept.id);
+            const isBlindSpot = blindSpotConceptIds.has(concept.id);
+            const isFading = concept.retentionRisk > 0.35;
+
+            const hasSoloData = (concept.soloAttemptsCount || 0) >= 3 && concept.thetaSolo !== undefined;
+            const assistedPct = concept.thetaAssisted !== undefined ? thetaToPercent(concept.thetaAssisted) : concept.masteryPercentage;
+            const soloPct = hasSoloData ? thetaToPercent(concept.thetaSolo!) : null;
+            const gap = computeGap(concept.thetaAssisted ?? -0.4, concept.thetaSolo, concept.soloAttemptsCount || 0);
+            const isLeansOnAi = gap !== null && gap > 30;
+
             const conceptHref = hasAtt
               ? `/quest?concept=${encodeURIComponent(concept.id)}`
-              : `/learn/${encodeURIComponent(concept.id)}`;
+              : `${lessonPath}/${encodeURIComponent(concept.id)}`;
 
             return (
               <div
@@ -168,7 +254,8 @@ export default function HomePage() {
                 className="p-3.5 rounded-[12px] bg-panel/70 border border-line/40 flex items-center justify-between gap-3 hover:border-cyan/50 transition-all"
               >
                 <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {isBlindSpot && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />}
                     <Link href={conceptHref} className="font-sans text-sm text-text font-semibold hover:text-cyan truncate">
                       {concept.name}
                     </Link>
@@ -177,27 +264,41 @@ export default function HomePage() {
                         New
                       </span>
                     )}
+                    {isLeansOnAi ? (
+                      <span className="font-mono text-[8px] uppercase px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/40 font-bold shrink-0">
+                        leans on AI
+                      </span>
+                    ) : isBlindSpot ? (
+                      <span className="font-mono text-[8px] uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold shrink-0">
+                        Blind Spot
+                      </span>
+                    ) : isFading ? (
+                      <span className="font-mono text-[8px] uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold shrink-0">
+                        Fading
+                      </span>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="h-1.5 w-28 bg-raised rounded-full overflow-hidden">
-                      <div className="h-full bg-cyan rounded-full" style={{ width: `${concept.masteryPercentage}%` }} />
+                      <div className="h-full bg-cyan rounded-full" style={{ width: `${assistedPct}%` }} />
                     </div>
-                    <span className="font-mono text-[10px] text-muted">{concept.masteryPercentage}% mastery</span>
+                    <span className="font-mono text-[10px] text-muted">
+                      Assisted <span className="text-muted/70">{assistedPct}%</span> · Solo <span className={hasSoloData ? 'text-violet-400 font-bold' : 'text-muted/50'}>{soloPct !== null ? `${soloPct}%` : '—'}</span>
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0 font-mono text-xs">
+                <div className="flex items-center gap-2 shrink-0 font-mono text-xs">
+                  <Link href={`/quest?mode=solo&concept=${encodeURIComponent(concept.id)}`} className="px-2.5 py-1.5 rounded-[8px] bg-violet-600/20 border border-violet-500/40 text-violet-300 hover:bg-violet-600/30 text-[11px] font-semibold flex items-center gap-1">
+                    <span>Solo</span>
+                    <span>🔒</span>
+                  </Link>
                   {hasAtt ? (
-                    <>
-                      <Link href={`/learn/${encodeURIComponent(concept.id)}`} className="text-muted hover:text-cyan text-[11px] underline">
-                        Review lesson
-                      </Link>
-                      <Link href={`/quest?concept=${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-raised border border-line text-text hover:border-cyan">
-                        Practice →
-                      </Link>
-                    </>
+                    <Link href={`/quest?concept=${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-raised border border-line text-text hover:border-cyan">
+                      Practice →
+                    </Link>
                   ) : (
-                    <Link href={`/learn/${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-signature-gradient text-white font-sans font-semibold text-xs">
+                    <Link href={`${lessonPath}/${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-signature-gradient text-white font-sans font-semibold text-xs">
                       Start Lesson →
                     </Link>
                   )}

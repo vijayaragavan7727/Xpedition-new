@@ -61,10 +61,21 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // 6. Refresh user session via getUser() (NOT getSession())
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 6. Refresh user session via getUser()
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data?.user || null;
+  } catch (err) {
+    console.warn('[Middleware Auth Warning] getUser fetch failed:', err);
+  }
+
+  // 6.5 Redirect authenticated users landing on '/' to '/home'
+  if (pathname === '/' && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/home';
+    return NextResponse.redirect(url);
+  }
 
   // 7. Protected route check
   const protectedRoutes = ['/home', '/history', '/passport', '/profile', '/quest', '/calibrate'];
@@ -73,10 +84,16 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isProtectedRoute && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
+    // Check if auth token cookie exists in request before bouncing
+    const hasAuthCookie = request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('-auth-token'));
+    if (!hasAuthCookie) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      url.searchParams.set('next', pathname);
+      const redirectResp = NextResponse.redirect(url);
+      response.cookies.getAll().forEach((c) => redirectResp.cookies.set(c.name, c.value));
+      return redirectResp;
+    }
   }
 
   // Return mutated response object with updated cookies

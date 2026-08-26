@@ -189,14 +189,8 @@ export default function OnboardingPage() {
     }
   };
 
-  // Final course generation and routing into Quest Mode / Calibrate
+  // Final course generation and routing into Tutor or Quest Mode / Calibrate
   const handleFinalizeMode = async (mode: 'tutor' | 'quest') => {
-    if (mode === 'tutor') {
-      setTutorNoticeOpen(true);
-      saveLearnerProfile({ learningMode: 'tutor' });
-      return;
-    }
-
     setIsSubmitting(true);
     setStatusNotice('Generating skill graph course...');
 
@@ -204,7 +198,7 @@ export default function OnboardingPage() {
 
     // Create a new skill graph object so existing graphs are never destroyed
     createNewSkillGraph(finalGoalTopic);
-    saveLearnerProfile({ learningMode: 'quest' });
+    saveLearnerProfile({ learningMode: mode, language: language as any });
 
     try {
       const res = await fetch('/api/goal', {
@@ -238,8 +232,15 @@ export default function OnboardingPage() {
       applySeededCourse(finalGoalTopic, SEEDED_PYTHON_COURSE.concepts, SEEDED_PYTHON_COURSE.items);
     } finally {
       setTimeout(() => {
-        router.push('/calibrate');
-      }, 700);
+        setIsSubmitting(false);
+        const store = getStoreData();
+        const firstConceptId = store.concepts[0]?.id || 'c_1';
+        if (mode === 'tutor') {
+          router.push(`/tutor/${encodeURIComponent(firstConceptId)}`);
+        } else {
+          router.push('/calibrate');
+        }
+      }, 600);
     }
   };
 
@@ -834,27 +835,6 @@ export default function OnboardingPage() {
                 </p>
               </button>
             </div>
-
-            {/* Tutor Mode Notice Modal */}
-            {tutorNoticeOpen && (
-              <div className="p-4 bg-violet/20 border border-violet/40 rounded-[14px] space-y-3 animate-fadeIn">
-                <div className="font-sans font-semibold text-sm text-text flex items-center gap-2">
-                  <span>🎓</span>
-                  <span>Tutor Mode Coming Soon</span>
-                </div>
-                <p className="font-sans text-xs text-muted leading-relaxed">
-                  Tutor lessons and character voice are under active construction. Jump into Quest mode right now to calibrate your skill graph!
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleFinalizeMode('quest')}
-                  className="w-full h-[42px] rounded-[10px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer"
-                >
-                  <span>Start Quest Mode Calibration</span>
-                  <span>→</span>
-                </button>
-              </div>
-            )}
           </div>
         )}
 

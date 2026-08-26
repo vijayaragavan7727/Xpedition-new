@@ -65,6 +65,13 @@ CREATE TABLE IF NOT EXISTS public.attempts (
     concept_id TEXT NOT NULL,
     concept_name TEXT NOT NULL,
     is_correct BOOLEAN NOT NULL,
+    confidence TEXT CHECK (confidence IN ('known', 'unsure')),
+    is_solo BOOLEAN DEFAULT FALSE,
+    is_void BOOLEAN DEFAULT FALSE,
+    chosen_index INT,
+    chosen_text TEXT,
+    correct_index INT,
+    item_hash TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -87,6 +94,9 @@ CREATE TABLE IF NOT EXISTS public.concepts (
     items_next INT DEFAULT 3,
     retention_risk NUMERIC DEFAULT 0.0,
     pts_since_calibration INT DEFAULT 0,
+    theta_assisted NUMERIC DEFAULT -0.4,
+    theta_solo NUMERIC DEFAULT NULL,
+    solo_attempts_count INT DEFAULT 0,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -174,3 +184,40 @@ WITH CHECK (bucket_id = 'syllabus_files' AND auth.role() = 'authenticated');
 CREATE POLICY "Users can read syllabus files"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'syllabus_files');
+
+-- -----------------------------------------------------------------------------
+-- 9. SUPABASE STORAGE BUCKET: tutor-audio (Sarvam TTS Cache)
+-- -----------------------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('tutor-audio', 'tutor-audio', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Tutor audio is publicly readable" ON storage.objects
+    FOR SELECT USING (bucket_id = 'tutor-audio');
+
+-- -----------------------------------------------------------------------------
+-- 10. DISTRACTOR STATS TABLE (Aggregate Item Quality & Misconceptions - No User IDs)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.distractor_stats (
+    item_hash TEXT NOT NULL,
+    chosen_index INT NOT NULL,
+    chosen_text TEXT,
+    prompt TEXT,
+    times_chosen INT DEFAULT 1,
+    times_this_was_correct INT DEFAULT 0,
+    first_seen TIMESTAMPTZ DEFAULT NOW(),
+    last_seen TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (item_hash, chosen_index)
+);
+
+ALTER TABLE public.distractor_stats ENABLE ROW LEVEL SECURITY;
+
+-- Learners CANNOT read distractor_stats (Admin only)
+CREATE POLICY "Admin only select on distractor_stats" ON public.distractor_stats
+    FOR SELECT USING ((SELECT handle FROM public.profiles WHERE id = auth.uid()) = 'admin' OR auth.jwt() ->> 'email' LIKE '%admin%');
+
+CREATE POLICY "Authenticated users can insert/upsert distractor_stats" ON public.distractor_stats
+    FOR ALL USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can upload tutor audio" ON storage.objects
+    FOR INSERT WITH CHECK (bucket_id = 'tutor-audio');

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getStoreData, UserStoreData, FlowState } from '@/lib/store';
 import { FeedbackSheet } from '@/components/FeedbackSheet';
+import { calibrationScore, confidenceBreakdown, blindSpots } from '@/lib/engine/calibration';
+import { computeGap, thetaToPercent } from '@/lib/engine/mastery';
 
 export default function SessionSummaryPage() {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
@@ -67,6 +69,10 @@ export default function SessionSummaryPage() {
     };
   });
 
+  const breakdown = confidenceBreakdown(storeData.attempts);
+  const score = calibrationScore(storeData.attempts);
+  const detectedBlindSpots = blindSpots(storeData.attempts, storeData.concepts);
+
   return (
     <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
       {/* Background Glow */}
@@ -109,6 +115,43 @@ export default function SessionSummaryPage() {
           </div>
         </div>
 
+        {/* SOLO MODE ASSESSMENT RESULT BANNER */}
+        {recentAttempts.some((a) => a.isSolo) && (
+          <div className="p-4 rounded-[14px] bg-violet-600/15 border border-violet-500/40 space-y-2 animate-fadeIn">
+            <span className="font-mono text-[10px] uppercase text-violet font-bold tracking-eyebrow block">
+              SOLO VS ASSISTED ABILITY EVALUATION
+            </span>
+            {(() => {
+              const activeConcept = storeData.concepts.find((c) => c.id === recentAttempts[0]?.conceptId) || storeData.concepts[0];
+              const assistedPct = activeConcept?.thetaAssisted !== undefined ? thetaToPercent(activeConcept.thetaAssisted) : (activeConcept?.masteryPercentage ?? 50);
+              const soloPct = activeConcept?.thetaSolo !== undefined && (activeConcept?.soloAttemptsCount || 0) >= 3 ? thetaToPercent(activeConcept.thetaSolo) : null;
+              const gap = computeGap(activeConcept?.thetaAssisted ?? -0.4, activeConcept?.thetaSolo, activeConcept?.soloAttemptsCount || 0);
+
+              let gapVerdict = "Some of this leans on support. Normal at this stage.";
+              if (gap !== null) {
+                if (gap < 10) gapVerdict = "Your ability holds up on its own.";
+                else if (gap <= 25) gapVerdict = "Some of this leans on support. Normal at this stage.";
+                else gapVerdict = "A lot of this depends on help being available. Worth knowing before an interview.";
+              }
+
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between font-mono text-sm pt-1">
+                    <span>Assisted <strong className="text-cyan">{assistedPct}%</strong></span>
+                    <span className="text-muted">·</span>
+                    <span>Solo <strong className="text-violet">{soloPct !== null ? `${soloPct}%` : '—'}</strong></span>
+                    <span className="text-muted">·</span>
+                    <span>Gap <strong className={gap !== null && gap > 25 ? 'text-amber-400 font-bold' : 'text-text'}>{gap !== null ? `${gap} points` : 'Building data (needs 3 solo runs)'}</strong></span>
+                  </div>
+                  <p className="font-sans text-xs text-violet-200 leading-relaxed pt-1">
+                    {gapVerdict}
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {/* Concept Mastery Changes */}
         <div className="space-y-2.5 pt-2">
           <span className="font-mono text-[10px] tracking-eyebrow uppercase text-muted font-bold block px-1">
@@ -136,6 +179,79 @@ export default function SessionSummaryPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* CONFIDENCE CALIBRATION BLOCK */}
+        <div className="space-y-3 pt-3 border-t border-line/60">
+          <div className="flex items-center justify-between px-1">
+            <span className="font-mono text-[10px] tracking-eyebrow uppercase text-cyan font-bold block">
+              CONFIDENCE CALIBRATION
+            </span>
+            <span className="font-mono text-[9px] text-muted">
+              {breakdown.totalWithConfidence} evaluated
+            </span>
+          </div>
+
+          {/* 4 Quadrants Display */}
+          <div className="grid grid-cols-4 gap-2 text-center font-mono">
+            <div className="bg-[#150F2A] p-2.5 rounded-[10px] border border-success/30">
+              <span className="block text-[8px] text-muted uppercase">SOLID</span>
+              <span className="block text-base font-bold text-success">{breakdown.solid}</span>
+            </div>
+            <div className="bg-[#150F2A] p-2.5 rounded-[10px] border border-cyan/30">
+              <span className="block text-[8px] text-muted uppercase">HONEST GAP</span>
+              <span className="block text-base font-bold text-cyan">{breakdown.honestGap}</span>
+            </div>
+            <div className="bg-[#150F2A] p-2.5 rounded-[10px] border border-violet/30">
+              <span className="block text-[8px] text-muted uppercase">FRAGILE</span>
+              <span className="block text-base font-bold text-violet">{breakdown.fragile}</span>
+            </div>
+            <div className="bg-[#150F2A] p-2.5 rounded-[10px] border border-amber-500/50 bg-amber-500/10">
+              <span className="block text-[8px] text-amber-300 uppercase font-bold">BLIND SPOT</span>
+              <span className="block text-base font-bold text-amber-400">{breakdown.blindSpot}</span>
+            </div>
+          </div>
+
+          {/* Calibration Verdict */}
+          {score !== null ? (
+            <div className="p-3.5 rounded-[12px] bg-[#1A1430] border border-line text-xs font-sans text-text leading-relaxed">
+              <p>
+                {score > 0.25
+                  ? "You're running ahead of what you actually know. Three topics need another look."
+                  : score < -0.25
+                    ? "You know more than you think. Trust yourself more."
+                    : "Your sense of what you know is accurate. That's rarer than it sounds."}
+              </p>
+            </div>
+          ) : (
+            <div className="p-3 rounded-[12px] bg-[#150F2A] border border-line/60 font-mono text-[11px] text-muted text-center">
+              A few more items and we can tell you how well-calibrated you are.
+            </div>
+          )}
+
+          {/* Blind Spots Scoped Quest Links */}
+          {detectedBlindSpots.length > 0 && (
+            <div className="space-y-2 pt-1">
+              <span className="font-mono text-[9px] uppercase text-amber-400 font-bold block px-1">
+                BLIND SPOTS DETECTED ({detectedBlindSpots.length})
+              </span>
+              {detectedBlindSpots.map((bs) => (
+                <div key={bs.conceptId} className="p-3 rounded-[12px] bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-sans font-semibold text-xs text-text block">{bs.conceptName}</span>
+                    <span className="font-mono text-[9px] text-amber-300 block">{bs.count} misconception{bs.count > 1 ? 's' : ''} recorded</span>
+                  </div>
+                  <Link
+                    href={`/quest?concept=${encodeURIComponent(bs.conceptId)}`}
+                    className="h-[32px] px-3 rounded-[8px] bg-amber-500 text-ink font-sans font-bold text-xs flex items-center gap-1 hover:brightness-110"
+                  >
+                    <span>Target Spot</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Actions */}
