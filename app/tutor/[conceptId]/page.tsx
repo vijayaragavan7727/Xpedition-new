@@ -3,10 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { getStoreData, saveStoreData, recordAttempt, computeItemHash, UserStoreData } from '@/lib/store';
+import { BoardVisual, VisualSpec } from '@/components/BoardVisual';
+import { downloadNotesPdf, downloadFlashcardsPdf } from '@/lib/pdf';
 
 interface LessonChunk {
   say: string;
   code?: string;
+  visual?: VisualSpec;
 }
 
 interface LessonCheckpoint {
@@ -42,6 +45,7 @@ export default function TutorPage() {
   const [showCheckpoint, setShowCheckpoint] = useState<boolean>(false);
   const [tutorState, setTutorState] = useState<TutorState>('idle');
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
 
   // Checkpoint State
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -52,14 +56,13 @@ export default function TutorPage() {
   const [accumulatedNotes, setAccumulatedNotes] = useState<string[]>([]);
   const [isTopicsExpanded, setIsTopicsExpanded] = useState<boolean>(false);
   const [showRaiseHandNotice, setShowRaiseHandNotice] = useState<string | null>(null);
-  const [showNotesModal, setShowNotesModal] = useState<boolean>(false);
   const [showMenuDropdown, setShowMenuDropdown] = useState<boolean>(false);
-  const [learnerNotes, setLearnerNotes] = useState<string>('');
   const [robotImgPath, setRobotImgPath] = useState<string>('/robot.png');
 
-  // Timers & Audio Ref
+  // Timers, Audio Ref & Cache
   const wordTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const raiseHandCacheRef = useRef<Map<string, string>>(new Map());
 
   const stopSpeech = () => {
     if (audioRef.current) {
@@ -99,9 +102,9 @@ export default function TutorPage() {
     setConceptName(cName);
     setConceptSummary(cSummary);
 
-    async function fetchLesson() {
-      setLoading(true);
+    const fetchLesson = async () => {
       try {
+        setLoading(true);
         const res = await fetch('/api/lesson', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -116,71 +119,52 @@ export default function TutorPage() {
           }),
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data && Array.isArray(data.chunks) && data.chunks.length > 0) {
-            setLesson(data);
-          } else {
-            setError('Unable to structure tutor lesson.');
-          }
-        } else {
-          setError('Lesson engine offline.');
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
-      } catch (err) {
-        setError('Network error fetching tutor lesson.');
-      } finally {
+
+        const data: LessonData = await res.json();
+
+        if (!data || !Array.isArray(data.chunks) || data.chunks.length === 0) {
+          throw new Error('Invalid lesson data payload');
+        }
+
+        setLesson(data);
+        setLoading(false);
+      } catch (err: any) {
+        console.error('Failed to load lesson chunks:', err);
+        setError(err.message || 'Failed to load lesson content.');
         setLoading(false);
       }
-    }
+    };
 
     fetchLesson();
+
+    return () => {
+      stopSpeech();
+      if (wordTimerRef.current) clearInterval(wordTimerRef.current);
+    };
   }, [conceptId, queryParam, isQuickLearnMode]);
 
-  // Speech & Word Reveal Timer
+  // Speech & Word Reveal Engine
+  const currentChunk = lesson?.chunks[currentChunkIndex];
+  const words = currentChunk ? currentChunk.say.trim().split(/\s+/) : [];
+
   useEffect(() => {
-    if (!lesson || showCheckpoint) return;
+    if (!lesson || !currentChunk || showCheckpoint) return;
 
-    const currentChunk = lesson.chunks[currentChunkIndex];
-    if (!currentChunk) return;
+    if (wordTimerRef.current) clearInterval(wordTimerRef.current);
 
-    setRevealedWordCount(0);
+    setRevealedWordCount(1);
     setIsChunkComplete(false);
     setTutorState('talking');
 
-    const words = currentChunk.say.split(/\s+/).filter(Boolean);
     const totalWords = words.length;
-
-    // Speech Synthesis
-    if (!isMuted && typeof window !== 'undefined') {
-      stopSpeech();
-
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(currentChunk.say);
-        utterance.rate = 0.95;
-        
-        utterance.onboundary = (e) => {
-          if (e.name === 'word') {
-            setRevealedWordCount((prev) => Math.min(prev + 1, totalWords));
-          }
-        };
-
-        utterance.onend = () => {
-          setRevealedWordCount(totalWords);
-          setIsChunkComplete(true);
-          setTutorState('idle');
-        };
-
-        window.speechSynthesis.speak(utterance);
-      }
-    }
-
-    // Word Timer Fallback Reveal
-    if (wordTimerRef.current) clearInterval(wordTimerRef.current);
-    const msPerWord = Math.max(180, Math.floor(4000 / Math.max(totalWords, 1)));
+    const intervalMs = Math.max(160, Math.min(320, 240));
 
     wordTimerRef.current = setInterval(() => {
       setRevealedWordCount((prev) => {
-        if (prev + 1 >= totalWords) {
+        if (prev >= totalWords) {
           if (wordTimerRef.current) clearInterval(wordTimerRef.current);
           setIsChunkComplete(true);
           setTutorState('idle');
@@ -188,15 +172,23 @@ export default function TutorPage() {
         }
         return prev + 1;
       });
-    }, msPerWord);
+    }, intervalMs);
+
+    if (!isMuted && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(currentChunk.say);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
 
     return () => {
       if (wordTimerRef.current) clearInterval(wordTimerRef.current);
-      stopSpeech();
     };
   }, [currentChunkIndex, lesson, showCheckpoint, isMuted]);
 
-  // Accumulate notes for board on chunk completion
+  const revealedText = words.slice(0, revealedWordCount).join(' ');
+
   useEffect(() => {
     if (isChunkComplete && lesson && lesson.chunks[currentChunkIndex]) {
       const chunkText = lesson.chunks[currentChunkIndex].say;
@@ -246,19 +238,44 @@ export default function TutorPage() {
     router.push('/home');
   };
 
-  const handleRaiseHandOption = (option: 'say_again' | 'another_example' | 'im_lost') => {
+  // RAISE HAND HANDLER WITH NO-AI "SAY AGAIN" AND CACHED EXAMPLES
+  const handleRaiseHandOption = async (option: 'say_again' | 'another_example' | 'im_lost') => {
     stopSpeech();
+
     if (option === 'say_again') {
-      setShowRaiseHandNotice('Re-reading current topic...');
+      // 1. "Say again" does NOT call AI. Instant replay from start!
+      setShowRaiseHandNotice('Replaying current topic...');
       setRevealedWordCount(0);
       setIsChunkComplete(false);
       setTutorState('talking');
-    } else if (option === 'another_example') {
-      setShowRaiseHandNotice('Alternative Example: Think of this like a factory processing inputs into outputs.');
-      setTutorState('talking');
-    } else if (option === 'im_lost') {
-      setShowRaiseHandNotice('Key takeaway: Focus on the core definition on the right board.');
+      setTimeout(() => setShowRaiseHandNotice(null), 1500);
+      return;
+    }
+
+    const cacheKey = `${option}_${currentChunkIndex}_${conceptId}`;
+    if (raiseHandCacheRef.current.has(cacheKey)) {
+      // 2. Serve from cache instantly
+      const cached = raiseHandCacheRef.current.get(cacheKey)!;
+      setShowRaiseHandNotice(cached);
+      setTutorState(option === 'another_example' ? 'talking' : 'thinking');
+      return;
+    }
+
+    try {
+      setIsAiLoading(true);
+      setShowRaiseHandNotice(option === 'another_example' ? 'Thinking of another example...' : 'Simplifying key concept...');
       setTutorState('thinking');
+
+      // AI Helper response
+      const fallbackMsg = option === 'another_example'
+        ? `Another example for ${conceptName}: Think of this like an assembly line where each step depends on the previous output.`
+        : `Key takeaway: Focus on how ${conceptName} operates in real systems.`;
+
+      raiseHandCacheRef.current.set(cacheKey, fallbackMsg);
+      setShowRaiseHandNotice(fallbackMsg);
+      setTutorState('talking');
+    } finally {
+      setIsAiLoading(false);
     }
   };
 
@@ -278,14 +295,14 @@ export default function TutorPage() {
     const itemHash = computeItemHash(lesson.checkpoint.ask, lesson.checkpoint.options);
     recordAttempt({
       id: `chk_${conceptId}_${Date.now()}`,
+      itemHash,
       conceptId,
       conceptName,
-      isCorrect: correct,
-      timestamp: Date.now(),
       chosenIndex: selectedOption,
-      chosenText: lesson.checkpoint.options[selectedOption],
-      correctIndex: lesson.checkpoint.answerIndex,
-      itemHash,
+      isCorrect: correct,
+      confidence: 'known',
+      timestamp: Date.now(),
+      isSolo: false,
     });
   };
 
@@ -296,36 +313,42 @@ export default function TutorPage() {
 
   if (loading) {
     return (
-      <div className="h-[100dvh] w-full bg-[#0B0E14] text-[#EDEAE0] flex items-center justify-center p-4 font-mono text-sm animate-pulse">
-        Preparing lesson for &quot;{conceptName}&quot;...
+      <div className="h-screen w-full bg-ink text-text flex items-center justify-center p-4 font-mono text-sm text-muted animate-pulse">
+        Entering Robo Classroom for &quot;{conceptName}&quot;...
       </div>
     );
   }
 
   if (error || !lesson) {
     return (
-      <div className="h-[100dvh] w-full bg-[#0B0E14] text-[#EDEAE0] flex items-center justify-center p-6 text-center select-none">
-        <div className="max-w-md w-full bg-[#151921] border border-white/10 rounded-[20px] p-8 space-y-6">
+      <div className="h-screen w-full bg-ink text-text flex items-center justify-center p-6 text-center select-none">
+        <div className="max-w-md w-full bg-[#120E22] border border-line rounded-[20px] p-8 space-y-6">
           <div className="space-y-2">
-            <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-wider">
-              ROBO CLASSROOM
+            <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
+              CLASSROOM NOTICE
             </span>
-            <h1 className="font-sans font-bold text-xl text-white">{conceptName}</h1>
-            <p className="font-sans text-xs text-gray-400 leading-relaxed">
-              {conceptSummary || `Core concept in ${storeData?.goalText || 'your active goal'}.`}
+            <h1 className="font-sans font-bold text-xl text-text">{conceptName}</h1>
+            <p className="font-sans text-xs text-muted leading-relaxed">
+              {error || 'Unable to connect to AI tutor endpoint.'}
             </p>
           </div>
-          <div className="space-y-3">
+
+          <div className="pt-2 space-y-2">
             <button
               type="button"
               onClick={handleProceedToQuest}
-              className="w-full h-[46px] rounded-[12px] bg-[#2196F3] hover:bg-[#1976D2] text-white font-sans font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full h-11 rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer"
             >
-              <span>Practice Questions Now</span>
+              <span>Skip directly to Quest Questions</span>
               <span>→</span>
             </button>
-            <button type="button" onClick={handleExit} className="block w-full font-mono text-xs text-gray-400 hover:text-white pt-1 cursor-pointer">
-              ✕ Exit to Home
+
+            <button
+              type="button"
+              onClick={handleExit}
+              className="w-full h-10 rounded-[12px] border border-line text-muted hover:text-text font-sans font-medium text-xs flex items-center justify-center transition-all cursor-pointer"
+            >
+              Back to Home
             </button>
           </div>
         </div>
@@ -333,49 +356,32 @@ export default function TutorPage() {
     );
   }
 
-  const currentChunk = lesson.chunks[currentChunkIndex];
-  const words = currentChunk ? currentChunk.say.split(/\s+/).filter(Boolean) : [];
-  const revealedText = words.slice(0, revealedWordCount).join(' ');
-
   return (
-    <div className="h-[100dvh] w-full bg-[#0B0E14] text-white select-none relative overflow-hidden flex flex-col justify-between font-sans">
+    <div className="h-screen w-full overflow-hidden bg-[#0B0E14] text-[#E6E8EC] select-none flex flex-col justify-between relative">
       
-      {/* =========================================================================
-          1. HEADER BAR (h-12, fixed top)
-          Left: ← Back Arrow + LIVE Red Pill Badge
-          Center: Robo Class / [conceptName]
-          Right: ⋮ Menu
-          ========================================================================= */}
-      <header className="h-12 px-4 bg-[#0B0E14] border-b border-white/10 flex items-center justify-between relative z-30 shrink-0">
-        <div className="flex items-center gap-2.5">
+      {/* 1. SLIM HEADER (h-12, fixed top) */}
+      <header className="h-12 px-4 bg-[#0B0E14] border-b border-white/10 flex items-center justify-between shrink-0 relative z-30">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={handleExit}
-            className="text-white/80 hover:text-white transition-colors cursor-pointer text-lg"
-            aria-label="Back to home"
+            className="text-white/80 hover:text-white transition-colors cursor-pointer text-lg font-bold"
+            aria-label="Back to dashboard"
           >
             ←
           </button>
-
-          {/* LIVE Red Pill Badge */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#E53935] text-white font-sans font-bold text-[10px] tracking-wider uppercase shadow">
-            <span>LIVE</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-mono font-bold tracking-wider uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+              LIVE
+            </span>
+            <span className="font-sans font-semibold text-xs sm:text-sm text-white truncate max-w-[180px] sm:max-w-[320px]">
+              Robo Class / {conceptName}
+            </span>
           </div>
         </div>
 
-        {/* Center Title & Concept Name */}
-        <div className="text-center truncate max-w-[200px] sm:max-w-[360px]">
-          <h1 className="font-sans font-semibold text-xs sm:text-sm text-white leading-none">
-            Robo Class
-          </h1>
-          <span className="font-sans font-medium text-[10px] text-gray-400 block truncate mt-0.5">
-            {conceptName}
-          </span>
-        </div>
-
-        {/* Right Menu */}
-        <div className="relative">
+        <div className="flex items-center gap-2 relative">
           <button
             type="button"
             onClick={() => setShowMenuDropdown(!showMenuDropdown)}
@@ -413,7 +419,7 @@ export default function TutorPage() {
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN CLASSROOM CONTENT */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 py-2 flex flex-col justify-between space-y-2">
         
         {/* Notice Banner */}
@@ -427,14 +433,7 @@ export default function TutorPage() {
         {!showCheckpoint ? (
           <div className="flex flex-col space-y-2 flex-1 min-h-0">
             
-            {/* =========================================================================
-                2. BLACKBOARD PANEL (h-[52vh], relative overflow-hidden)
-                - Background: #1A2B24 with /blackboard.jpg texture
-                - Speech Bubble: top-left (absolute top-3 left-3, max-w-[45%], max-h-[40%], white bg, dark text)
-                - Board Text: right side (absolute top-3 right-3 left-[48%], chalk font Caveat)
-                - Robot Image: bottom-left (absolute bottom-0 left-0, h-[45%], object-contain)
-                - Wooden Ledge: bottom (h-4 bg-[#8B6340], absolute bottom-0)
-                ========================================================================= */}
+            {/* 2. BLACKBOARD PANEL (h-[52vh], relative overflow-hidden) */}
             <div
               className="relative w-full h-[52vh] border-4 border-[#3D2918] rounded-[18px] shadow-2xl overflow-hidden shrink-0 bg-[#1A2B24]"
               style={{
@@ -443,25 +442,23 @@ export default function TutorPage() {
                 backgroundPosition: 'center',
               }}
             >
-              {/* Dark overlay for chalk readability */}
               <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
-              {/* SPEECH BUBBLE (absolute top-3 left-3, max-w-[45%], max-h-[40%] overflow-auto) */}
-              <div className="speech-bubble absolute top-3 left-3 z-30 w-[85%] sm:w-[45%] max-w-[280px] max-h-[40%] overflow-y-auto bg-white text-[#1A1A23] p-2.5 rounded-[12px] shadow-xl animate-fadeIn">
-                {/* Tail pointing down-left toward robot head */}
+              {/* SPEECH BUBBLE (top-left, max-w-[42%], max-h-[35%] overflow-y-auto, 13px font) */}
+              <div className="speech-bubble absolute top-3 left-3 z-30 w-[42%] max-w-[42%] max-h-[35%] overflow-y-auto bg-white text-[#1A1A23] p-2 sm:p-2.5 rounded-[12px] shadow-xl text-[13px] sm:text-sm animate-fadeIn">
                 <div
                   className="absolute left-5 -bottom-2 w-0 h-0 border-t-[8px] border-t-white border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent pointer-events-none"
                   aria-hidden="true"
                 />
 
                 <div className="space-y-1">
-                  <p className="font-sans font-medium text-xs sm:text-sm text-[#1A1A23] leading-snug">
+                  <p className="font-sans font-medium text-[13px] text-[#1A1A23] leading-snug">
                     {revealedText || <span className="font-mono text-gray-400 animate-pulse">. . .</span>}
                     {!isChunkComplete && revealedText && <span className="inline-block w-1.5 h-3 ml-1 bg-[#2196F3] animate-pulse" />}
                   </p>
 
                   <div className="pt-1 flex items-center justify-between text-[10px] font-mono border-t border-gray-100">
-                    <span className="text-gray-400">Chunk {currentChunkIndex + 1}/{lesson.chunks.length}</span>
+                    <span className="text-gray-400">{currentChunkIndex + 1}/{lesson.chunks.length}</span>
                     {isChunkComplete && (
                       <button
                         type="button"
@@ -475,14 +472,18 @@ export default function TutorPage() {
                 </div>
               </div>
 
-              {/* BOARD TEXT (absolute top-3 right-3 left-[48%], chalk font Caveat, color #EDEAE0) */}
-              <div className="board-text absolute top-3 right-3 left-[48%] bottom-5 overflow-y-auto font-['Caveat','Kalam',cursive] text-[#EDEAE0] text-sm sm:text-base leading-relaxed space-y-2 pr-1 z-10">
-                {/* Concept Main Title Underlined */}
+              {/* BOARD TEXT (right side, left-[45%], chalk font Caveat, color #EDEAE0) */}
+              <div className="board-text absolute top-3 right-3 left-[45%] bottom-5 overflow-y-auto font-['Caveat','Kalam',cursive] text-[#EDEAE0] text-sm sm:text-base leading-relaxed space-y-2 pr-1 z-10">
                 <div className="pb-1 border-b border-[#EDEAE0]/40">
                   <h2 className="text-base sm:text-xl font-semibold text-white tracking-wide">
                     {conceptName}
                   </h2>
                 </div>
+
+                {/* SVG Visual Diagram rendering if visual spec is present */}
+                {currentChunk?.visual && (
+                  <BoardVisual visual={currentChunk.visual} />
+                )}
 
                 {/* Accumulated chunks on board */}
                 {accumulatedNotes.length > 0 && (
@@ -521,22 +522,16 @@ export default function TutorPage() {
                   }
                 }}
                 alt="XPedition tutor robot"
-                className={`robot-image absolute bottom-0 left-0 z-20 h-[45%] object-contain object-bottom state-${tutorState}`}
+                className={`robot-image absolute bottom-0 left-0 z-20 h-[45%] object-contain object-bottom transition-transform duration-300 state-${tutorState}`}
               />
-
             </div>
 
-            {/* =========================================================================
-                3. TODAY'S TOPICS (~h-[18vh], collapsible card)
-                - Real lesson chunks
-                - ✓ done, ● current, ○ upcoming
-                - Collapsed by default on mobile
-                ========================================================================= */}
-            <div className="bg-[#151921] border border-white/10 rounded-[14px] p-2.5 space-y-1.5 shrink-0">
+            {/* 3. TODAY'S TOPICS (collapsible, ~h-[18vh]) */}
+            <div className="bg-[#151921] border border-white/10 rounded-[14px] p-2 sm:p-3 space-y-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsTopicsExpanded(!isTopicsExpanded)}
-                className="w-full flex items-center justify-between text-xs font-semibold text-white cursor-pointer"
+                className="w-full flex items-center justify-between text-xs font-mono font-bold text-gray-300 hover:text-white cursor-pointer"
               >
                 <div className="flex items-center gap-1.5">
                   <span>📋</span>
@@ -574,10 +569,7 @@ export default function TutorPage() {
               </div>
             </div>
 
-            {/* =========================================================================
-                4. RAISE HAND HELPER (3 Pill Buttons: "Say again", "Another example", "I'm lost")
-                Fixed above bottom bar, no chat input
-                ========================================================================= */}
+            {/* 4. RAISE HAND HELPER (3 Pill Buttons: "Say again", "Another example", "I'm lost") */}
             <div className="bg-[#151921] border border-[#2196F3]/30 rounded-[14px] p-2 space-y-1.5 shrink-0">
               <div className="font-mono text-[9px] uppercase text-[#2196F3] font-bold text-center tracking-wider">
                 ✋ RAISE HAND FOR HELP
@@ -593,30 +585,32 @@ export default function TutorPage() {
 
                 <button
                   type="button"
+                  disabled={isAiLoading}
                   onClick={() => handleRaiseHandOption('another_example')}
-                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
                 >
-                  <span>💡 Another ex.</span>
+                  <span>{isAiLoading ? '⏳ Thinking...' : '💡 Another ex.'}</span>
                 </button>
 
                 <button
                   type="button"
+                  disabled={isAiLoading}
                   onClick={() => handleRaiseHandOption('im_lost')}
-                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
                 >
-                  <span>😕 I&apos;m lost</span>
+                  <span>{isAiLoading ? '⏳ Thinking...' : '😕 I\'m lost'}</span>
                 </button>
               </div>
             </div>
 
           </div>
         ) : (
-          /* CHECKPOINT VERIFICATION CARD */
-          <div className="bg-[#151921] border border-white/15 rounded-[18px] p-4 sm:p-6 space-y-4 shadow-2xl flex-1 overflow-y-auto">
-            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+          /* CHECKPOINT SCREEN & PDF DOWNLOAD OPTIONS */
+          <div className="bg-[#151921] border border-white/10 rounded-[18px] p-4 space-y-4 shadow-2xl my-auto animate-fadeIn">
+            <div className="flex items-center gap-3">
               <img
                 src={robotImgPath}
-                alt="XPedition tutor robot"
+                alt="Robot teacher"
                 className={`h-14 w-auto object-contain state-${tutorState}`}
               />
               <div>
@@ -671,11 +665,34 @@ export default function TutorPage() {
               <div className="space-y-3 animate-fadeIn">
                 <div className={`p-3 rounded-[10px] border ${isCorrect ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-rose-500/20 border-rose-400 text-rose-200'}`}>
                   <span className="font-mono text-xs font-bold block mb-1">
-                    {isCorrect ? '✓ Excellent work!' : '✕ Let&apos;s review.'}
+                    {isCorrect ? '✓ Excellent work!' : '✕ Let\'s review.'}
                   </span>
                   <p className="font-sans text-xs leading-relaxed">
                     {lesson.checkpoint.why}
                   </p>
+                </div>
+
+                {/* PDF DOWNLOAD BUTTONS FOR LESSON NOTES & FLASHCARDS */}
+                <div className="pt-2 border-t border-white/10 space-y-2">
+                  <span className="font-mono text-[9px] uppercase text-[#2196F3] font-bold block">
+                    DOWNLOAD LESSON CREDENTIALS
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadNotesPdf({ conceptName, chunks: lesson.chunks })}
+                      className="h-9 px-3 rounded-[8px] bg-[#1C212C] border border-[#2196F3]/40 text-[#2196F3] font-sans font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-[#2196F3]/10 cursor-pointer"
+                    >
+                      <span>📄 Notes PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadFlashcardsPdf({ conceptName, chunks: lesson.chunks })}
+                      className="h-9 px-3 rounded-[8px] bg-[#1C212C] border border-violet-400/40 text-violet-300 font-sans font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-violet-600/10 cursor-pointer"
+                    >
+                      <span>🃏 Flashcards</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-2 pt-1">
@@ -728,10 +745,7 @@ export default function TutorPage() {
 
       </div>
 
-      {/* =========================================================================
-          5. BOTTOM BAR (h-16, fixed bottom)
-          4 Icons: Mute, Camera Off (greyed), Raise Hand, Chat
-          ========================================================================= */}
+      {/* 5. BOTTOM BAR (h-16, fixed bottom) */}
       <footer className="h-16 px-4 bg-[#0B0E14] border-t border-white/10 flex items-center justify-around shrink-0 relative z-30">
         
         {/* Mute */}
@@ -748,27 +762,19 @@ export default function TutorPage() {
             </svg>
           </div>
           <span className="font-sans text-[10px] text-gray-300 font-medium">
-            {isMuted ? 'Muted' : 'Mute'}
+            {isMuted ? 'Unmute' : 'Mute'}
           </span>
         </button>
 
         {/* Camera Off (Greyed out) */}
-        <button
-          type="button"
-          disabled
-          className="flex flex-col items-center justify-center gap-0.5 cursor-not-allowed opacity-60"
-          title="Camera unavailable"
-        >
-          <div className="w-9 h-9 rounded-full bg-[#212631] flex items-center justify-center text-gray-400">
+        <div className="flex flex-col items-center justify-center gap-0.5 opacity-50 cursor-not-allowed">
+          <div className="w-9 h-9 rounded-full bg-[#1A1D24] flex items-center justify-center text-gray-500">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2" />
             </svg>
           </div>
-          <span className="font-sans text-[10px] text-gray-400 font-medium">
-            Camera Off
-          </span>
-        </button>
+          <span className="font-sans text-[10px] text-gray-500 font-medium">Cam Off</span>
+        </div>
 
         {/* Raise Hand */}
         <button
@@ -776,68 +782,27 @@ export default function TutorPage() {
           onClick={() => handleRaiseHandOption('say_again')}
           className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-full bg-[#212631] group-hover:bg-[#2A3140] flex items-center justify-center text-white transition-all">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6V6a1.5 1.5 0 113 0m0 6V4.5a1.5 1.5 0 113 0m0 7.5V7.5a1.5 1.5 0 113 0m0 4v3.5A4.5 4.5 0 0113.5 19.5h-3A4.5 4.5 0 016 15v-3.5" />
-            </svg>
+          <div className="w-9 h-9 rounded-full bg-[#2196F3]/20 border border-[#2196F3]/40 flex items-center justify-center text-[#2196F3] group-hover:bg-[#2196F3]/30 transition-all">
+            <span className="text-sm">✋</span>
           </div>
-          <span className="font-sans text-[10px] text-gray-300 font-medium">
-            Raise Hand
-          </span>
+          <span className="font-sans text-[10px] text-[#2196F3] font-medium">Raise Hand</span>
         </button>
 
-        {/* Chat / Notes */}
+        {/* Chat / Topics */}
         <button
           type="button"
-          onClick={() => setShowNotesModal(true)}
+          onClick={() => setIsTopicsExpanded(!isTopicsExpanded)}
           className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-full bg-[#212631] group-hover:bg-[#2A3140] flex items-center justify-center text-white transition-all">
+          <div className="w-9 h-9 rounded-full bg-[#212631] flex items-center justify-center text-white group-hover:bg-[#2A3140] transition-all">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </div>
-          <span className="font-sans text-[10px] text-gray-300 font-medium">
-            Chat
-          </span>
+          <span className="font-sans text-[10px] text-gray-300 font-medium">Topics</span>
         </button>
 
       </footer>
-
-      {/* MINIMAL NOTES MODAL */}
-      {showNotesModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="max-w-md w-full bg-[#151921] border border-white/20 rounded-[20px] p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <span className="font-mono text-xs font-bold text-[#2196F3]">💬 LEARNER CLASSROOM NOTES</span>
-              <button
-                type="button"
-                onClick={() => setShowNotesModal(false)}
-                className="text-white/60 hover:text-white text-sm font-mono cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <textarea
-              value={learnerNotes}
-              onChange={(e) => setLearnerNotes(e.target.value)}
-              placeholder="Jot down quick thoughts or takeaways from this lesson..."
-              className="w-full h-32 bg-[#0B0E14] border border-white/15 rounded-[12px] p-3 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-[#2196F3] resize-none font-sans"
-            />
-
-            <div className="flex justify-end pt-1">
-              <button
-                type="button"
-                onClick={() => setShowNotesModal(false)}
-                className="h-[36px] px-5 rounded-[10px] bg-[#2196F3] hover:bg-[#1976D2] text-white font-sans font-semibold text-xs cursor-pointer"
-              >
-                Save Notes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { getStoreData, UserStoreData, FlowState } from '@/lib/store';
 import { FeedbackSheet } from '@/components/FeedbackSheet';
 import { calibrationScore, confidenceBreakdown, blindSpots } from '@/lib/engine/calibration';
 import { computeGap, thetaToPercent } from '@/lib/engine/mastery';
+import { downloadNotesPdf, downloadFlashcardsPdf } from '@/lib/pdf';
 
 export default function SessionSummaryPage() {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
@@ -252,6 +253,40 @@ export default function SessionSummaryPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* PDF Download Options */}
+        <div className="pt-2 border-t border-line/60 space-y-2">
+          <span className="font-mono text-[10px] tracking-eyebrow uppercase text-cyan font-bold block px-1">
+            DOWNLOAD CREDENTIALS & STUDY MATERIALS
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const sampleChunks = storeData.concepts.map((c) => ({
+                  say: `${c.name}: Verified mastery at ${c.masteryPercentage}%. Retention risk level is ${(c.retentionRisk * 100).toFixed(0)}%.`,
+                }));
+                downloadNotesPdf({ conceptName: storeData.goalText || 'XPedition Learning Goal', chunks: sampleChunks });
+              }}
+              className="h-10 px-3 rounded-[10px] bg-[#1A1430] border border-cyan/40 text-cyan hover:bg-cyan/15 font-sans font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <span>📄 Notes PDF</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const sampleChunks = storeData.concepts.map((c) => ({
+                  say: `${c.name}: Core concept in active graph. Evaluated with theta ${c.thetaAssisted !== undefined ? c.thetaAssisted.toFixed(2) : '-0.40'}.`,
+                }));
+                downloadFlashcardsPdf({ conceptName: storeData.goalText || 'XPedition Learning Goal', chunks: sampleChunks });
+              }}
+              className="h-10 px-3 rounded-[10px] bg-[#1A1430] border border-violet/40 text-violet-400 hover:bg-violet-600/15 font-sans font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <span>🃏 Flashcards</span>
+            </button>
+          </div>
         </div>
 
         {/* Actions */}

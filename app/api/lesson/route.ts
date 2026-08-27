@@ -87,7 +87,11 @@ Return ONLY valid minified JSON without markdown code fences, prose, or commenta
 Required JSON Schema:
 {
   "chunks": [
-    { "say": "40-70 words conversational chunk text containing REAL subject facts and mechanics", "code": "optional code snippet string or omit" }
+    {
+      "say": "40-70 words conversational chunk text containing REAL subject facts and mechanics",
+      "code": "optional code snippet string or omit",
+      "visual": { "type": "cycle", "steps": ["Step 1", "Step 2", "Step 3"] }
+    }
   ],
   "checkpoint": {
     "ask": "Simple 1-sentence attention check question",
@@ -96,6 +100,14 @@ Required JSON Schema:
     "why": "Two sentence explanation of why this answer is correct."
   }
 }
+
+VISUAL FIELD SPECIFICATION:
+For each chunk, if the concept has a visual component (a diagram, a cycle, a structure, a comparison), add a 'visual' field with one of these types:
+- { "type": "cycle", "steps": ["Step 1", "Step 2", "Step 3"] }
+- { "type": "comparison", "left": "Left Title", "right": "Right Title", "points": ["Point A vs B"] }
+- { "type": "list", "items": ["Item 1", "Item 2"] }
+- { "type": "none" }
+Keep it simple — max 4 items. Only add when genuinely useful.
 
 STRICT TEACHING & STRUCTURE RULES:
 1. ${chunkCountRule} Each chunk MUST be 40 to 70 words long (the length someone speaks in 20 seconds).

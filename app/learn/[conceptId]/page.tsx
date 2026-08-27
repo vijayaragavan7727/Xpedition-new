@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { getStoreData, UserStoreData } from '@/lib/store';
+import { getStoreData, saveStoreData, recordAttempt, computeItemHash, UserStoreData } from '@/lib/store';
+import { downloadNotesPdf, downloadFlashcardsPdf } from '@/lib/pdf';
 
 interface LessonChunk {
   say: string;
@@ -330,7 +331,30 @@ export default function LearnPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between gap-3 pt-2">
+                {/* PDF DOWNLOAD BUTTONS FOR LESSON NOTES & FLASHCARDS */}
+                <div className="pt-3 border-t border-line/40 space-y-2">
+                  <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow block">
+                    DOWNLOAD LESSON CREDENTIALS & STUDY MATERIALS
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadNotesPdf({ conceptName, chunks: lesson.chunks })}
+                      className="h-10 px-3 rounded-[10px] bg-panel border border-cyan/40 text-cyan font-sans font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-cyan/15 transition-all cursor-pointer"
+                    >
+                      <span>📄 Notes PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadFlashcardsPdf({ conceptName, chunks: lesson.chunks })}
+                      className="h-10 px-3 rounded-[10px] bg-panel border border-violet/40 text-violet-300 font-sans font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-violet-600/15 transition-all cursor-pointer"
+                    >
+                      <span>🃏 Flashcards</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1">
                   {!isCorrect && (
                     <button
                       type="button"
