@@ -70,12 +70,6 @@ export async function middleware(request: NextRequest) {
     console.warn('[Middleware Auth Warning] getUser fetch failed:', err);
   }
 
-  // 6.5 Redirect authenticated users landing on '/' to '/home'
-  if (pathname === '/' && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/home';
-    return NextResponse.redirect(url);
-  }
 
   // 7. Protected route check
   const protectedRoutes = ['/home', '/history', '/passport', '/profile', '/quest', '/calibrate'];
