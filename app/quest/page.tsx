@@ -448,9 +448,9 @@ function QuestContent() {
   const isLastItem = session.currentIndex === session.totalLength - 1;
 
   return (
-    <div className="min-h-[100dvh] bg-ink text-text select-none relative pb-[120px] lg:pb-8">
+    <div className="h-[100dvh] w-full bg-ink text-text select-none relative flex flex-col justify-between overflow-hidden">
       {/* Top Header Bar */}
-      <header className="h-[60px] px-4 sm:px-6 border-b border-line/60 flex items-center justify-between bg-[#120E22]/80 backdrop-blur-xl sticky top-0 z-30">
+      <header className="h-[60px] px-4 sm:px-6 border-b border-line/60 flex items-center justify-between bg-[#120E22]/80 backdrop-blur-xl shrink-0 z-30">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -483,7 +483,7 @@ function QuestContent() {
       </header>
 
       {/* Main Content Area */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+      <main className="flex-1 min-h-0 max-w-2xl w-full mx-auto px-3.5 sm:px-6 py-2.5 sm:py-4 flex flex-col justify-between overflow-hidden">
         
         {/* Dynamic Learner State HUD Strip */}
         {!session.isSolo && (
@@ -501,19 +501,19 @@ function QuestContent() {
         )}
 
         {/* Quest Item Card */}
-        <div className="bg-[#120E22]/90 border border-line rounded-[20px] p-6 sm:p-8 space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-          <div className="space-y-2">
+        <div className="bg-[#120E22]/90 border border-line rounded-[20px] p-4 sm:p-8 space-y-4 sm:space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="space-y-1.5 sm:space-y-2">
             <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
               QUESTION {session.currentIndex + 1} OF {session.totalLength} ({currentItem.id})
             </span>
-            <h1 className="font-sans font-semibold text-lg sm:text-xl text-text leading-snug">
+            <h1 className="font-sans font-semibold text-base sm:text-xl text-text leading-snug">
               {currentItem.prompt}
             </h1>
           </div>
 
           {/* CONFIDENCE ASK (BEFORE OPTIONS ARE REVEALED) */}
           {userConfidence === null ? (
-            <div className="p-5 rounded-[16px] bg-[#1A1430]/90 border border-violet/40 space-y-4 animate-fadeIn my-2 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
+            <div className="p-4 sm:p-5 rounded-[16px] bg-[#1A1430]/90 border border-violet/40 space-y-3 sm:space-y-4 animate-fadeIn my-1 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
               <div className="text-center space-y-1">
                 <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
                   CONFIDENCE CHECK
@@ -523,11 +523,11 @@ function QuestContent() {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-2 gap-3.5 max-w-sm mx-auto pt-1">
+              <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto pt-0.5">
                 <button
                   type="button"
                   onClick={() => setUserConfidence('known')}
-                  className="h-[48px] px-4 rounded-[12px] bg-cyan/15 border border-cyan/50 hover:border-cyan text-cyan font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer hover:bg-cyan/25 active:scale-98 shadow-[0_0_15px_rgba(0,229,255,0.2)]"
+                  className="h-[44px] px-3 rounded-[12px] bg-cyan/15 border border-cyan/50 hover:border-cyan text-cyan font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer hover:bg-cyan/25 active:scale-98 shadow-[0_0_15px_rgba(0,229,255,0.2)]"
                 >
                   <span className="text-base">✓</span>
                   <span>I know this</span>
@@ -536,7 +536,7 @@ function QuestContent() {
                 <button
                   type="button"
                   onClick={() => setUserConfidence('unsure')}
-                  className="h-[48px] px-4 rounded-[12px] bg-raised border border-line hover:border-muted text-text font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer hover:bg-raised/80 active:scale-98"
+                  className="h-[44px] px-3 rounded-[12px] bg-raised border border-line hover:border-muted text-text font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer hover:bg-raised/80 active:scale-98"
                 >
                   <span className="text-base">?</span>
                   <span>Not sure</span>
@@ -545,7 +545,7 @@ function QuestContent() {
             </div>
           ) : (
             /* OPTIONS (REVEALED ONLY AFTER CONFIDENCE SELECTION) */
-            <div className="space-y-3 animate-fadeIn">
+            <div className="space-y-2 sm:space-y-3 animate-fadeIn">
               {currentItem.options.map((optionText, idx) => {
                 const isSelected = selectedOption === idx;
                 const isCorrect = idx === currentItem.correctIndex;
@@ -577,7 +577,7 @@ function QuestContent() {
                     type="button"
                     disabled={isSubmitted}
                     onClick={() => handleOptionSelect(idx)}
-                    className={`w-full min-h-[52px] p-4 rounded-[12px] border text-left font-sans text-sm flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
+                    className={`w-full min-h-[46px] p-3 rounded-[12px] border text-left font-sans text-xs sm:text-sm flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
                   >
                     <div className="flex items-center gap-3 pr-2">
                       <span className="font-mono text-xs font-bold text-muted min-w-[20px]">

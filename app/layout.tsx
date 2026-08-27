@@ -1,9 +1,20 @@
 import type { Metadata } from 'next';
+import { Inter, Orbitron, JetBrains_Mono, Caveat, Kalam } from 'next/font/google';
 import './globals.css';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron', display: 'swap' });
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono', display: 'swap' });
+const caveat = Caveat({ subsets: ['latin'], variable: '--font-caveat', display: 'swap' });
+const kalam = Kalam({ weight: ['400', '700'], subsets: ['latin'], variable: '--font-kalam', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'XPEDITION — Adaptive Learning',
-  description: 'Adaptive learning platform floating over a neon cyberpunk city backdrop.',
+  description: 'XPedition — adaptive learning that measures what you know without AI assistance. Your solo score vs your assisted score.',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -12,15 +23,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${orbitron.variable} ${jetbrainsMono.variable} ${caveat.variable} ${kalam.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preload" href="/art/hero-left.jpg" as="image" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Kalam:wght@400;700&family=Orbitron:wght@600;700&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body className="bg-ink text-text selection:bg-violet selection:text-white antialiased min-h-screen">
         {children}

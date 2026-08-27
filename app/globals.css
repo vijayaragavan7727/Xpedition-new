@@ -129,3 +129,36 @@ body {
     transform: scale(1.04) !important;
   }
 }
+
+/* Robot Avatar PNG States & Keyframes */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
+}
+
+.state-idle {
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(34,211,238,0.3));
+}
+
+.state-talking {
+  animation: float 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 16px rgba(34,211,238,0.7));
+}
+
+.state-thinking {
+  transform: rotate(-3deg);
+  filter: drop-shadow(0 0 8px rgba(168,85,247,0.4));
+}
+
+.state-happy {
+  animation: pulse-glow 0.5s ease-in-out 2;
+  filter: drop-shadow(0 0 24px rgba(34,211,238,0.9));
+}
+
+

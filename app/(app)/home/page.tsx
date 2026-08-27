@@ -146,8 +146,9 @@ export default function HomePage() {
         </form>
       </section>
 
-      {/* CONTINUE CARD */}
-      <section className="card-glass-neon p-6 rounded-[16px]">
+      {/* STICKY CONTINUE CARD */}
+      <section className="sticky top-0 z-20 pt-1 -mt-1 bg-ink/95 backdrop-blur-md rounded-[18px]">
+        <div className="card-glass-neon p-5 sm:p-6 rounded-[16px]">
         {hasSkillGraph ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -219,6 +220,7 @@ export default function HomePage() {
             </Link>
           </div>
         )}
+        </div>
       </section>
 
       {/* SKILL GRAPH CONCEPTS BREAKDOWN */}

@@ -88,22 +88,25 @@ export default function AppLayout({
   }
 
   return (
-    <div className="relative min-h-screen bg-ink text-text selection:bg-violet selection:text-white">
+    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-ink text-text selection:bg-violet selection:text-white relative">
       <DashBackdrop src="/art/hero-left.jpg" />
       <TopBar />
-      <TabBar />
       
       {loopBrokenNotice && (
-        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-300 font-mono text-xs px-4 py-2 text-center relative z-40">
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-300 font-mono text-xs px-4 py-2 text-center relative z-40 shrink-0">
           ⚠️ Loop Guard: Navigation state was restored to Home. You can resume calibration anytime.
         </div>
       )}
 
-      <main className="relative z-10 lg:pl-[240px] pb-[88px] lg:pb-8">
-        <div className="w-full max-w-[640px] lg:max-w-[1080px] mx-auto px-4 sm:px-6 pt-4">
+      {/* SCROLLABLE MAIN CONTENT AREA (Only this scrolls) */}
+      <main className="flex-1 min-h-0 overflow-y-auto relative z-10 lg:pl-[240px]">
+        <div className="w-full max-w-[640px] lg:max-w-[1080px] mx-auto px-4 sm:px-6 pt-4 pb-[84px] lg:pb-8">
           {children}
         </div>
       </main>
+
+      {/* FIXED BOTTOM NAV TABBAR */}
+      <TabBar />
     </div>
   );
 }

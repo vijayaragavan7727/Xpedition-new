@@ -25,9 +25,11 @@ const config: Config = {
         success: 'var(--success)',
       },
       fontFamily: {
-        orbitron: ['Orbitron', 'sans-serif'],
-        sans: ['Inter', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        orbitron: ['var(--font-orbitron)', 'sans-serif'],
+        sans: ['var(--font-inter)', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'monospace'],
+        caveat: ['var(--font-caveat)', 'cursive'],
+        kalam: ['var(--font-kalam)', 'cursive'],
       },
       letterSpacing: {
         wordmark: '0.16em',

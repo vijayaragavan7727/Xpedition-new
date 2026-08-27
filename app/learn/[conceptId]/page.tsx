@@ -212,10 +212,10 @@ export default function LearnPage() {
       {/* MAIN CONTENT AREA */}
       <main className="w-full max-w-xl mx-auto my-auto relative z-10 py-6">
         {!showCheckpoint ? (
-          <div className="bg-[#120E22]/90 border border-line rounded-[20px] p-6 sm:p-8 backdrop-blur-xl space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="bg-[#120E22]/90 border border-line rounded-[20px] p-4 sm:p-8 backdrop-blur-xl space-y-4 flex flex-col max-h-[calc(100dvh-130px)] sm:max-h-[calc(100dvh-160px)] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
             
-            {/* Progress Dots */}
-            <div className="flex items-center justify-between border-b border-line/40 pb-3">
+            {/* Progress Dots (Fixed Top) */}
+            <div className="flex items-center justify-between border-b border-line/40 pb-3 shrink-0">
               <div className="flex items-center gap-2">
                 {lesson.chunks.map((_, idx) => (
                   <div
@@ -235,16 +235,16 @@ export default function LearnPage() {
               </span>
             </div>
 
-            {/* Chunk Speech Text */}
-            <div className="space-y-4">
+            {/* Chunk Speech Text & Code (Scrolls internally if long) */}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4">
               <p className="font-sans text-base sm:text-lg text-text leading-relaxed font-normal">
                 {currentChunk.say}
               </p>
 
               {/* Code Snippet if present */}
               {currentChunk.code && (
-                <div className="mt-4 p-4 rounded-[12px] bg-panel border border-line/60 overflow-x-auto">
-                  <span className="block font-mono text-[9px] uppercase text-cyan font-bold mb-2">
+                <div className="mt-3 p-3.5 rounded-[12px] bg-panel border border-line/60 overflow-x-auto">
+                  <span className="block font-mono text-[9px] uppercase text-cyan font-bold mb-1.5">
                     CODE EXAMPLE
                   </span>
                   <pre className="font-mono text-xs sm:text-sm text-cyan leading-relaxed">
@@ -254,12 +254,12 @@ export default function LearnPage() {
               )}
             </div>
 
-            {/* Navigation Bar */}
-            <div className="pt-4 border-t border-line/40 flex justify-end">
+            {/* Navigation Bar (Anchored at Bottom) */}
+            <div className="pt-3 border-t border-line/40 flex justify-end shrink-0 bg-[#120E22]/90 sticky bottom-0">
               <button
                 type="button"
                 onClick={handleNextChunk}
-                className="h-[46px] px-6 rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center gap-2 hover:brightness-108 transition-all cursor-pointer"
+                className="h-[46px] px-6 rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center gap-2 hover:brightness-108 transition-all cursor-pointer shadow-lg"
               >
                 <span>{currentChunkIndex + 1 === totalChunks ? 'Go to Checkpoint' : 'Next'}</span>
                 <span>→</span>

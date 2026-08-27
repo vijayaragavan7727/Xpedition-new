@@ -271,8 +271,8 @@ export const AuthCard: React.FC = () => {
           </div>
         )}
 
-        {/* Local Mode Notice Banner if Supabase keys absent */}
-        {isSupabaseConfigured && urlValidation.isValid && (
+        {/* Dev Mode Notice Banner if Supabase configured */}
+        {process.env.NODE_ENV === 'development' && isSupabaseConfigured && urlValidation.isValid && (
           <div className="p-2 bg-success/10 border border-success/30 rounded-[10px] text-center">
             <span className="font-mono text-[10px] text-success block font-semibold">
               ✓ Connected to Supabase Authentication

@@ -1,11 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { getStoreData, saveStoreData, saveActiveSession, recordAttempt, computeItemHash, UserStoreData } from '@/lib/store';
-import { TutorAvatar, TutorState } from '@/components/TutorAvatar';
-import { TutorBoard } from '@/components/TutorBoard';
+import { getStoreData, saveStoreData, recordAttempt, computeItemHash, UserStoreData } from '@/lib/store';
 
 interface LessonChunk {
   say: string;
@@ -24,6 +21,8 @@ interface LessonData {
   checkpoint: LessonCheckpoint;
 }
 
+export type TutorState = 'idle' | 'talking' | 'thinking' | 'happy';
+
 export default function TutorPage() {
   const router = useRouter();
   const params = useParams();
@@ -36,38 +35,32 @@ export default function TutorPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Lesson State & Telemetry
+  // Lesson Progression State
   const [currentChunkIndex, setCurrentChunkIndex] = useState<number>(0);
   const [revealedWordCount, setRevealedWordCount] = useState<number>(0);
   const [isChunkComplete, setIsChunkComplete] = useState<boolean>(false);
   const [showCheckpoint, setShowCheckpoint] = useState<boolean>(false);
   const [tutorState, setTutorState] = useState<TutorState>('idle');
-  const [isMuted, setIsMuted] = useState<boolean>(false); // DEFAULT ON
+  const [isMuted, setIsMuted] = useState<boolean>(false);
 
   // Checkpoint State
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
-  // Adaptive Interventions State
-  const [hesitationMessage, setHesitationMessage] = useState<string | null>(null);
-  const [fastSkipCount, setFastSkipCount] = useState<number>(0);
-  const [showSkipToQuestionsOffer, setShowSkipToQuestionsOffer] = useState<boolean>(false);
-  const [tabSwitchNotice, setTabSwitchNotice] = useState<string | null>(null);
+  // Classroom UI State
   const [accumulatedNotes, setAccumulatedNotes] = useState<string[]>([]);
-  
-  // Classroom Raise Hand & Topics State
-  const [showRaiseHandModal, setShowRaiseHandModal] = useState<boolean>(false);
-  const [raiseHandNotice, setRaiseHandNotice] = useState<string | null>(null);
   const [isTopicsExpanded, setIsTopicsExpanded] = useState<boolean>(false);
+  const [showRaiseHandNotice, setShowRaiseHandNotice] = useState<string | null>(null);
+  const [showNotesModal, setShowNotesModal] = useState<boolean>(false);
+  const [showMenuDropdown, setShowMenuDropdown] = useState<boolean>(false);
+  const [learnerNotes, setLearnerNotes] = useState<string>('');
+  const [robotImgPath, setRobotImgPath] = useState<string>('/robot.png');
 
-  // Timers & Speech Refs
+  // Timers & Audio Ref
   const wordTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const hesitationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const chunkStartTimeRef = useRef<number>(Date.now());
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Stop speech synthesis & HTML audio element on cleanup
   const stopSpeech = () => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -77,32 +70,6 @@ export default function TutorPage() {
     }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
-    }
-  };
-
-  const handleRaiseHandOpen = () => {
-    stopSpeech();
-    setShowRaiseHandModal(true);
-  };
-
-  const handleRaiseHandOption = (option: 'say_again' | 'another_example' | 'im_lost') => {
-    console.log('[RaiseHand Telemetry]', { chunkIndex: currentChunkIndex, option });
-    setShowRaiseHandModal(false);
-
-    if (option === 'say_again') {
-      setRaiseHandNotice('Re-reading current chunk at 0.8x pace...');
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      setRevealedWordCount(0);
-      setIsChunkComplete(false);
-      setTutorState('talking');
-    } else if (option === 'another_example') {
-      setRaiseHandNotice('Alternative Example: Think of this like a factory line where inputs are transformed into outputs step-by-step.');
-      setTutorState('talking');
-    } else if (option === 'im_lost') {
-      setRaiseHandNotice('Simplified Concept: Core takeaway is just remembering the primary input and output of this reaction.');
-      setTutorState('talking');
     }
   };
 
@@ -123,8 +90,8 @@ export default function TutorPage() {
       setIsMuted(store.learnerProfile.voiceMuted);
     }
 
-    const cName = queryParam || concept?.name || store.goalText || 'Quick Concept';
-    const cSummary = (concept as any)?.summary || 'Quick single-question answer';
+    const cName = queryParam || concept?.name || store.goalText || 'Core Concept';
+    const cSummary = (concept as any)?.summary || '';
     const lang = activeGraph?.learnerProfile?.language || store.learnerProfile?.language || 'english';
     const level = activeGraph?.learnerProfile?.startingLevel || store.learnerProfile?.startingLevel || 'Complete beginner';
     const mastery = concept?.masteryPercentage || 0;
@@ -132,10 +99,6 @@ export default function TutorPage() {
     setConceptName(cName);
     setConceptSummary(cSummary);
 
-    console.log('[Language Diagnostic 1] Profile Stored Language:', lang);
-    console.log('[Language Diagnostic 2] Sent to /api/lesson:', { conceptName: cName, language: lang, startingLevel: level });
-
-    // Fetch interactive lesson content from API
     async function fetchLesson() {
       setLoading(true);
       try {
@@ -156,27 +119,6 @@ export default function TutorPage() {
         if (res.ok) {
           const data = await res.json();
           if (data && Array.isArray(data.chunks) && data.chunks.length > 0) {
-            // Apply Personalized Greeting to Chunk 1 if valid learner name is present
-            const rawName = activeGraph?.learnerProfile?.name || store.learnerProfile?.name || store.handle || '';
-            const cleanName = rawName.trim();
-            const isGeneric = !cleanName || ['learner', 'null', 'undefined'].includes(cleanName.toLowerCase());
-
-            if (!isGeneric && data.chunks[0]?.say) {
-              const currentChunk1 = data.chunks[0].say;
-              let greeting = '';
-              if (lang === 'tamil') {
-                greeting = `ஹே ${cleanName}, இன்னைக்கி ${cName} பத்தி பேசலாம். `;
-              } else if (lang === 'tanglish') {
-                greeting = `Hey ${cleanName}, indha concept ${cName} romba interesting-a irukkum. `;
-              } else {
-                greeting = `Hey ${cleanName}, let's dig into ${cName} today. `;
-              }
-
-              if (!currentChunk1.startsWith('Hey ') && !currentChunk1.startsWith('ஹே ')) {
-                data.chunks[0].say = `${greeting}${currentChunk1}`;
-              }
-            }
-
             setLesson(data);
           } else {
             setError('Unable to structure tutor lesson.');
@@ -194,274 +136,81 @@ export default function TutorPage() {
     fetchLesson();
   }, [conceptId, queryParam, isQuickLearnMode]);
 
-  // Tab switch detection (visibilitychange)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        stopSpeech();
-      } else {
-        setTabSwitchNotice(`Welcome back! We were on chunk ${currentChunkIndex + 1}.`);
-        setTimeout(() => setTabSwitchNotice(null), 4000);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [currentChunkIndex]);
-
-  // Speech Synthesis Voice Resolution & Diagnostic State
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [missingTamilVoiceNotice, setMissingTamilVoiceNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-    const updateVoices = () => {
-      const vList = window.speechSynthesis.getVoices();
-      setAvailableVoices(vList);
-    };
-
-    updateVoices();
-    window.speechSynthesis.onvoiceschanged = updateVoices;
-
-    return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.onvoiceschanged = null;
-      }
-    };
-  }, []);
-
-  const resolveTutorVoice = (langSetting: string) => {
-    const normLang = String(langSetting).toLowerCase().trim();
-
-    if (normLang === 'tamil') {
-      const taVoice = availableVoices.find((v) => v.lang.toLowerCase().startsWith('ta'));
-      if (!taVoice) {
-        return { voice: null, lang: 'ta-IN', rate: 0.95, missingTamilVoice: true };
-      }
-      return { voice: taVoice, lang: 'ta-IN', rate: 0.95, missingTamilVoice: false };
-    }
-
-    if (normLang === 'tanglish') {
-      const enInVoice = availableVoices.find(
-        (v) => v.lang.toLowerCase() === 'en-in' || v.name.toLowerCase().includes('india')
-      );
-      const enVoice = enInVoice || availableVoices.find((v) => v.lang.toLowerCase().startsWith('en'));
-      return { voice: enVoice || null, lang: 'en-IN', rate: 1.0, missingTamilVoice: false };
-    }
-
-    const enInVoice = availableVoices.find(
-      (v) => v.lang.toLowerCase() === 'en-in' || v.name.toLowerCase().includes('india')
-    );
-    const enVoice = enInVoice || availableVoices.find((v) => v.lang.toLowerCase().startsWith('en'));
-    return { voice: enVoice || null, lang: 'en-US', rate: 1.0, missingTamilVoice: false };
-  };
-
-  // 4-LEVEL FALLBACK AUDIO ENGINE WITH TIMEUPDATE WORD SYNC & NEXT CHUNK PRE-FETCHING
+  // Speech & Word Reveal Timer
   useEffect(() => {
     if (!lesson || showCheckpoint) return;
 
-    stopSpeech();
-    if (wordTimerRef.current) clearInterval(wordTimerRef.current);
-    if (hesitationTimerRef.current) clearTimeout(hesitationTimerRef.current);
+    const currentChunk = lesson.chunks[currentChunkIndex];
+    if (!currentChunk) return;
 
-    const chunk = lesson.chunks[currentChunkIndex];
-    if (!chunk) return;
-
-    chunkStartTimeRef.current = Date.now();
-    const words = chunk.say.split(' ');
-    const langSetting = storeData?.learnerProfile?.language || 'english';
-
-    // Reduced Motion Check
-    const prefersReducedMotion =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (prefersReducedMotion) {
-      setRevealedWordCount(words.length);
-      setIsChunkComplete(true);
-      setTutorState('idle');
-      return;
-    }
-
-    setRevealedWordCount(1);
+    setRevealedWordCount(0);
     setIsChunkComplete(false);
     setTutorState('talking');
 
-    let isAudioPlaying = false;
+    const words = currentChunk.say.split(/\s+/).filter(Boolean);
+    const totalWords = words.length;
 
-    async function initializeAudio() {
-      if (isMuted) {
-        // Muted fallback timer pacing
-        const msPerWord = langSetting === 'tamil' ? 428 : 333;
-        let wordIdx = 1;
-        wordTimerRef.current = setInterval(() => {
-          wordIdx++;
-          setRevealedWordCount(wordIdx);
-          if (wordIdx >= words.length) {
-            if (wordTimerRef.current) clearInterval(wordTimerRef.current);
-            setIsChunkComplete(true);
-            setTutorState('idle');
-          }
-        }, msPerWord);
-        return;
-      }
+    // Speech Synthesis
+    if (!isMuted && typeof window !== 'undefined') {
+      stopSpeech();
 
-      // LEVEL 1 & 2: Sarvam AI Audio (Cached or Fresh API)
-      try {
-        const res = await fetch('/api/speak', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: chunk.say, language: langSetting, speaker: 'ratan' }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.audioBase64) {
-            setMissingTamilVoiceNotice(null);
-            const audio = new Audio(`data:audio/wav;base64,${data.audioBase64}`);
-            audioRef.current = audio;
-            isAudioPlaying = true;
-
-            audio.ontimeupdate = () => {
-              if (audio.duration && !isNaN(audio.duration)) {
-                const progress = audio.currentTime / audio.duration;
-                const count = Math.floor(progress * words.length);
-                setRevealedWordCount(Math.max(1, Math.min(count + 1, words.length)));
-              }
-            };
-
-            audio.onended = () => {
-              setRevealedWordCount(words.length);
-              setIsChunkComplete(true);
-              setTutorState('idle');
-
-              hesitationTimerRef.current = setTimeout(() => {
-                setHesitationMessage('Want me to go over that again slower?');
-              }, 15000);
-            };
-
-            audio.play().catch(() => {
-              console.warn('[Audio Engine] Autoplay blocked by browser. Reading along mode enabled.');
-            });
-
-            // PRE-FETCH NEXT CHUNK'S AUDIO IN BACKGROUND
-            if (lesson && currentChunkIndex + 1 < lesson.chunks.length) {
-              const nextChunk = lesson.chunks[currentChunkIndex + 1];
-              fetch('/api/speak', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: nextChunk.say, language: langSetting, speaker: 'ratan' }),
-              }).catch(() => {});
-            }
-
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('[Audio Engine] Sarvam AI endpoint unavailable, trying browser fallback...');
-      }
-
-      // LEVEL 3: Browser SpeechSynthesis (ONLY if matching voice exists on device)
-      const voiceInfo = resolveTutorVoice(langSetting);
-      if (!voiceInfo.missingTamilVoice && typeof window !== 'undefined' && window.speechSynthesis) {
-        setMissingTamilVoiceNotice(null);
-        const utterance = new SpeechSynthesisUtterance(chunk.say);
-        utterance.lang = voiceInfo.lang;
-        if (voiceInfo.voice) utterance.voice = voiceInfo.voice;
-        utterance.rate = voiceInfo.rate;
-
-        utterance.onboundary = (event) => {
-          if (event.name === 'word') {
-            const spokenText = chunk.say.substring(0, event.charIndex + event.charLength);
-            const count = spokenText.trim().split(/\s+/).length;
-            setRevealedWordCount(Math.min(count, words.length));
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(currentChunk.say);
+        utterance.rate = 0.95;
+        
+        utterance.onboundary = (e) => {
+          if (e.name === 'word') {
+            setRevealedWordCount((prev) => Math.min(prev + 1, totalWords));
           }
         };
 
         utterance.onend = () => {
-          setRevealedWordCount(words.length);
+          setRevealedWordCount(totalWords);
           setIsChunkComplete(true);
           setTutorState('idle');
         };
 
         window.speechSynthesis.speak(utterance);
-        return;
       }
+    }
 
-      // LEVEL 4: Honest Reading-along mode
-      setMissingTamilVoiceNotice('No audio voice available on this device — reading along instead.');
-      const msPerWord = langSetting === 'tamil' ? 428 : 333;
-      let wordIdx = 1;
-      wordTimerRef.current = setInterval(() => {
-        wordIdx++;
-        setRevealedWordCount(wordIdx);
-        if (wordIdx >= words.length) {
+    // Word Timer Fallback Reveal
+    if (wordTimerRef.current) clearInterval(wordTimerRef.current);
+    const msPerWord = Math.max(180, Math.floor(4000 / Math.max(totalWords, 1)));
+
+    wordTimerRef.current = setInterval(() => {
+      setRevealedWordCount((prev) => {
+        if (prev + 1 >= totalWords) {
           if (wordTimerRef.current) clearInterval(wordTimerRef.current);
           setIsChunkComplete(true);
           setTutorState('idle');
+          return totalWords;
         }
-      }, msPerWord);
-    }
+        return prev + 1;
+      });
+    }, msPerWord);
 
-    initializeAudio();
+    return () => {
+      if (wordTimerRef.current) clearInterval(wordTimerRef.current);
+      stopSpeech();
+    };
+  }, [currentChunkIndex, lesson, showCheckpoint, isMuted]);
 
-    // Accumulate key points for the whiteboard
-    if (!chunk.code) {
+  // Accumulate notes for board on chunk completion
+  useEffect(() => {
+    if (isChunkComplete && lesson && lesson.chunks[currentChunkIndex]) {
+      const chunkText = lesson.chunks[currentChunkIndex].say;
       setAccumulatedNotes((prev) => {
-        if (!prev.includes(chunk.say)) {
-          return [...prev, chunk.say];
+        if (!prev.includes(chunkText)) {
+          return [...prev, chunkText];
         }
         return prev;
       });
     }
-
-    // Save persistent resume state
-    saveActiveSession({
-      conceptId,
-      conceptName,
-      currentIndex: currentChunkIndex,
-      totalLength: lesson.chunks.length,
-      completedItemIds: [],
-      updatedAt: Date.now(),
-    });
-
-    return () => {
-      stopSpeech();
-      if (wordTimerRef.current) clearInterval(wordTimerRef.current);
-      if (hesitationTimerRef.current) clearTimeout(hesitationTimerRef.current);
-    };
-  }, [currentChunkIndex, lesson, showCheckpoint, isMuted]);
-
-  const handleSkipChunkText = () => {
-    stopSpeech();
-    if (!lesson) return;
-    if (wordTimerRef.current) clearInterval(wordTimerRef.current);
-
-    const chunk = lesson.chunks[currentChunkIndex];
-    if (chunk) {
-      setRevealedWordCount(chunk.say.split(' ').length);
-      setIsChunkComplete(true);
-      setTutorState('idle');
-    }
-
-    // Detect fast skipping (<2s time on chunk)
-    const elapsed = Date.now() - chunkStartTimeRef.current;
-    if (elapsed < 2000) {
-      const nextFast = fastSkipCount + 1;
-      setFastSkipCount(nextFast);
-      if (nextFast >= 2) {
-        setShowSkipToQuestionsOffer(true);
-      }
-    }
-  };
+  }, [isChunkComplete, currentChunkIndex, lesson]);
 
   const handleNextChunk = () => {
-    stopSpeech();
-    setHesitationMessage(null);
     if (!lesson) return;
-
     if (currentChunkIndex + 1 < lesson.chunks.length) {
       setCurrentChunkIndex((prev) => prev + 1);
     } else {
@@ -470,31 +219,18 @@ export default function TutorPage() {
     }
   };
 
-  const handleReRevealChunk = () => {
-    stopSpeech();
-    setHesitationMessage(null);
-    setRevealedWordCount(1);
-    setIsChunkComplete(false);
-  };
-
   const handleToggleMute = () => {
     const nextMute = !isMuted;
     setIsMuted(nextMute);
     if (nextMute) stopSpeech();
 
     const current = getStoreData();
-    const activeGraph = current.graphs?.find((g) => g.id === current.activeGraphId) || current.graphs?.[0];
-    if (activeGraph) {
-      if (!activeGraph.learnerProfile) {
-        activeGraph.learnerProfile = {
-          pathType: 'goal',
-          topic: activeGraph.goalText || 'General',
-          language: 'english',
-          dailyMinutes: 30,
-          startingLevel: 'Complete beginner',
-        };
-      }
-      activeGraph.learnerProfile.voiceMuted = nextMute;
+    if (current.graphs) {
+      current.graphs.forEach((g) => {
+        if (g.learnerProfile) {
+          g.learnerProfile.voiceMuted = nextMute;
+        }
+      });
     }
     if (current.learnerProfile) {
       current.learnerProfile.voiceMuted = nextMute;
@@ -508,6 +244,22 @@ export default function TutorPage() {
       sessionStorage.setItem('xpedition_exit_override', 'true');
     }
     router.push('/home');
+  };
+
+  const handleRaiseHandOption = (option: 'say_again' | 'another_example' | 'im_lost') => {
+    stopSpeech();
+    if (option === 'say_again') {
+      setShowRaiseHandNotice('Re-reading current topic...');
+      setRevealedWordCount(0);
+      setIsChunkComplete(false);
+      setTutorState('talking');
+    } else if (option === 'another_example') {
+      setShowRaiseHandNotice('Alternative Example: Think of this like a factory processing inputs into outputs.');
+      setTutorState('talking');
+    } else if (option === 'im_lost') {
+      setShowRaiseHandNotice('Key takeaway: Focus on the core definition on the right board.');
+      setTutorState('thinking');
+    }
   };
 
   const handleOptionSelect = (idx: number) => {
@@ -544,22 +296,22 @@ export default function TutorPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-4 font-mono text-sm text-muted animate-pulse">
-        Tutor preparing lesson for &quot;{conceptName}&quot;...
+      <div className="h-[100dvh] w-full bg-[#0B0E14] text-[#EDEAE0] flex items-center justify-center p-4 font-mono text-sm animate-pulse">
+        Preparing lesson for &quot;{conceptName}&quot;...
       </div>
     );
   }
 
   if (error || !lesson) {
     return (
-      <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-6 text-center select-none">
-        <div className="max-w-md w-full bg-[#120E22] border border-line rounded-[20px] p-8 space-y-6">
+      <div className="h-[100dvh] w-full bg-[#0B0E14] text-[#EDEAE0] flex items-center justify-center p-6 text-center select-none">
+        <div className="max-w-md w-full bg-[#151921] border border-white/10 rounded-[20px] p-8 space-y-6">
           <div className="space-y-2">
-            <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
-              TUTOR SUMMARY
+            <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-wider">
+              ROBO CLASSROOM
             </span>
-            <h1 className="font-sans font-bold text-xl text-text">{conceptName}</h1>
-            <p className="font-sans text-xs text-muted leading-relaxed">
+            <h1 className="font-sans font-bold text-xl text-white">{conceptName}</h1>
+            <p className="font-sans text-xs text-gray-400 leading-relaxed">
               {conceptSummary || `Core concept in ${storeData?.goalText || 'your active goal'}.`}
             </p>
           </div>
@@ -567,12 +319,12 @@ export default function TutorPage() {
             <button
               type="button"
               onClick={handleProceedToQuest}
-              className="w-full h-[46px] rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center justify-center gap-2"
+              className="w-full h-[46px] rounded-[12px] bg-[#2196F3] hover:bg-[#1976D2] text-white font-sans font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Practice Questions Now</span>
               <span>→</span>
             </button>
-            <button type="button" onClick={handleExit} className="block w-full font-mono text-xs text-muted hover:text-text pt-1">
+            <button type="button" onClick={handleExit} className="block w-full font-mono text-xs text-gray-400 hover:text-white pt-1 cursor-pointer">
               ✕ Exit to Home
             </button>
           </div>
@@ -582,240 +334,307 @@ export default function TutorPage() {
   }
 
   const currentChunk = lesson.chunks[currentChunkIndex];
-  const words = currentChunk ? currentChunk.say.split(' ') : [];
+  const words = currentChunk ? currentChunk.say.split(/\s+/).filter(Boolean) : [];
   const revealedText = words.slice(0, revealedWordCount).join(' ');
 
   return (
-    <div className="min-h-[100dvh] bg-[#0E1512] text-text select-none relative overflow-x-hidden flex flex-col justify-between p-3 sm:p-6">
-      {/* Background Classroom Atmosphere Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[450px] bg-emerald-950/20 rounded-full blur-[150px] pointer-events-none" />
-
-      {/* SLIM CLASSROOM HEADER BAR */}
-      <header className="w-full max-w-5xl mx-auto flex items-center justify-between border-b border-white/10 pb-3 relative z-20">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={handleExit} className="font-mono text-xs text-[#EDEAE0]/70 hover:text-white transition-colors cursor-pointer">
-            ✕ Exit
+    <div className="h-[100dvh] w-full bg-[#0B0E14] text-white select-none relative overflow-hidden flex flex-col justify-between font-sans">
+      
+      {/* =========================================================================
+          1. HEADER BAR (h-12, fixed top)
+          Left: ← Back Arrow + LIVE Red Pill Badge
+          Center: Robo Class / [conceptName]
+          Right: ⋮ Menu
+          ========================================================================= */}
+      <header className="h-12 px-4 bg-[#0B0E14] border-b border-white/10 flex items-center justify-between relative z-30 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={handleExit}
+            className="text-white/80 hover:text-white transition-colors cursor-pointer text-lg"
+            aria-label="Back to home"
+          >
+            ←
           </button>
-          <span className="h-3 w-[1px] bg-white/20" />
-          <span className="font-mono text-xs text-amber-200 font-semibold truncate max-w-[150px] sm:max-w-[280px]">
+
+          {/* LIVE Red Pill Badge */}
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#E53935] text-white font-sans font-bold text-[10px] tracking-wider uppercase shadow">
+            <span>LIVE</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          </div>
+        </div>
+
+        {/* Center Title & Concept Name */}
+        <div className="text-center truncate max-w-[200px] sm:max-w-[360px]">
+          <h1 className="font-sans font-semibold text-xs sm:text-sm text-white leading-none">
+            Robo Class
+          </h1>
+          <span className="font-sans font-medium text-[10px] text-gray-400 block truncate mt-0.5">
             {conceptName}
           </span>
         </div>
 
-        {/* PROGRESS BAR & CONTROLS */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] text-[#EDEAE0]/60 uppercase hidden sm:inline">
-              Chunk {currentChunkIndex + 1}/{lesson.chunks.length}
-            </span>
-            <div className="w-24 sm:w-36 h-2 rounded-full bg-[#1A2B24] border border-white/15 overflow-hidden p-0.5">
-              <div
-                className="h-full bg-amber-300 rounded-full transition-all duration-300"
-                style={{ width: `${((currentChunkIndex + 1) / lesson.chunks.length) * 100}%` }}
-              />
+        {/* Right Menu */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowMenuDropdown(!showMenuDropdown)}
+            className="text-white/80 hover:text-white p-1 transition-colors cursor-pointer text-lg"
+            aria-label="Menu options"
+          >
+            ⋮
+          </button>
+
+          {showMenuDropdown && (
+            <div className="absolute right-0 top-9 w-48 bg-[#151921] border border-white/15 rounded-[12px] p-2 shadow-2xl z-40 font-mono text-xs space-y-1 animate-fadeIn">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenuDropdown(false);
+                  handleProceedToQuest();
+                }}
+                className="w-full text-left px-3 py-2 rounded-[8px] hover:bg-white/10 text-[#2196F3] flex items-center justify-between cursor-pointer font-semibold"
+              >
+                <span>Skip to Questions</span>
+                <span>→</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenuDropdown(false);
+                  handleExit();
+                }}
+                className="w-full text-left px-3 py-2 rounded-[8px] hover:bg-white/10 text-gray-400 cursor-pointer"
+              >
+                Exit Class
+              </button>
             </div>
-          </div>
-
-          <button
-            type="button"
-            disabled={Boolean(missingTamilVoiceNotice)}
-            onClick={handleToggleMute}
-            className={`px-3 py-1.5 rounded-[8px] border font-mono text-xs flex items-center gap-1.5 transition-all ${
-              missingTamilVoiceNotice
-                ? 'bg-raised/40 border-line/40 text-muted/50 cursor-not-allowed'
-                : isMuted
-                  ? 'bg-[#1A2B24] border-white/20 text-[#EDEAE0]/70 hover:text-white cursor-pointer'
-                  : 'bg-emerald-500/20 border-emerald-400/60 text-emerald-300 cursor-pointer shadow-[0_0_10px_rgba(52,211,153,0.3)]'
-            }`}
-          >
-            <span>{missingTamilVoiceNotice ? '🔇 Voice Unavailable' : isMuted ? '🔇 Sound Off' : '🔊 Sound On'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleProceedToQuest}
-            className="font-mono text-xs text-[#EDEAE0]/60 hover:text-amber-200 transition-colors cursor-pointer hidden sm:block"
-          >
-            Skip to questions →
-          </button>
+          )}
         </div>
       </header>
 
-      {/* MAIN CLASSROOM WORKSPACE */}
-      <main className="w-full max-w-5xl mx-auto my-auto relative z-10 py-4 space-y-5">
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 py-2 flex flex-col justify-between space-y-2">
         
-        {/* Notices */}
-        {missingTamilVoiceNotice && (
-          <div className="p-3 rounded-[12px] bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono text-xs flex items-center justify-between gap-2 animate-fadeIn">
-            <span>⚠️ {missingTamilVoiceNotice}</span>
-            <span className="text-[10px] opacity-75">Reading along mode</span>
-          </div>
-        )}
-
-        {raiseHandNotice && (
-          <div className="p-3.5 rounded-[12px] bg-violet-600/20 border border-violet-500/40 text-violet-200 font-sans text-xs flex items-center justify-between animate-fadeIn">
-            <span>✋ {raiseHandNotice}</span>
-            <button type="button" onClick={() => setRaiseHandNotice(null)} className="text-violet-400 text-xs font-mono">✕ Dismiss</button>
+        {/* Notice Banner */}
+        {showRaiseHandNotice && (
+          <div className="p-2 rounded-[10px] bg-violet-600/20 border border-violet-500/40 text-violet-200 font-sans text-xs flex items-center justify-between animate-fadeIn shrink-0">
+            <span>✋ {showRaiseHandNotice}</span>
+            <button type="button" onClick={() => setShowRaiseHandNotice(null)} className="text-violet-400 text-xs font-mono cursor-pointer">✕</button>
           </div>
         )}
 
         {!showCheckpoint ? (
-          <div className="space-y-4">
+          <div className="flex flex-col space-y-2 flex-1 min-h-0">
             
-            {/* 1. BLACKBOARD BOARD COMPONENT (TOP / MAIN SURFACE) */}
-            <TutorBoard
-              code={currentChunk?.code}
-              accumulatedPoints={accumulatedNotes}
-              currentChunkText={currentChunk?.say}
-              revealedWordCount={revealedWordCount}
-            />
+            {/* =========================================================================
+                2. BLACKBOARD PANEL (h-[52vh], relative overflow-hidden)
+                - Background: #1A2B24 with /blackboard.jpg texture
+                - Speech Bubble: top-left (absolute top-3 left-3, max-w-[45%], max-h-[40%], white bg, dark text)
+                - Board Text: right side (absolute top-3 right-3 left-[48%], chalk font Caveat)
+                - Robot Image: bottom-left (absolute bottom-0 left-0, h-[45%], object-contain)
+                - Wooden Ledge: bottom (h-4 bg-[#8B6340], absolute bottom-0)
+                ========================================================================= */}
+            <div
+              className="relative w-full h-[52vh] border-4 border-[#3D2918] rounded-[18px] shadow-2xl overflow-hidden shrink-0 bg-[#1A2B24]"
+              style={{
+                backgroundImage: 'url(/blackboard.jpg)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            >
+              {/* Dark overlay for chalk readability */}
+              <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
-            {/* 2. CLASSROOM FLOOR AREA: ROBOT TEACHER WITH POINTER + SPEECH BUBBLE */}
-            <div className="relative pt-2 flex items-end gap-3 sm:gap-6 flex-wrap sm:flex-nowrap">
-              
-              {/* ROBOT TUTOR STANDING ON FLOOR (BOTTOM-LEFT OF BOARD) */}
-              <div className="shrink-0">
-                <TutorAvatar
-                  state={tutorState}
-                  pointerAngle={-20 - ((revealedWordCount % 4) * 12)}
-                />
-              </div>
-
-              {/* HIGH-CONTRAST CLASSROOM SPEECH BUBBLE (BESIDE ROBOT HEAD) */}
-              <div className="relative flex-1 min-w-[280px] bg-[#F4F1EA] text-[#1A1A23] border-2 border-[#D8D3C5] p-4 sm:p-5 rounded-[18px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] animate-fadeIn">
-                {/* Speech Bubble Tail pointing left at Robot */}
+              {/* SPEECH BUBBLE (absolute top-3 left-3, max-w-[45%], max-h-[40%] overflow-auto) */}
+              <div className="speech-bubble absolute top-3 left-3 z-30 w-[85%] sm:w-[45%] max-w-[280px] max-h-[40%] overflow-y-auto bg-white text-[#1A1A23] p-2.5 rounded-[12px] shadow-xl animate-fadeIn">
+                {/* Tail pointing down-left toward robot head */}
                 <div
-                  className="absolute left-[-12px] bottom-6 w-0 h-0 border-t-[10px] border-t-transparent border-r-[14px] border-r-[#F4F1EA] border-b-[10px] border-b-transparent"
+                  className="absolute left-5 -bottom-2 w-0 h-0 border-t-[8px] border-t-white border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent pointer-events-none"
                   aria-hidden="true"
                 />
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between border-b border-black/10 pb-1.5 font-mono text-[10px] text-black/60 uppercase">
-                    <span className="font-bold text-violet-800">TEACHER SPEECH BUBBLE</span>
-                    <span>Chunk {currentChunkIndex + 1} of {lesson.chunks.length}</span>
-                  </div>
-
-                  {/* Word-by-Word Revealed Speech Text */}
-                  <p className="font-sans font-medium text-base sm:text-lg text-[#1A1A23] leading-relaxed">
-                    {revealedText}
-                    {!isChunkComplete && <span className="inline-block w-2 h-4 ml-1 bg-violet-600 animate-pulse" />}
+                <div className="space-y-1">
+                  <p className="font-sans font-medium text-xs sm:text-sm text-[#1A1A23] leading-snug">
+                    {revealedText || <span className="font-mono text-gray-400 animate-pulse">. . .</span>}
+                    {!isChunkComplete && revealedText && <span className="inline-block w-1.5 h-3 ml-1 bg-[#2196F3] animate-pulse" />}
                   </p>
 
-                  {/* ACTION CONTROLS ON SPEECH BUBBLE */}
-                  <div className="pt-3 border-t border-black/10 flex items-center justify-between flex-wrap gap-2">
-                    {/* RAISED HAND BUTTON */}
-                    <button
-                      type="button"
-                      onClick={handleRaiseHandOpen}
-                      className="h-[36px] px-3.5 rounded-[10px] bg-violet-600 hover:bg-violet-700 text-white font-sans font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-98"
-                    >
-                      <span className="text-sm">✋</span>
-                      <span>Raise Hand</span>
-                    </button>
-
-                    <div className="flex items-center gap-2 ml-auto">
-                      {!isChunkComplete ? (
-                        <button
-                          type="button"
-                          onClick={handleSkipChunkText}
-                          className="font-mono text-xs text-black/60 hover:text-black transition-colors cursor-pointer"
-                        >
-                          ⚡ Skip reveal
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleNextChunk}
-                          className="h-[36px] px-5 rounded-[10px] bg-emerald-600 hover:bg-emerald-700 text-white font-sans font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
-                        >
-                          <span>{currentChunkIndex + 1 === lesson.chunks.length ? 'Go to Checkpoint' : 'Next'}</span>
-                          <span>→</span>
-                        </button>
-                      )}
-                    </div>
+                  <div className="pt-1 flex items-center justify-between text-[10px] font-mono border-t border-gray-100">
+                    <span className="text-gray-400">Chunk {currentChunkIndex + 1}/{lesson.chunks.length}</span>
+                    {isChunkComplete && (
+                      <button
+                        type="button"
+                        onClick={handleNextChunk}
+                        className="ml-auto px-2 py-0.5 rounded bg-[#2196F3] hover:bg-[#1976D2] text-white font-sans font-semibold text-[10px] cursor-pointer"
+                      >
+                        Next →
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
 
+              {/* BOARD TEXT (absolute top-3 right-3 left-[48%], chalk font Caveat, color #EDEAE0) */}
+              <div className="board-text absolute top-3 right-3 left-[48%] bottom-5 overflow-y-auto font-['Caveat','Kalam',cursive] text-[#EDEAE0] text-sm sm:text-base leading-relaxed space-y-2 pr-1 z-10">
+                {/* Concept Main Title Underlined */}
+                <div className="pb-1 border-b border-[#EDEAE0]/40">
+                  <h2 className="text-base sm:text-xl font-semibold text-white tracking-wide">
+                    {conceptName}
+                  </h2>
+                </div>
+
+                {/* Accumulated chunks on board */}
+                {accumulatedNotes.length > 0 && (
+                  <div className="space-y-1.5">
+                    {accumulatedNotes.map((pt, idx) => (
+                      <div key={idx} className="flex items-start gap-1 text-[#EDEAE0]/85">
+                        <span className="text-amber-300 font-mono text-xs mt-0.5 select-none">✎</span>
+                        <p className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pt}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Current writing chunk */}
+                {revealedText && (
+                  <div className="flex items-start gap-1 text-[#EDEAE0] font-semibold animate-fadeIn">
+                    <span className="text-cyan-300 font-mono text-xs mt-0.5 select-none animate-pulse">✏</span>
+                    <p className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{revealedText}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* WOODEN LEDGE (h-4 bg-[#8B6340], absolute bottom-0) */}
+              <div className="chalk-ledge absolute bottom-0 left-0 right-0 h-4 bg-[#8B6340] border-t border-[#5C3A21] flex items-center justify-end px-3 gap-2 z-10">
+                <span className="w-4 h-1.5 bg-[#EDEAE0] rounded-sm transform -rotate-6 opacity-90" title="White chalk stub" />
+                <span className="w-3.5 h-1.5 bg-[#FDD835] rounded-sm transform rotate-12 opacity-90" title="Yellow chalk stub" />
+                <span className="w-5 h-1.5 bg-[#00E5FF] rounded-sm transform -rotate-3 opacity-90" title="Cyan chalk stub" />
+              </div>
+
+              {/* ROBOT CHARACTER PNG (absolute bottom-0 left-0, h-[45%], object-contain) */}
+              <img
+                src={robotImgPath}
+                onError={() => {
+                  if (robotImgPath === '/robot.png') {
+                    setRobotImgPath('/images/robot.png');
+                  }
+                }}
+                alt="XPedition tutor robot"
+                className={`robot-image absolute bottom-0 left-0 z-20 h-[45%] object-contain object-bottom state-${tutorState}`}
+              />
+
             </div>
 
-            {/* 3. TODAY'S TOPICS (COLLAPSIBLE LESSON SYLLABUS LIST BELOW BOARD) */}
-            <div className="bg-[#121B17] border border-white/15 rounded-[14px] p-3.5 space-y-3">
+            {/* =========================================================================
+                3. TODAY'S TOPICS (~h-[18vh], collapsible card)
+                - Real lesson chunks
+                - ✓ done, ● current, ○ upcoming
+                - Collapsed by default on mobile
+                ========================================================================= */}
+            <div className="bg-[#151921] border border-white/10 rounded-[14px] p-2.5 space-y-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsTopicsExpanded(!isTopicsExpanded)}
-                className="w-full flex items-center justify-between font-mono text-xs text-[#EDEAE0] cursor-pointer"
+                className="w-full flex items-center justify-between text-xs font-semibold text-white cursor-pointer"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-amber-300 font-bold">📋 TODAY&apos;S TOPICS</span>
-                  <span className="text-[10px] text-white/50">({lesson.chunks.length} Chunks + Checkpoint)</span>
+                <div className="flex items-center gap-1.5">
+                  <span>📋</span>
+                  <span>Today&apos;s Topics</span>
+                  <span className="text-[10px] text-gray-400">({lesson.chunks.length})</span>
                 </div>
-                <span className="text-amber-300 font-bold">{isTopicsExpanded ? '▲ Hide' : '▼ Show Topics'}</span>
+                <span className="text-gray-400 text-xs">{isTopicsExpanded ? '▲ Hide' : '▼ Show'}</span>
               </button>
 
-              {/* Topics Grid (Expanded or Desktop default) */}
-              <div className={`${isTopicsExpanded ? 'block' : 'hidden sm:block'} space-y-2 pt-1 border-t border-white/10`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 font-mono text-xs">
-                  {lesson.chunks.map((chk, idx) => {
-                    const isDone = idx < currentChunkIndex;
-                    const isCurrent = idx === currentChunkIndex;
+              <div className={`${isTopicsExpanded ? 'block' : 'hidden sm:block'} space-y-1.5 pt-1.5 border-t border-white/10 animate-fadeIn`}>
+                {lesson.chunks.map((chk, idx) => {
+                  const isDone = idx < currentChunkIndex;
+                  const isCurrent = idx === currentChunkIndex;
 
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-2.5 rounded-[8px] border flex items-center gap-2 ${
-                          isCurrent
-                            ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200 font-bold'
-                            : isDone
-                              ? 'bg-white/5 border-white/10 text-white/60'
-                              : 'bg-transparent border-white/5 text-white/30'
-                        }`}
-                      >
-                        <span className="text-sm">
-                          {isDone ? '✓' : isCurrent ? '●' : '○'}
-                        </span>
-                        <span className="truncate">Chunk {idx + 1}: {chk.say.substring(0, 22)}...</span>
-                      </div>
-                    );
-                  })}
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-2 py-1 px-2 rounded-[6px] text-xs ${
+                        isCurrent
+                          ? 'text-[#2196F3] font-bold bg-[#2196F3]/10'
+                          : isDone
+                            ? 'text-white/80'
+                            : 'text-gray-500'
+                      }`}
+                    >
+                      <span className="font-mono text-xs">
+                        {isDone ? <span className="text-[#2196F3] font-bold">✓</span> : isCurrent ? <span className="text-[#2196F3] font-bold">●</span> : <span className="text-gray-500">○</span>}
+                      </span>
+                      <span className="truncate font-sans text-[11px]">
+                        Topic {idx + 1}: {chk.say.substring(0, 30)}...
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                  {/* Checkpoint Topic Tile */}
-                  <div
-                    className={`p-2.5 rounded-[8px] border flex items-center gap-2 ${
-                      showCheckpoint
-                        ? 'bg-violet-600/30 border-violet-400 text-violet-200 font-bold'
-                        : 'bg-transparent border-white/5 text-white/30'
-                    }`}
-                  >
-                    <span className="text-sm">{showCheckpoint ? '●' : '○'}</span>
-                    <span className="truncate">Checkpoint Verification</span>
-                  </div>
-                </div>
+            {/* =========================================================================
+                4. RAISE HAND HELPER (3 Pill Buttons: "Say again", "Another example", "I'm lost")
+                Fixed above bottom bar, no chat input
+                ========================================================================= */}
+            <div className="bg-[#151921] border border-[#2196F3]/30 rounded-[14px] p-2 space-y-1.5 shrink-0">
+              <div className="font-mono text-[9px] uppercase text-[#2196F3] font-bold text-center tracking-wider">
+                ✋ RAISE HAND FOR HELP
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleRaiseHandOption('say_again')}
+                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                >
+                  <span>🔁 Say again</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleRaiseHandOption('another_example')}
+                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                >
+                  <span>💡 Another ex.</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleRaiseHandOption('im_lost')}
+                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                >
+                  <span>😕 I&apos;m lost</span>
+                </button>
               </div>
             </div>
 
           </div>
         ) : (
-          /* CHECKPOINT CLASSROOM CARD */
-          <div className="bg-[#1A2B24] border-2 border-amber-500/40 rounded-[20px] p-6 sm:p-8 backdrop-blur-xl space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.7)]">
-            <div className="flex items-center gap-4 border-b border-white/15 pb-4">
-              <TutorAvatar state={tutorState} />
+          /* CHECKPOINT VERIFICATION CARD */
+          <div className="bg-[#151921] border border-white/15 rounded-[18px] p-4 sm:p-6 space-y-4 shadow-2xl flex-1 overflow-y-auto">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+              <img
+                src={robotImgPath}
+                alt="XPedition tutor robot"
+                className={`h-14 w-auto object-contain state-${tutorState}`}
+              />
               <div>
-                <span className="font-mono text-[10px] uppercase text-amber-300 font-bold tracking-eyebrow block">
+                <span className="font-mono text-[9px] uppercase text-[#2196F3] font-bold block">
                   CLASSROOM CHECKPOINT VERIFICATION
                 </span>
-                <h2 className="font-sans font-bold text-base sm:text-lg text-text leading-snug">
+                <h2 className="font-sans font-semibold text-xs sm:text-sm text-white leading-snug">
                   {lesson.checkpoint.ask}
                 </h2>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {lesson.checkpoint.options.map((optionText, idx) => {
                 const isSelected = selectedOption === idx;
                 const isAnswerIdx = idx === lesson.checkpoint.answerIndex;
 
-                let optionStyle = 'bg-[#0F1C17] border-white/15 hover:border-amber-300 text-[#EDEAE0]';
+                let optionStyle = 'bg-[#1C212C] border-white/10 hover:border-[#2196F3] text-white';
 
                 if (isSubmitted) {
                   if (isAnswerIdx) {
@@ -823,10 +642,10 @@ export default function TutorPage() {
                   } else if (isSelected) {
                     optionStyle = 'bg-rose-500/20 border-rose-400 text-rose-300 font-semibold';
                   } else {
-                    optionStyle = 'bg-black/30 border-transparent text-white/40';
+                    optionStyle = 'bg-black/30 border-transparent text-gray-500';
                   }
                 } else if (isSelected) {
-                  optionStyle = 'bg-[#284137] border-amber-300 text-white shadow-[0_0_15px_rgba(245,158,11,0.25)]';
+                  optionStyle = 'bg-[#2196F3]/20 border-[#2196F3] text-white shadow';
                 }
 
                 return (
@@ -835,10 +654,10 @@ export default function TutorPage() {
                     type="button"
                     disabled={isSubmitted}
                     onClick={() => handleOptionSelect(idx)}
-                    className={`w-full min-h-[48px] p-4 rounded-[12px] border text-left font-sans text-xs sm:text-sm flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
+                    className={`w-full min-h-[44px] p-3 rounded-[10px] border text-left font-sans text-xs flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
                   >
-                    <div className="flex items-center gap-3 pr-2">
-                      <span className="font-mono text-xs font-bold text-amber-300 min-w-[20px]">
+                    <div className="flex items-center gap-2.5 pr-2">
+                      <span className="font-mono text-xs font-bold text-[#2196F3] min-w-[16px]">
                         {String.fromCharCode(65 + idx)}.
                       </span>
                       <span className="leading-snug">{optionText}</span>
@@ -849,8 +668,8 @@ export default function TutorPage() {
             </div>
 
             {isSubmitted && (
-              <div className="space-y-4 animate-fadeIn">
-                <div className={`p-4 rounded-[12px] border ${isCorrect ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-rose-500/20 border-rose-400 text-rose-200'}`}>
+              <div className="space-y-3 animate-fadeIn">
+                <div className={`p-3 rounded-[10px] border ${isCorrect ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-rose-500/20 border-rose-400 text-rose-200'}`}>
                   <span className="font-mono text-xs font-bold block mb-1">
                     {isCorrect ? '✓ Excellent work!' : '✕ Let&apos;s review.'}
                   </span>
@@ -859,7 +678,7 @@ export default function TutorPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="flex items-center justify-between gap-2 pt-1">
                   {!isCorrect && (
                     <button
                       type="button"
@@ -870,35 +689,20 @@ export default function TutorPage() {
                         setIsSubmitted(false);
                         setIsCorrect(null);
                       }}
-                      className="h-[40px] px-4 rounded-[10px] bg-[#0F1C17] border border-white/20 text-xs font-sans text-[#EDEAE0] hover:border-amber-300"
+                      className="h-[36px] px-3 rounded-[8px] bg-[#1C212C] border border-white/20 text-xs font-sans text-white hover:border-[#2196F3] cursor-pointer"
                     >
                       ← Revisit Lesson
                     </button>
                   )}
 
-                  {isQuickLearnMode ? (
-                    <div className="flex items-center gap-2 ml-auto flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          stopSpeech();
-                          router.push('/home');
-                        }}
-                        className="h-[40px] px-4 rounded-[10px] bg-[#0F1C17] border border-white/20 font-sans font-semibold text-xs text-[#EDEAE0]"
-                      >
-                        Done & Back to Home
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleProceedToQuest}
-                      className="h-[40px] px-6 rounded-[10px] bg-emerald-600 hover:bg-emerald-700 text-white font-sans font-semibold text-xs flex items-center gap-2 ml-auto shadow-md"
-                    >
-                      <span>Start Quest Questions</span>
-                      <span>→</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleProceedToQuest}
+                    className="h-[36px] px-4 rounded-[8px] bg-[#2196F3] hover:bg-[#1976D2] text-white font-sans font-semibold text-xs flex items-center gap-1.5 ml-auto shadow cursor-pointer"
+                  >
+                    <span>Start Quest Questions</span>
+                    <span>→</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -909,10 +713,10 @@ export default function TutorPage() {
                   type="button"
                   disabled={selectedOption === null}
                   onClick={handleSubmitCheckpoint}
-                  className={`h-[44px] px-6 rounded-[12px] font-sans font-semibold text-xs transition-all cursor-pointer ${
+                  className={`h-[38px] px-5 rounded-[10px] font-sans font-semibold text-xs transition-all cursor-pointer ${
                     selectedOption !== null
-                      ? 'bg-amber-500 hover:bg-amber-400 text-black font-bold'
-                      : 'bg-black/40 text-white/30 border border-white/10 cursor-not-allowed'
+                      ? 'bg-[#2196F3] hover:bg-[#1976D2] text-white font-bold'
+                      : 'bg-black/40 text-gray-500 border border-white/10 cursor-not-allowed'
                   }`}
                 >
                   Verify Checkpoint
@@ -922,64 +726,118 @@ export default function TutorPage() {
           </div>
         )}
 
-      </main>
+      </div>
 
-      {/* RAISE HAND MODAL (3 FIXED OPTIONS) */}
-      {showRaiseHandModal && (
+      {/* =========================================================================
+          5. BOTTOM BAR (h-16, fixed bottom)
+          4 Icons: Mute, Camera Off (greyed), Raise Hand, Chat
+          ========================================================================= */}
+      <footer className="h-16 px-4 bg-[#0B0E14] border-t border-white/10 flex items-center justify-around shrink-0 relative z-30">
+        
+        {/* Mute */}
+        <button
+          type="button"
+          onClick={handleToggleMute}
+          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
+        >
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all ${
+            isMuted ? 'bg-[#212631] text-gray-400' : 'bg-[#212631] group-hover:bg-[#2A3140]'
+          }`}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          </div>
+          <span className="font-sans text-[10px] text-gray-300 font-medium">
+            {isMuted ? 'Muted' : 'Mute'}
+          </span>
+        </button>
+
+        {/* Camera Off (Greyed out) */}
+        <button
+          type="button"
+          disabled
+          className="flex flex-col items-center justify-center gap-0.5 cursor-not-allowed opacity-60"
+          title="Camera unavailable"
+        >
+          <div className="w-9 h-9 rounded-full bg-[#212631] flex items-center justify-center text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2" />
+            </svg>
+          </div>
+          <span className="font-sans text-[10px] text-gray-400 font-medium">
+            Camera Off
+          </span>
+        </button>
+
+        {/* Raise Hand */}
+        <button
+          type="button"
+          onClick={() => handleRaiseHandOption('say_again')}
+          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
+        >
+          <div className="w-9 h-9 rounded-full bg-[#212631] group-hover:bg-[#2A3140] flex items-center justify-center text-white transition-all">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6V6a1.5 1.5 0 113 0m0 6V4.5a1.5 1.5 0 113 0m0 7.5V7.5a1.5 1.5 0 113 0m0 4v3.5A4.5 4.5 0 0113.5 19.5h-3A4.5 4.5 0 016 15v-3.5" />
+            </svg>
+          </div>
+          <span className="font-sans text-[10px] text-gray-300 font-medium">
+            Raise Hand
+          </span>
+        </button>
+
+        {/* Chat / Notes */}
+        <button
+          type="button"
+          onClick={() => setShowNotesModal(true)}
+          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
+        >
+          <div className="w-9 h-9 rounded-full bg-[#212631] group-hover:bg-[#2A3140] flex items-center justify-center text-white transition-all">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <span className="font-sans text-[10px] text-gray-300 font-medium">
+            Chat
+          </span>
+        </button>
+
+      </footer>
+
+      {/* MINIMAL NOTES MODAL */}
+      {showNotesModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="max-w-sm w-full bg-[#121B17] border-2 border-violet-500/50 rounded-[20px] p-6 space-y-5 text-center shadow-[0_0_40px_rgba(147,51,234,0.3)]">
-            <div className="w-12 h-12 rounded-full bg-violet-600/20 border border-violet-500/40 text-violet-300 text-2xl flex items-center justify-center mx-auto">
-              ✋
-            </div>
-
-            <div className="space-y-1">
-              <h2 className="font-sans font-bold text-lg text-white">Need help on this chunk?</h2>
-              <p className="font-sans text-xs text-muted">Select one fixed option below:</p>
-            </div>
-
-            <div className="space-y-2.5">
+          <div className="max-w-md w-full bg-[#151921] border border-white/20 rounded-[20px] p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <span className="font-mono text-xs font-bold text-[#2196F3]">💬 LEARNER CLASSROOM NOTES</span>
               <button
                 type="button"
-                onClick={() => handleRaiseHandOption('say_again')}
-                className="w-full h-[46px] px-4 rounded-[12px] bg-[#1A2B24] border border-white/20 hover:border-amber-300 text-amber-200 font-sans font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                onClick={() => setShowNotesModal(false)}
+                className="text-white/60 hover:text-white text-sm font-mono cursor-pointer"
               >
-                <span>🔄 Say that again (slower)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRaiseHandOption('another_example')}
-                className="w-full h-[46px] px-4 rounded-[12px] bg-[#1A2B24] border border-white/20 hover:border-cyan-300 text-cyan-200 font-sans font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <span>💡 Give me another example</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRaiseHandOption('im_lost')}
-                className="w-full h-[46px] px-4 rounded-[12px] bg-violet-600/30 border border-violet-400 text-violet-200 font-sans font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <span>🆘 I&apos;m lost (simpler version)</span>
+                ✕
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowRaiseHandModal(false)}
-              className="font-mono text-xs text-muted hover:text-white pt-2 block mx-auto cursor-pointer"
-            >
-              Resume Lesson
-            </button>
+            <textarea
+              value={learnerNotes}
+              onChange={(e) => setLearnerNotes(e.target.value)}
+              placeholder="Jot down quick thoughts or takeaways from this lesson..."
+              className="w-full h-32 bg-[#0B0E14] border border-white/15 rounded-[12px] p-3 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-[#2196F3] resize-none font-sans"
+            />
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setShowNotesModal(false)}
+                className="h-[36px] px-5 rounded-[10px] bg-[#2196F3] hover:bg-[#1976D2] text-white font-sans font-semibold text-xs cursor-pointer"
+              >
+                Save Notes
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      {/* FOOTER */}
-      <footer className="w-full max-w-5xl mx-auto text-center relative z-10 pt-2">
-        <span className="font-mono text-[10px] text-[#EDEAE0]/40 uppercase">
-          CLASSROOM AI TUTOR MODE • BLACKBOARD & SPEECH SYNCHRONIZATION
-        </span>
-      </footer>
     </div>
   );
 }

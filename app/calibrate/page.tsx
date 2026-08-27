@@ -128,14 +128,14 @@ export default function CalibratePage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
+    <div className="h-[100dvh] w-full bg-ink text-text flex items-center justify-center p-3 sm:p-6 select-none relative overflow-hidden">
       {/* Background Ambient Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-violet/15 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-xl bg-[#120E22]/90 border border-line rounded-[20px] p-6 sm:p-8 backdrop-blur-xl relative z-10 space-y-6">
+      <div className="w-full max-w-xl h-full max-h-[96dvh] bg-[#120E22]/90 border border-line rounded-[20px] p-4 sm:p-8 backdrop-blur-xl relative z-10 flex flex-col justify-between">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-line/60 pb-4">
+        <div className="flex items-center justify-between border-b border-line/60 pb-3 sm:pb-4">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] tracking-eyebrow text-cyan uppercase font-bold">
               SKILL GRAPH CALIBRATION
@@ -151,12 +151,12 @@ export default function CalibratePage() {
         </div>
 
         {/* Informational Guidance Banner */}
-        <div className="bg-raised/70 p-3.5 rounded-[12px] border border-line/40 text-xs font-sans text-muted leading-relaxed">
+        <div className="bg-raised/70 p-3 rounded-[12px] border border-line/40 text-[11px] sm:text-xs font-sans text-muted leading-relaxed">
           Five questions, spread from easy to hard. Guessing is fine — this only sets the starting line your progress gets measured against.
         </div>
 
         {!isFinished ? (
-          <div className="space-y-5">
+          <div className="space-y-3.5 sm:space-y-5">
             {/* Concept Tag & Difficulty Metric */}
             <div className="flex items-center justify-between font-mono text-[10px]">
               <span className="text-muted uppercase tracking-eyebrow font-bold">
@@ -173,7 +173,7 @@ export default function CalibratePage() {
             </h1>
 
             {/* Options List */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {currentItem.options.map((optionText, idx) => {
                 const isSelected = selectedOption === idx;
                 const isCorrect = idx === currentItem.correctIndex;
@@ -196,7 +196,7 @@ export default function CalibratePage() {
                     type="button"
                     disabled={isAnswered}
                     onClick={() => handleOptionSelect(idx)}
-                    className={`w-full min-h-[52px] p-3.5 rounded-[12px] border text-left font-sans text-xs sm:text-[14px] flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
+                    className={`w-full min-h-[46px] p-3 rounded-[12px] border text-left font-sans text-xs sm:text-[14px] flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
                   >
                     <div className="flex items-center gap-3 pr-2">
                       <span className="font-mono text-xs font-bold text-muted min-w-[20px]">
