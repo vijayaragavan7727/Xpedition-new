@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getStoreData, clearStoreData, switchActiveGraph, saveLearnerProfile, UserStoreData, SkillGraph } from '@/lib/store';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function ProfilePage() {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
@@ -32,6 +33,16 @@ export default function ProfilePage() {
       clearStoreData();
       window.location.reload();
     }
+  };
+
+  const handleSignOut = async () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.clear();
+    }
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut().catch(() => {});
+    }
+    window.location.href = '/';
   };
 
   return (
@@ -206,12 +217,13 @@ export default function ProfilePage() {
             Reset Store to Fresh Zero-State (Testing)
           </button>
 
-          <Link
-            href="/"
-            className="w-full h-10 rounded-[10px] border border-line text-muted hover:text-text font-sans font-medium text-xs flex items-center justify-center transition-colors block text-center pt-2"
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="w-full h-10 rounded-[10px] border border-line text-muted hover:text-text font-sans font-medium text-xs flex items-center justify-center transition-colors cursor-pointer"
           >
             Sign out
-          </Link>
+          </button>
         </div>
       </div>
     </div>
