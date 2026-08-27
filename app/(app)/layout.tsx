@@ -62,11 +62,12 @@ export default function AppLayout({
   // Render skeleton loader while resolving
   if (!storeData || step === null || (step !== 'ready' && typeof window !== 'undefined' && sessionStorage.getItem('xpedition_exit_override') !== 'true' && !loopBrokenNotice)) {
     return (
-      <div className="relative min-h-screen bg-ink text-text">
+      <div className="flex flex-col h-screen overflow-hidden bg-ink text-text relative">
         <DashBackdrop src="/art/hero-left.jpg" />
-        <TopBar />
-        <TabBar />
-        <main className="relative z-10 lg:pl-[240px] pb-[88px] lg:pb-8">
+        <header className="flex-none h-14 border-b border-line/40 flex items-center z-50 bg-ink/90 backdrop-blur-md">
+          <TopBar />
+        </header>
+        <main className="flex-1 overflow-y-auto min-h-0 relative z-10 lg:pl-[240px]">
           <div className="w-full max-w-[640px] lg:max-w-[1080px] mx-auto px-4 sm:px-6 pt-6 space-y-6">
             <div className="space-y-2 pt-2">
               <div className="h-6 w-48 bg-raised/80 rounded-md animate-pulse" />
@@ -83,30 +84,39 @@ export default function AppLayout({
             </div>
           </div>
         </main>
+        <nav className="flex-none z-50 md:hidden">
+          <TabBar />
+        </nav>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-ink text-text selection:bg-violet selection:text-white relative">
+    <div className="flex flex-col h-screen overflow-hidden bg-ink text-text selection:bg-violet selection:text-white relative">
       <DashBackdrop src="/art/hero-left.jpg" />
-      <TopBar />
-      
+
+      {/* Fixed Header */}
+      <header className="flex-none h-14 border-b border-line/40 flex items-center z-50 bg-ink/90 backdrop-blur-md">
+        <TopBar />
+      </header>
+
       {loopBrokenNotice && (
         <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-300 font-mono text-xs px-4 py-2 text-center relative z-40 shrink-0">
           ⚠️ Loop Guard: Navigation state was restored to Home. You can resume calibration anytime.
         </div>
       )}
 
-      {/* SCROLLABLE MAIN CONTENT AREA (Only this scrolls) */}
-      <main className="flex-1 min-h-0 overflow-y-auto relative z-10 lg:pl-[240px]">
-        <div className="w-full max-w-[640px] lg:max-w-[1080px] mx-auto px-4 sm:px-6 pt-4 pb-[84px] lg:pb-8">
+      {/* Scrollable Main Content Area (Only this moves) */}
+      <main className="flex-1 overflow-y-auto min-h-0 relative z-10 lg:pl-[240px]">
+        <div className="w-full max-w-[640px] lg:max-w-[1080px] mx-auto px-4 sm:px-6 pt-4 pb-6">
           {children}
         </div>
       </main>
 
-      {/* FIXED BOTTOM NAV TABBAR */}
-      <TabBar />
+      {/* Fixed Bottom Nav (Hidden on Desktop md:) */}
+      <nav className="flex-none z-50 md:hidden">
+        <TabBar />
+      </nav>
     </div>
   );
 }
