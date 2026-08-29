@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { getStoreData, saveLearnerProfile, LearnerProfileData, applySeededCourse, createNewSkillGraph, setGraphContent } from '@/lib/store';
 import { SEEDED_PYTHON_COURSE } from '@/lib/seed';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { WORLD_THEMES, WorldThemeId } from '@/lib/themes';
+import { Sparkles, Check, Globe } from 'lucide-react';
 
 type PathType = 'goal' | 'syllabus';
 type LanguageType = 'english' | 'tanglish' | 'tamil';
@@ -31,6 +33,9 @@ export default function OnboardingPage() {
   const [isExtractingFile, setIsExtractingFile] = useState<boolean>(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
+  // Theme selection state
+  const [selectedTheme, setSelectedTheme] = useState<WorldThemeId>('cosmos');
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -50,7 +55,7 @@ export default function OnboardingPage() {
       const data = await res.json();
       if (data.text) {
         setSyllabusText(data.text);
-        setUploadStatus(`✓ Extracted ${data.text.length} characters from ${file.name}`);
+        setUploadStatus(`Extracted ${data.text.length} characters from ${file.name}`);
         updateProfileStep(6, { syllabusText: data.text });
       } else {
         setUploadStatus(data.error || data.warning || 'Could not extract text automatically. Please paste topics manually.');
@@ -72,7 +77,6 @@ export default function OnboardingPage() {
     guidance?: string;
   } | null>(null);
 
-  const [tutorNoticeOpen, setTutorNoticeOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
@@ -90,6 +94,9 @@ export default function OnboardingPage() {
       setDeadlineDate(p.deadlineDate || '');
       setTestDate(p.testDate || '');
       setSyllabusText(p.syllabusText || '');
+      if (p.worldTheme) {
+        setSelectedTheme(p.worldTheme);
+      }
       if (p.currentStep && p.currentStep < 8) {
         setCurrentStep(p.currentStep);
       }
@@ -112,6 +119,7 @@ export default function OnboardingPage() {
       deadlineDate,
       testDate,
       syllabusText,
+      worldTheme: selectedTheme,
       currentStep: newStep,
       studyPlan: studyPlan || undefined,
       ...profileData,
@@ -133,6 +141,7 @@ export default function OnboardingPage() {
             deadline_date: updated.learnerProfile?.deadlineDate || null,
             test_date: updated.learnerProfile?.testDate || null,
             syllabus_text: updated.learnerProfile?.syllabusText || null,
+            world_theme: updated.learnerProfile?.worldTheme || selectedTheme,
             current_step: newStep,
             updated_at: new Date().toISOString(),
           }).then(() => {});
@@ -142,7 +151,6 @@ export default function OnboardingPage() {
   };
 
   const handleNextStep = async () => {
-    const totalSteps = 7; // Step 0 to 8
     const next = currentStep + 1;
 
     // Trigger plan generation on step 6 before rendering step 7
@@ -189,16 +197,20 @@ export default function OnboardingPage() {
     }
   };
 
-  // Final course generation and routing into Tutor or Quest Mode / Calibrate
-  const handleFinalizeMode = async (mode: 'tutor' | 'quest') => {
+  // Final course generation and routing with chosen World Theme
+  const handleBeginJourney = async () => {
     setIsSubmitting(true);
-    setStatusNotice('Generating skill graph course...');
+    setStatusNotice('Generating skill graph & terraforming world...');
 
     const finalGoalTopic = topic.trim() || 'Python Core & Data Structures';
 
     // Create a new skill graph object so existing graphs are never destroyed
     createNewSkillGraph(finalGoalTopic);
-    saveLearnerProfile({ learningMode: mode, language: language as any });
+    saveLearnerProfile({
+      learningMode: 'tutor',
+      language: language as any,
+      worldTheme: selectedTheme,
+    });
 
     try {
       const res = await fetch('/api/goal', {
@@ -220,32 +232,30 @@ export default function OnboardingPage() {
           }));
           setGraphContent(finalGoalTopic, formattedConcepts, data.quests, false);
         } else {
-          setStatusNotice('Using our starter Python path for now.');
+          setStatusNotice('Using starter Python path.');
           applySeededCourse(finalGoalTopic, SEEDED_PYTHON_COURSE.concepts, SEEDED_PYTHON_COURSE.items);
         }
       } else {
-        setStatusNotice('Using our starter Python path for now.');
+        setStatusNotice('Using starter Python path.');
         applySeededCourse(finalGoalTopic, SEEDED_PYTHON_COURSE.concepts, SEEDED_PYTHON_COURSE.items);
       }
     } catch (err) {
-      setStatusNotice('Using our starter Python path for now.');
+      setStatusNotice('Using starter Python path.');
       applySeededCourse(finalGoalTopic, SEEDED_PYTHON_COURSE.concepts, SEEDED_PYTHON_COURSE.items);
     } finally {
       setTimeout(() => {
         setIsSubmitting(false);
         const store = getStoreData();
         const firstConceptId = store.concepts[0]?.id || 'c_1';
-        if (mode === 'tutor') {
-          router.push(`/tutor/${encodeURIComponent(firstConceptId)}`);
-        } else {
-          router.push('/calibrate');
-        }
+        router.push(`/tutor/${encodeURIComponent(firstConceptId)}`);
       }, 600);
     }
   };
 
+  const themeList = Object.values(WORLD_THEMES);
+
   return (
-    <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden font-sans">
       {/* Background Neon Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-violet/15 rounded-full blur-[120px] pointer-events-none" />
 
@@ -260,7 +270,7 @@ export default function OnboardingPage() {
                 onClick={handlePrevStep}
                 className="font-mono text-xs text-muted hover:text-text flex items-center gap-1 transition-colors cursor-pointer"
               >
-                ← Back
+                &larr; Back
               </button>
             ) : (
               <span className="font-mono text-[10px] tracking-eyebrow text-cyan uppercase font-bold">
@@ -286,7 +296,7 @@ export default function OnboardingPage() {
           </div>
 
           <Link href="/home" className="font-mono text-xs text-muted hover:text-text transition-colors">
-            ✕ Exit
+            Exit
           </Link>
         </div>
 
@@ -333,7 +343,7 @@ export default function OnboardingPage() {
                   </p>
                 </div>
                 <span className="font-mono text-[10px] uppercase text-cyan font-semibold block pt-1">
-                  Goal Path →
+                  Goal Path &rarr;
                 </span>
               </button>
 
@@ -347,18 +357,18 @@ export default function OnboardingPage() {
                 className="bg-[#1A1430]/85 border border-white/[0.09] hover:border-cyan p-5 rounded-[16px] text-left transition-all hover:bg-[#1A1430] group cursor-pointer space-y-3"
               >
                 <div className="w-10 h-10 rounded-full bg-cyan/20 text-cyan flex items-center justify-center font-mono font-bold text-lg group-hover:scale-110 transition-transform">
-                  📚
+                  📝
                 </div>
                 <div>
                   <h3 className="font-sans font-semibold text-base text-text group-hover:text-cyan transition-colors">
-                    Preparing for a test
+                    Studying for a specific exam
                   </h3>
                   <p className="font-sans text-xs text-muted mt-1 leading-relaxed">
-                    Measured in days. Focused coverage on exact exam units and upcoming test topics.
+                    Measured in days or weeks. Upload or paste a fixed syllabus with a hard deadline.
                   </p>
                 </div>
-                <span className="font-mono text-[10px] uppercase text-violet-hot font-semibold block pt-1">
-                  Syllabus Path →
+                <span className="font-mono text-[10px] uppercase text-violet font-semibold block pt-1">
+                  Syllabus Path &rarr;
                 </span>
               </button>
             </div>
@@ -366,78 +376,83 @@ export default function OnboardingPage() {
         )}
 
         {/* =================================================================== */}
-        {/* STEP 1: WHAT DO YOU WANT TO LEARN? */}
+        {/* STEP 1: TOPIC ENTRY */}
         {/* =================================================================== */}
         {currentStep === 1 && (
-          <div className="space-y-5 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
             <div className="space-y-1">
               <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
                 QUESTION 1 OF 6
               </span>
               <h1 className="font-sans font-semibold text-xl text-text">
-                {pathType === 'goal' ? 'What do you want to learn?' : 'What subject or test are you preparing for?'}
+                {pathType === 'goal' ? 'What do you want to learn?' : 'What exam or subject are you preparing for?'}
               </h1>
+              <p className="font-sans text-xs text-muted">
+                Be as specific as possible (e.g. &ldquo;Python for Backend&rdquo; or &ldquo;Blender 3D Modeling&rdquo;).
+              </p>
             </div>
 
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className="w-full h-[52px] px-4 rounded-[12px] bg-[#1A1430]/85 border border-white/[0.09] text-[16px] font-sans text-text focus:outline-none focus:border-cyan"
-              placeholder={pathType === 'goal' ? 'e.g. Python for job at Zoho' : 'e.g. Data Structures Unit 1 to 3'}
-              autoFocus
-            />
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="e.g. Python Programming, Blender 3D, SQL Database"
+                className="w-full h-[52px] px-4 rounded-[12px] bg-[#1A1430]/85 border border-white/[0.09] text-[15px] font-sans text-text focus:outline-none focus:border-cyan transition-all"
+                autoFocus
+              />
 
-            <button
-              type="button"
-              disabled={!topic.trim()}
-              onClick={handleNextStep}
-              className="w-full h-[50px] rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-[15px] flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer disabled:opacity-40"
-            >
-              <span>Continue</span>
-              <span>→</span>
-            </button>
+              <button
+                type="button"
+                disabled={!topic.trim()}
+                onClick={handleNextStep}
+                className="w-full h-[50px] rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-[15px] flex items-center justify-center gap-2 hover:brightness-108 transition-all disabled:opacity-40 cursor-pointer"
+              >
+                <span>Continue</span>
+                <span>&rarr;</span>
+              </button>
+            </div>
           </div>
         )}
 
         {/* =================================================================== */}
-        {/* STEP 2: WHICH LANGUAGE SHOULD I TEACH IN? */}
+        {/* STEP 2: LANGUAGE */}
         {/* =================================================================== */}
         {currentStep === 2 && (
-          <div className="space-y-5 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
             <div className="space-y-1">
               <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
                 QUESTION 2 OF 6
               </span>
               <h1 className="font-sans font-semibold text-xl text-text">
-                Which language should I teach in?
+                What language do you prefer for explanations?
               </h1>
               <p className="font-sans text-xs text-muted">
-                Tanglish = Tamil written in Latin script, with technical terms in English.
+                XYRA speaks with fluent native voice and text in these languages.
               </p>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { id: 'english', label: 'English', desc: 'Standard technical English instruction' },
-                { id: 'tanglish', label: 'Tanglish (தமிழ் + English)', desc: 'Tamil in Latin script + English terms' },
-                { id: 'tamil', label: 'தமிழ் (Tamil)', desc: 'Full Tamil language explanations' },
-              ].map((item) => (
+                { id: 'english', label: 'English', desc: 'Global technical standard' },
+                { id: 'tanglish', label: 'Tanglish', desc: 'Tamil + English mix' },
+                { id: 'tamil', label: 'Tamil', desc: 'Full native Tamil' },
+              ].map((lang) => (
                 <button
-                  key={item.id}
+                  key={lang.id}
                   type="button"
                   onClick={() => {
-                    setLanguage(item.id as LanguageType);
-                    updateProfileStep(3, { language: item.id as LanguageType });
+                    setLanguage(lang.id as LanguageType);
+                    updateProfileStep(3, { language: lang.id as LanguageType });
                   }}
-                  className={`w-full p-4 rounded-[12px] border text-left font-sans transition-all cursor-pointer ${
-                    language === item.id
-                      ? 'bg-cyan/15 border-cyan text-cyan font-semibold'
-                      : 'bg-[#1A1430]/85 border-white/[0.09] text-text hover:border-cyan'
+                  className={`p-4 rounded-[14px] border text-center transition-all cursor-pointer ${
+                    language === lang.id
+                      ? 'bg-cyan/20 border-cyan text-text'
+                      : 'bg-[#1A1430]/85 border-white/[0.09] hover:border-line text-muted hover:text-text'
                   }`}
                 >
-                  <span className="block font-medium text-[15px]">{item.label}</span>
-                  <span className="block font-mono text-[11px] text-muted mt-0.5">{item.desc}</span>
+                  <span className="font-sans font-semibold text-sm block">{lang.label}</span>
+                  <span className="font-sans text-[10px] text-muted block mt-1">{lang.desc}</span>
                 </button>
               ))}
             </div>
@@ -445,41 +460,46 @@ export default function OnboardingPage() {
         )}
 
         {/* =================================================================== */}
-        {/* STEP 3: DAILY TIME COMMITMENT */}
+        {/* STEP 3: DAILY COMMITMENT */}
         {/* =================================================================== */}
         {currentStep === 3 && (
-          <div className="space-y-5 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
             <div className="space-y-1">
               <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
                 QUESTION 3 OF 6
               </span>
               <h1 className="font-sans font-semibold text-xl text-text">
-                How much time can you give per day?
+                How much time can you spend each day?
               </h1>
+              <p className="font-sans text-xs text-muted">
+                Used to calculate an honest, realistic study schedule.
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { minutes: 15, label: '15 min / day', desc: 'Casual pace' },
-                { minutes: 30, label: '30 min / day', desc: 'Steady pace' },
-                { minutes: 60, label: '1 hr / day', desc: 'Focused pace' },
-                { minutes: 120, label: '2 hr+ / day', desc: 'Intense pace' },
+                { min: 30, label: '30 mins', badge: 'Micro' },
+                { min: 60, label: '1 hour', badge: 'Standard' },
+                { min: 120, label: '2 hours', badge: 'Intensive' },
+                { min: 180, label: '3+ hours', badge: 'Immersive' },
               ].map((item) => (
                 <button
-                  key={item.minutes}
+                  key={item.min}
                   type="button"
                   onClick={() => {
-                    setDailyMinutes(item.minutes);
-                    updateProfileStep(4, { dailyMinutes: item.minutes });
+                    setDailyMinutes(item.min);
+                    updateProfileStep(4, { dailyMinutes: item.min });
                   }}
-                  className={`p-4 rounded-[12px] border text-left font-sans transition-all cursor-pointer ${
-                    dailyMinutes === item.minutes
-                      ? 'bg-signature-gradient text-white border-cyan font-semibold'
-                      : 'bg-[#1A1430]/85 border-white/[0.09] text-text hover:border-cyan'
+                  className={`p-4 rounded-[14px] border text-center transition-all cursor-pointer ${
+                    dailyMinutes === item.min
+                      ? 'bg-violet/20 border-violet-hot text-text'
+                      : 'bg-[#1A1430]/85 border-white/[0.09] hover:border-line text-muted hover:text-text'
                   }`}
                 >
-                  <span className="block font-semibold text-[15px]">{item.label}</span>
-                  <span className="block font-mono text-[10px] opacity-80 mt-0.5">{item.desc}</span>
+                  <span className="font-mono text-[10px] uppercase text-violet font-semibold block mb-1">
+                    {item.badge}
+                  </span>
+                  <span className="font-sans font-bold text-base block">{item.label}</span>
                 </button>
               ))}
             </div>
@@ -487,10 +507,10 @@ export default function OnboardingPage() {
         )}
 
         {/* =================================================================== */}
-        {/* STEP 4: STARTING KNOWLEDGE LEVEL */}
+        {/* STEP 4: STARTING LEVEL */}
         {/* =================================================================== */}
         {currentStep === 4 && (
-          <div className="space-y-5 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
             <div className="space-y-1">
               <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
                 QUESTION 4 OF 6
@@ -498,28 +518,32 @@ export default function OnboardingPage() {
               <h1 className="font-sans font-semibold text-xl text-text">
                 Where are you starting from?
               </h1>
+              <p className="font-sans text-xs text-muted">
+                We calibrate difficulty to avoid boring you with basics or overwhelming you.
+              </p>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {[
-                'Complete beginner',
-                'Know the basics',
-                'Know it, need to go deeper',
+                { title: 'Complete beginner', desc: 'Starting from scratch, never touched this before.' },
+                { title: 'Some familiarity', desc: 'Know high-level terms, but haven\'t built or practiced much.' },
+                { title: 'Working knowledge', desc: 'Used it before, want to master edge-cases and go deep.' },
               ].map((lvl) => (
                 <button
-                  key={lvl}
+                  key={lvl.title}
                   type="button"
                   onClick={() => {
-                    setStartingLevel(lvl);
-                    updateProfileStep(5, { startingLevel: lvl });
+                    setStartingLevel(lvl.title);
+                    updateProfileStep(5, { startingLevel: lvl.title });
                   }}
-                  className={`w-full p-4 rounded-[12px] border text-left font-sans text-[15px] transition-all cursor-pointer ${
-                    startingLevel === lvl
-                      ? 'bg-cyan/15 border-cyan text-cyan font-semibold'
-                      : 'bg-[#1A1430]/85 border-white/[0.09] text-text hover:border-cyan'
+                  className={`w-full p-4 rounded-[14px] border text-left transition-all cursor-pointer ${
+                    startingLevel === lvl.title
+                      ? 'bg-cyan/15 border-cyan text-text'
+                      : 'bg-[#1A1430]/85 border-white/[0.09] hover:border-line text-muted hover:text-text'
                   }`}
                 >
-                  {lvl}
+                  <span className="font-sans font-semibold text-sm block text-text">{lvl.title}</span>
+                  <span className="font-sans text-xs text-muted block mt-0.5">{lvl.desc}</span>
                 </button>
               ))}
             </div>
@@ -527,97 +551,67 @@ export default function OnboardingPage() {
         )}
 
         {/* =================================================================== */}
-        {/* STEP 5: PATH SPECIFIC QUESTION 1 */}
+        {/* STEP 5: WHY GOAL */}
         {/* =================================================================== */}
         {currentStep === 5 && (
-          <div className="space-y-5 animate-fadeIn">
-            {pathType === 'goal' ? (
-              <>
-                <div className="space-y-1">
-                  <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
-                    QUESTION 5 OF 6 (GOAL PATH)
-                  </span>
-                  <h1 className="font-sans font-semibold text-xl text-text">
-                    Why this goal?
-                  </h1>
-                </div>
+          <div className="space-y-6 animate-fadeIn">
+            <div className="space-y-1">
+              <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
+                QUESTION 5 OF 6
+              </span>
+              <h1 className="font-sans font-semibold text-xl text-text">
+                Why are you learning this?
+              </h1>
+              <p className="font-sans text-xs text-muted">
+                Helps XYRA tailor examples and analogies to your real context.
+              </p>
+            </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  {['Job', 'Exam', 'Curiosity', 'College work'].map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => {
-                        setWhyGoal(opt);
-                        updateProfileStep(6, { whyGoal: opt });
-                      }}
-                      className={`p-4 rounded-[12px] border text-center font-sans text-sm transition-all cursor-pointer ${
-                        whyGoal === opt
-                          ? 'bg-signature-gradient text-white border-cyan font-semibold'
-                          : 'bg-[#1A1430]/85 border-white/[0.09] text-text hover:border-cyan'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="space-y-1">
-                  <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
-                    QUESTION 5 OF 6 (SYLLABUS PATH)
-                  </span>
-                  <h1 className="font-sans font-semibold text-xl text-text">
-                    When is the test?
-                  </h1>
-                </div>
-
-                <input
-                  type="date"
-                  value={testDate}
-                  onChange={(e) => setTestDate(e.target.value)}
-                  className="w-full h-[52px] px-4 rounded-[12px] bg-[#1A1430]/85 border border-white/[0.09] text-[16px] font-sans text-text focus:outline-none focus:border-cyan"
-                />
-
-                <div className="flex items-center justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => updateProfileStep(6)}
-                    className="font-mono text-xs text-muted hover:text-text"
-                  >
-                    Skip for now
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!testDate}
-                    onClick={handleNextStep}
-                    className="h-[46px] px-6 rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center gap-2 hover:brightness-108 disabled:opacity-40"
-                  >
-                    <span>Next</span>
-                    <span>→</span>
-                  </button>
-                </div>
-              </>
-            )}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Job / Placement', desc: 'Preparing for interviews' },
+                { label: 'College Exam', desc: 'Passing university tests' },
+                { label: 'Building a Project', desc: 'Shipping a real app' },
+                { label: 'Curiosity & Fun', desc: 'Exploring for fun' },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => {
+                    setWhyGoal(item.label);
+                    updateProfileStep(6, { whyGoal: item.label });
+                  }}
+                  className={`p-4 rounded-[14px] border text-left transition-all cursor-pointer ${
+                    whyGoal === item.label
+                      ? 'bg-violet/20 border-violet-hot text-text'
+                      : 'bg-[#1A1430]/85 border-white/[0.09] hover:border-line text-muted hover:text-text'
+                  }`}
+                >
+                  <span className="font-sans font-semibold text-sm block text-text">{item.label}</span>
+                  <span className="font-sans text-xs text-muted block mt-0.5">{item.desc}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {/* =================================================================== */}
-        {/* STEP 6: PATH SPECIFIC QUESTION 2 */}
+        {/* STEP 6: DEADLINE OR SYLLABUS UPLOAD */}
         {/* =================================================================== */}
         {currentStep === 6 && (
-          <div className="space-y-5 animate-fadeIn">
+          <div className="space-y-6 animate-fadeIn">
             {pathType === 'goal' ? (
               <>
                 <div className="space-y-1">
                   <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
-                    QUESTION 6 OF 6 (GOAL PATH)
+                    QUESTION 6 OF 6
                   </span>
                   <h1 className="font-sans font-semibold text-xl text-text">
-                    Any target deadline?
+                    Do you have a target deadline in mind?
                   </h1>
+                  <p className="font-sans text-xs text-muted">
+                    Optional — helps us pace your daily milestones.
+                  </p>
                 </div>
 
                 <div className="space-y-3">
@@ -625,28 +619,26 @@ export default function OnboardingPage() {
                     type="date"
                     value={deadlineDate}
                     onChange={(e) => setDeadlineDate(e.target.value)}
-                    className="w-full h-[52px] px-4 rounded-[12px] bg-[#1A1430]/85 border border-white/[0.09] text-[16px] font-sans text-text focus:outline-none focus:border-cyan"
+                    className="w-full h-[52px] px-4 rounded-[12px] bg-[#1A1430]/85 border border-white/[0.09] text-[15px] font-sans text-text focus:outline-none focus:border-cyan"
                   />
 
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => {
                         setDeadlineDate('');
                         handleNextStep();
                       }}
-                      className="font-mono text-xs text-muted hover:text-text cursor-pointer"
+                      className="flex-1 h-[48px] rounded-[12px] bg-panel border border-line text-muted hover:text-text font-sans font-medium text-xs transition-colors cursor-pointer"
                     >
-                      No deadline / Skip
+                      No strict deadline
                     </button>
-
                     <button
                       type="button"
                       onClick={handleNextStep}
-                      className="h-[46px] px-6 rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center gap-2 hover:brightness-108 cursor-pointer"
+                      className="flex-1 h-[48px] rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center justify-center gap-1 hover:brightness-108 transition-all cursor-pointer"
                     >
-                      <span>Generate Study Plan</span>
-                      <span>→</span>
+                      <span>Continue &rarr;</span>
                     </button>
                   </div>
                 </div>
@@ -661,11 +653,10 @@ export default function OnboardingPage() {
                     What is on the test?
                   </h1>
                   <p className="font-sans text-xs text-muted">
-                    Paste units/topics manually OR upload a syllabus document (PDF, DOCX, JPG, PNG up to 5MB).
+                    Paste topics manually OR upload a syllabus document.
                   </p>
                 </div>
 
-                {/* File Upload Dropzone / Button */}
                 <div className="bg-[#1A1430]/60 border border-dashed border-line/80 p-3.5 rounded-[12px] flex items-center justify-between gap-3">
                   <div className="text-xs font-sans text-muted">
                     {uploadStatus ? (
@@ -701,7 +692,7 @@ export default function OnboardingPage() {
                   className="w-full h-[50px] rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-[15px] flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer"
                 >
                   <span>Generate Exam Plan</span>
-                  <span>→</span>
+                  <span>&rarr;</span>
                 </button>
               </>
             )}
@@ -709,7 +700,7 @@ export default function OnboardingPage() {
         )}
 
         {/* =================================================================== */}
-        {/* STEP 7: THE STUDY PLAN DISPLAY */}
+        {/* STEP 7: STUDY PLAN */}
         {/* =================================================================== */}
         {currentStep === 7 && (
           <div className="space-y-5 animate-fadeIn">
@@ -733,14 +724,12 @@ export default function OnboardingPage() {
               </div>
             ) : studyPlan ? (
               <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
-                {/* Guidance Banner */}
                 {studyPlan.guidance && (
                   <div className="p-3.5 bg-violet/15 border border-violet/30 rounded-[12px] font-sans text-xs text-text/90 leading-relaxed">
                     💡 <span className="font-semibold text-violet-hot">Honest Estimate:</span> {studyPlan.guidance}
                   </div>
                 )}
 
-                {/* Plan Overview Stats */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-[#150F2A] p-3 rounded-[12px] text-center">
                     <span className="block font-mono text-[9px] uppercase text-muted">TOTAL HOURS</span>
@@ -752,7 +741,6 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                {/* Topic Rationale List */}
                 <div className="space-y-2">
                   <span className="font-mono text-[10px] tracking-eyebrow uppercase text-muted font-bold block">
                     RECOMMENDED TOPICS
@@ -772,10 +760,10 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => updateProfileStep(8)}
-                  className="w-full h-[50px] rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-[15px] flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer mt-2"
+                  className="w-full h-[50px] rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-[15px] flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer mt-2 shadow-lg"
                 >
-                  <span>Choose Learning Mode</span>
-                  <span>→</span>
+                  <span>Choose Your World Theme</span>
+                  <span>&rarr;</span>
                 </button>
               </div>
             ) : null}
@@ -783,56 +771,88 @@ export default function OnboardingPage() {
         )}
 
         {/* =================================================================== */}
-        {/* STEP 8: MODE CHOICE (TUTOR vs QUEST) */}
+        {/* STEP 8: CHOOSE YOUR WORLD THEME */}
         {/* =================================================================== */}
         {currentStep === 8 && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="text-center space-y-1.5">
-              <h1 className="font-sans font-semibold text-xl text-text">
-                How do you want to learn?
+          <div className="space-y-5 animate-fadeIn">
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/30 text-[#00F0FF] font-mono text-[10px] font-bold">
+                <Globe className="w-3 h-3" />
+                <span>SKILL PASSPORT TERRAFORMING</span>
+              </div>
+              <h1 className="font-sans font-bold text-2xl text-white">
+                Choose Your World
               </h1>
-              <p className="font-sans text-xs text-muted">
-                Select your preferred mode for this skill graph.
+              <p className="font-sans text-xs text-slate-400 max-w-md mx-auto">
+                Your knowledge will terraform this living world as you master concepts. You can change this anytime from your profile.
               </p>
             </div>
 
-            <div className="space-y-3">
-              {/* TUTOR MODE */}
-              <button
-                type="button"
-                onClick={() => handleFinalizeMode('tutor')}
-                className="w-full p-4 bg-[#1A1430]/85 border border-white/[0.09] hover:border-violet-hot rounded-[14px] text-left transition-all hover:bg-[#1A1430] group cursor-pointer space-y-1"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-sans font-semibold text-base text-text group-hover:text-violet-hot">
-                    TUTOR MODE
-                  </span>
-                  <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-violet/20 text-violet font-bold uppercase">
-                    Interactive
-                  </span>
-                </div>
-                <p className="font-sans text-xs text-muted">
-                  "I'll teach you, then test you" — Interactive lessons, AI tutor guidance, and structured practice.
-                </p>
-              </button>
+            {/* 5 Theme Cards Grid (2-column, 5th centered) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {themeList.map((t, idx) => {
+                const isSelected = selectedTheme === t.id;
+                const isFifth = idx === 4;
 
-              {/* QUEST MODE */}
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTheme(t.id);
+                      saveLearnerProfile({ worldTheme: t.id });
+                    }}
+                    className={`p-3.5 rounded-[16px] text-left transition-all cursor-pointer border flex items-start gap-3 relative ${
+                      isFifth ? 'sm:col-span-2 sm:max-w-[280px] sm:mx-auto w-full' : ''
+                    } ${
+                      isSelected
+                        ? 'bg-[#00F0FF]/15 border-[#00F0FF] shadow-[0_0_20px_rgba(0,240,255,0.3)] ring-1 ring-[#00F0FF]'
+                        : 'bg-[#150F2A]/90 border-white/10 hover:border-white/25 hover:bg-[#1A1430]'
+                    }`}
+                  >
+                    {/* Small Colored Gradient Preview Square with Icon */}
+                    <div
+                      className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-md border border-white/15"
+                      style={{
+                        background: `linear-gradient(135deg, ${t.bgGradients[2]} 0%, ${t.bgGradients[0]} 100%)`,
+                      }}
+                    >
+                      {t.icon}
+                    </div>
+
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-sans font-bold text-sm text-white truncate">
+                          {t.name}
+                        </span>
+                        {isSelected && (
+                          <span className="w-5 h-5 rounded-full bg-[#00F0FF] text-black flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-sans text-[11px] text-slate-300 line-clamp-2 leading-tight">
+                        {t.subtitle}
+                      </p>
+                      <span className="font-mono text-[9px] text-slate-400 block pt-0.5 truncate">
+                        {t.bestFor}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Begin Journey Button */}
+            <div className="pt-2">
               <button
                 type="button"
-                onClick={() => handleFinalizeMode('quest')}
-                className="w-full p-4 bg-[#1A1430]/85 border border-white/[0.09] hover:border-cyan rounded-[14px] text-left transition-all hover:bg-[#1A1430] group cursor-pointer space-y-1"
+                disabled={isSubmitting}
+                onClick={handleBeginJourney}
+                className="w-full h-12 rounded-[14px] bg-signature-gradient text-white font-sans font-bold text-sm flex items-center justify-center gap-2 hover:brightness-110 transition-all cursor-pointer shadow-[0_8px_30px_-6px_rgba(168,85,247,0.6)] disabled:opacity-50"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-sans font-semibold text-base text-text group-hover:text-cyan">
-                    QUEST MODE
-                  </span>
-                  <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-cyan/20 text-cyan font-bold uppercase">
-                    Direct Practice
-                  </span>
-                </div>
-                <p className="font-sans text-xs text-muted">
-                  "Just give me the questions" — Adaptive focus-mode runs, instant telemetry feedback, and calibration.
-                </p>
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>{isSubmitting ? 'Terraforming World...' : 'Begin Journey →'}</span>
               </button>
             </div>
           </div>
