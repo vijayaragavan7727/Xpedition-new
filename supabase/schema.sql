@@ -1,223 +1,313 @@
--- =============================================================================
--- XPEDITION DATABASE SCHEMA & ROW LEVEL SECURITY (RLS) POLICIES
--- =============================================================================
+-- XPedition Supabase Database Schema Migration
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Enable pgcrypto extension for UUID generation
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- -----------------------------------------------------------------------------
--- 1. PROFILES TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email TEXT,
-    handle TEXT,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+-- 1. Users Table
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  display_name TEXT,
+  share_id UUID DEFAULT gen_random_uuid(),
+  timezone TEXT DEFAULT 'UTC',
+  motivation_type TEXT DEFAULT 'trophy',
+  current_status TEXT,
+  year_and_branch TEXT,
+  learner_rating TEXT,
+  last_exam_marks TEXT,
+  learning_style TEXT DEFAULT 'story',
+  daily_time TEXT DEFAULT '30 min',
+  interests JSONB DEFAULT '[]'::jsonb,
+  accessibility_settings JSONB DEFAULT '{"focusMode": false, "dyslexiaFriendly": false, "reducedMotion": false}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can select own profile" ON public.profiles
-    FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can insert own profile" ON public.profiles
-    FOR INSERT WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile" ON public.profiles
-    FOR UPDATE USING (auth.uid() = id);
-
--- -----------------------------------------------------------------------------
--- 2. LEARNER PROFILE TABLE (Tutor Intake & Preferences)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.learner_profile (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    path_type TEXT CHECK (path_type IN ('goal', 'syllabus')),
-    topic TEXT NOT NULL,
-    language TEXT CHECK (language IN ('english', 'tanglish', 'tamil')),
-    daily_minutes INT CHECK (daily_minutes IN (15, 30, 60, 120)),
-    starting_level TEXT,
-    why_goal TEXT,
-    deadline_date DATE,
-    test_date DATE,
-    syllabus_text TEXT,
-    syllabus_file_path TEXT,
-    learning_mode TEXT CHECK (learning_mode IN ('tutor', 'quest')),
-    current_step INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+-- 2. Goals Table
+CREATE TABLE IF NOT EXISTS public.goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  goal_text TEXT NOT NULL,
+  title TEXT NOT NULL,
+  sources JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.learner_profile ENABLE ROW LEVEL SECURITY;
+-- 3. Skills Table
+CREATE TABLE IF NOT EXISTS public.skills (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  goal_id UUID REFERENCES public.goals(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  difficulty INT NOT NULL DEFAULT 1,
+  source_url TEXT,
+  order_index INT NOT NULL DEFAULT 0
+);
 
-CREATE POLICY "Users can view own learner profile" ON public.learner_profile
-    FOR SELECT USING (auth.uid() = user_id);
+-- 4. Mastery Table (Spaced Repetition & BKT)
+CREATE TABLE IF NOT EXISTS public.mastery (
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  skill_id UUID REFERENCES public.skills(id) ON DELETE CASCADE,
+  p_know FLOAT DEFAULT 0.15,
+  attempts INT DEFAULT 0,
+  half_life_hours FLOAT DEFAULT 48.0,
+  next_review_at TIMESTAMPTZ DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, skill_id)
+);
 
-CREATE POLICY "Users can upsert own learner profile" ON public.learner_profile
-    FOR ALL USING (auth.uid() = user_id);
-
--- -----------------------------------------------------------------------------
--- 3. ATTEMPTS TABLE
--- -----------------------------------------------------------------------------
+-- 5. Attempts Table
 CREATE TABLE IF NOT EXISTS public.attempts (
-    id TEXT PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    concept_id TEXT NOT NULL,
-    concept_name TEXT NOT NULL,
-    is_correct BOOLEAN NOT NULL,
-    confidence TEXT CHECK (confidence IN ('known', 'unsure')),
-    is_solo BOOLEAN DEFAULT FALSE,
-    is_void BOOLEAN DEFAULT FALSE,
-    chosen_index INT,
-    chosen_text TEXT,
-    correct_index INT,
-    item_hash TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  skill_id UUID,
+  correct BOOLEAN NOT NULL,
+  latency_ms INT DEFAULT 0,
+  hints_used INT DEFAULT 0,
+  difficulty INT DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 6. Game State Table
+CREATE TABLE IF NOT EXISTS public.game_state (
+  user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  xp INT DEFAULT 0,
+  level INT DEFAULT 1,
+  streak_days INT DEFAULT 0,
+  longest_streak INT DEFAULT 1,
+  streak_freezes INT DEFAULT 0,
+  last_active_date DATE DEFAULT CURRENT_DATE
+);
+
+-- 7. Reward Arms Table (Multi-Armed Bandit)
+CREATE TABLE IF NOT EXISTS public.reward_arms (
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  arm TEXT NOT NULL,
+  alpha FLOAT DEFAULT 1.0,
+  beta FLOAT DEFAULT 1.0,
+  pulls INT DEFAULT 0,
+  returns INT DEFAULT 0,
+  PRIMARY KEY (user_id, arm)
+);
+
+-- 8. Guilds Table
+CREATE TABLE IF NOT EXISTS public.guilds (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. Guild Members Table
+CREATE TABLE IF NOT EXISTS public.guild_members (
+  guild_id UUID REFERENCES public.guilds(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (guild_id, user_id)
+);
+
+-- 10. Peer Quests Table
+CREATE TABLE IF NOT EXISTS public.peer_quests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  skill_name TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  options JSONB NOT NULL,
+  correct_index INT NOT NULL,
+  approved BOOLEAN DEFAULT FALSE,
+  plays INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10b. Served Questions Table (Anti-Repetition Engine)
+CREATE TABLE IF NOT EXISTS public.served_questions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  question_hash TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  skill_id TEXT,
+  skill_name TEXT,
+  served_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_served_questions_user_hash ON public.served_questions(user_id, question_hash);
+CREATE INDEX IF NOT EXISTS idx_served_questions_user_skill ON public.served_questions(user_id, skill_name, served_at DESC);
+
+-- 11. Matchmaking Queue Table
+CREATE TABLE IF NOT EXISTS public.matchmaking_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  user_name TEXT NOT NULL,
+  skill_name TEXT NOT NULL,
+  difficulty INT DEFAULT 2,
+  status TEXT DEFAULT 'queued',
+  matched_session_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 12. Raid Sessions Table
+CREATE TABLE IF NOT EXISTS public.raid_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  player1_id UUID NOT NULL,
+  player1_name TEXT NOT NULL,
+  player2_id UUID NOT NULL,
+  player2_name TEXT NOT NULL,
+  is_ai_partner BOOLEAN DEFAULT FALSE,
+  boss_hp INT DEFAULT 100,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13. Passport Snapshots Table (Cryptographically Verified Credentials)
+CREATE TABLE IF NOT EXISTS public.passport_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  share_id UUID NOT NULL,
+  goal_title TEXT NOT NULL,
+  skills_json JSONB NOT NULL,
+  overall_readiness FLOAT NOT NULL,
+  signature TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. Learning Modules Table (Learn-Then-Test Platform)
+CREATE TABLE IF NOT EXISTS public.modules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  skill_id TEXT NOT NULL,
+  level INT NOT NULL DEFAULT 1,
+  learning_style TEXT NOT NULL DEFAULT 'story',
+  title TEXT NOT NULL,
+  content JSONB NOT NULL,
+  takeaways JSONB NOT NULL,
+  sources JSONB NOT NULL,
+  questions JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_modules_skill_level_style ON public.modules(skill_id, level, learning_style);
+
+-- 15. User Module Progress Table
+CREATE TABLE IF NOT EXISTS public.user_module_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  skill_id TEXT NOT NULL,
+  level INT NOT NULL DEFAULT 1,
+  read_completed BOOLEAN DEFAULT FALSE,
+  test_passed BOOLEAN DEFAULT FALSE,
+  score INT DEFAULT 0,
+  attempts INT DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_module_progress ON public.user_module_progress(user_id, skill_id, level);
+
+-- 14. Experiment Assignments Table (A/B Learning Gain Harness)
+CREATE TABLE IF NOT EXISTS public.experiment_assignments (
+  user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  cohort TEXT NOT NULL CHECK (cohort IN ('adaptive', 'control')),
+  assigned_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 15. Pre/Post Assessments Table
+CREATE TABLE IF NOT EXISTS public.assessments (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  goal_id UUID REFERENCES public.goals(id) ON DELETE CASCADE,
+  phase TEXT NOT NULL CHECK (phase IN ('pre', 'post')),
+  score FLOAT NOT NULL,
+  max_score FLOAT NOT NULL DEFAULT 5.0,
+  taken_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Row Level Security (RLS) Policies
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mastery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.game_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reward_arms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guilds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guild_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.peer_quests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.matchmaking_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.raid_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.passport_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.experiment_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.assessments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view own attempts" ON public.attempts
-    FOR SELECT USING (auth.uid() = user_id);
+-- Strict RLS Policies for User-Owned Tables
+CREATE POLICY "Users can manage own mastery" ON public.mastery
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own attempts" ON public.attempts
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can manage own attempts" ON public.attempts
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
--- -----------------------------------------------------------------------------
--- 4. CONCEPTS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.concepts (
-    id TEXT PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    mastery_percentage INT DEFAULT 0,
-    items_next INT DEFAULT 3,
-    retention_risk NUMERIC DEFAULT 0.0,
-    pts_since_calibration INT DEFAULT 0,
-    theta_assisted NUMERIC DEFAULT -0.4,
-    theta_solo NUMERIC DEFAULT NULL,
-    solo_attempts_count INT DEFAULT 0,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE POLICY "Users can manage own game_state" ON public.game_state
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage own reward_arms" ON public.reward_arms
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage own passport_snapshots" ON public.passport_snapshots
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Public Unauthenticated Read Access for Passport Snapshots by share_id
+CREATE POLICY "Allow public read access for passport_snapshots by share_id" ON public.passport_snapshots
+  FOR SELECT USING (true);
+
+-- Permissive RLS Policies for other features demo
+CREATE POLICY "Allow full access for users" ON public.users FOR ALL USING (true);
+CREATE POLICY "Allow full access for goals" ON public.goals FOR ALL USING (true);
+CREATE POLICY "Allow full access for skills" ON public.skills FOR ALL USING (true);
+CREATE POLICY "Allow full access for guilds" ON public.guilds FOR ALL USING (true);
+CREATE POLICY "Allow full access for guild_members" ON public.guild_members FOR ALL USING (true);
+CREATE POLICY "Allow full access for peer_quests" ON public.peer_quests FOR ALL USING (true);
+CREATE POLICY "Allow full access for matchmaking_queue" ON public.matchmaking_queue FOR ALL USING (true);
+CREATE POLICY "Allow full access for raid_sessions" ON public.raid_sessions FOR ALL USING (true);
+CREATE POLICY "Allow full access for experiment_assignments" ON public.experiment_assignments FOR ALL USING (true);
+CREATE POLICY "Allow full access for assessments" ON public.assessments FOR ALL USING (true);
+
+-- 12. Study Sessions Table
+CREATE TABLE IF NOT EXISTS public.study_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  goal_id TEXT,
+  goal_title TEXT,
+  started_at TIMESTAMPTZ DEFAULT NOW(),
+  ended_at TIMESTAMPTZ,
+  questions_answered INT DEFAULT 0,
+  correct_count INT DEFAULT 0,
+  skills_touched JSONB DEFAULT '[]'::jsonb,
+  last_skill_id TEXT,
+  last_skill_name TEXT,
+  xp_earned INT DEFAULT 0,
+  ended_reason TEXT DEFAULT 'completed'
 );
 
-ALTER TABLE public.concepts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.study_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full access for study_sessions" ON public.study_sessions FOR ALL USING (true);
 
-CREATE POLICY "Users can view own concepts" ON public.concepts
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can upsert own concepts" ON public.concepts
-    FOR ALL USING (auth.uid() = user_id);
-
--- -----------------------------------------------------------------------------
--- 5. FEEDBACK TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.feedback (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    rating INT CHECK (rating >= 1 AND rating <= 5),
-    body TEXT NOT NULL,
-    route TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+-- 13. World State Table (Learning-Driven World System)
+CREATE TABLE IF NOT EXISTS public.world_state (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  skill_graph_id TEXT NOT NULL,
+  world_theme TEXT NOT NULL DEFAULT 'cosmos',
+  total_mastery_percent INT NOT NULL DEFAULT 0,
+  tier INT NOT NULL DEFAULT 1,
+  buildings JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, skill_graph_id)
 );
 
-ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.world_state ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own world state" ON public.world_state
+  FOR ALL USING (auth.uid() = user_id);
 
--- Anyone (authenticated or anonymous local user) can submit feedback
-CREATE POLICY "Anyone can insert feedback" ON public.feedback
-    FOR INSERT WITH CHECK (true);
 
--- Only admin service role can select feedback
-CREATE POLICY "Service role can select feedback" ON public.feedback
-    FOR SELECT USING (auth.role() = 'service_role');
 
--- -----------------------------------------------------------------------------
--- 6. GOAL RATE LIMITS TABLE
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.goal_rate_limits (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    ip_address TEXT,
-    day DATE DEFAULT CURRENT_DATE NOT NULL,
-    count INT DEFAULT 1 NOT NULL,
-    CONSTRAINT unique_user_day UNIQUE(user_id, day),
-    CONSTRAINT unique_ip_day UNIQUE(ip_address, day)
-);
-
-ALTER TABLE public.goal_rate_limits ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can manage goal rate limits" ON public.goal_rate_limits
-    FOR ALL USING (true);
-
--- -----------------------------------------------------------------------------
--- 7. AI CACHE TABLE (Shared Prompt & Response Cache)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.ai_cache (
-    cache_key TEXT PRIMARY KEY,
-    response JSONB NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    hit_count INT DEFAULT 1 NOT NULL
-);
-
-ALTER TABLE public.ai_cache ENABLE ROW LEVEL SECURITY;
-
--- Anyone (authenticated or anonymous) can read and insert into shared AI cache
-CREATE POLICY "Anyone can read ai cache" ON public.ai_cache
-    FOR SELECT USING (true);
-
-CREATE POLICY "Anyone can insert ai cache" ON public.ai_cache
-    FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Anyone can update ai cache hit count" ON public.ai_cache
-    FOR UPDATE USING (true);
-
--- -----------------------------------------------------------------------------
--- 8. SUPABASE STORAGE BUCKET: syllabus_files
--- -----------------------------------------------------------------------------
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('syllabus_files', 'syllabus_files', true)
-ON CONFLICT (id) DO NOTHING;
-
-CREATE POLICY "Authenticated users can upload syllabus files"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'syllabus_files' AND auth.role() = 'authenticated');
-
-CREATE POLICY "Users can read syllabus files"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'syllabus_files');
-
--- -----------------------------------------------------------------------------
--- 9. SUPABASE STORAGE BUCKET: tutor-audio (Sarvam TTS Cache)
--- -----------------------------------------------------------------------------
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('tutor-audio', 'tutor-audio', true)
-ON CONFLICT (id) DO NOTHING;
-
-CREATE POLICY "Tutor audio is publicly readable" ON storage.objects
-    FOR SELECT USING (bucket_id = 'tutor-audio');
-
--- -----------------------------------------------------------------------------
--- 10. DISTRACTOR STATS TABLE (Aggregate Item Quality & Misconceptions - No User IDs)
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.distractor_stats (
-    item_hash TEXT NOT NULL,
-    chosen_index INT NOT NULL,
-    chosen_text TEXT,
-    prompt TEXT,
-    times_chosen INT DEFAULT 1,
-    times_this_was_correct INT DEFAULT 0,
-    first_seen TIMESTAMPTZ DEFAULT NOW(),
-    last_seen TIMESTAMPTZ DEFAULT NOW(),
-    PRIMARY KEY (item_hash, chosen_index)
-);
-
-ALTER TABLE public.distractor_stats ENABLE ROW LEVEL SECURITY;
-
--- Learners CANNOT read distractor_stats (Admin only)
-CREATE POLICY "Admin only select on distractor_stats" ON public.distractor_stats
-    FOR SELECT USING ((SELECT handle FROM public.profiles WHERE id = auth.uid()) = 'admin' OR auth.jwt() ->> 'email' LIKE '%admin%');
-
-CREATE POLICY "Authenticated users can insert/upsert distractor_stats" ON public.distractor_stats
-    FOR ALL USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Authenticated users can upload tutor audio" ON storage.objects
-    FOR INSERT WITH CHECK (bucket_id = 'tutor-audio');
