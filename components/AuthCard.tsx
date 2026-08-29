@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -493,6 +494,13 @@ export const AuthCard: React.FC = () => {
                 </button>
               </span>
             ) }
+          </div>
+
+          {/* Terms & Conditions Footer Link */}
+          <div className="text-center pt-2 border-t border-line/30 font-sans text-[11px] text-muted">
+            <Link href="/terms" className="text-muted hover:text-cyan transition-colors underline">
+              Terms & Conditions
+            </Link>
           </div>
         </div>
       </div>
