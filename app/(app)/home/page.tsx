@@ -7,6 +7,7 @@ import { getStoreData, calculateStreak, selectNextTarget, UserStoreData, Attempt
 import { FeedbackSheet } from '@/components/FeedbackSheet';
 import { calibrationScore, blindSpots } from '@/lib/engine/calibration';
 import { computeGap, thetaToPercent } from '@/lib/engine/mastery';
+import XyraGreetingWidget from '@/components/XyraGreetingWidget';
 
 export default function HomePage() {
   const router = useRouter();
@@ -27,14 +28,6 @@ export default function HomePage() {
 
   // Single Source of Truth target computation
   const target = selectNextTarget(storeData);
-
-  // Context greeting line logic
-  let contextLine = storeData.goalText || 'Master adaptive learning graphs.';
-  if (streak >= 3) {
-    contextLine = `${streak} days running. Don't break it now.`;
-  } else if (fadingConcepts.length > 0) {
-    contextLine = `${fadingConcepts.length} ${fadingConcepts.length === 1 ? 'concept is' : 'concepts are'} starting to fade.`;
-  }
 
   const handleQuickLearnSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,15 +78,17 @@ export default function HomePage() {
   const blindSpotConceptIds = new Set(detectedBlindSpots.map((bs) => bs.conceptId));
 
   return (
-    <div className="space-y-6 select-none relative">
-      {/* GREETING */}
-      <section className="pt-2 pb-1">
-        <h1 className="font-sans font-medium text-[21px] text-text">
-          Welcome back, {storeData.handle}.
-        </h1>
-        <p className="font-sans font-normal text-[13px] text-muted mt-1">
-          {contextLine}
-        </p>
+    <div className="space-y-5 select-none relative pb-10">
+      
+      {/* 1. XYRA GREETING WIDGET (Top of Home Page, max ~80px height) */}
+      <section className="pt-1">
+        <XyraGreetingWidget
+          storeData={storeData}
+          continueHref={continueHref}
+          continueLabel={continueLabel}
+          fadingConcepts={fadingConcepts}
+          streak={streak}
+        />
       </section>
 
       {/* STAT STRIP (CALIBRATION SLOTS REWARDS) */}
@@ -131,7 +126,7 @@ export default function HomePage() {
               type="text"
               value={quickQuery}
               onChange={(e) => setQuickQuery(e.target.value)}
-              placeholder="e.g. what is entropy, or how to write a follow-up email"
+              placeholder="e.g. what is recursion, or how does gradient descent work"
               className="flex-1 h-[42px] px-3.5 rounded-[10px] bg-panel border border-line/60 font-sans text-xs text-text placeholder:text-muted/60 focus:outline-none focus:border-cyan transition-all"
             />
             <button
@@ -140,7 +135,7 @@ export default function HomePage() {
               className="h-[42px] px-5 rounded-[10px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center gap-1 hover:brightness-108 transition-all disabled:opacity-50 cursor-pointer shrink-0"
             >
               <span>Get Answer</span>
-              <span>→</span>
+              <span>&rarr;</span>
             </button>
           </div>
         </form>
@@ -204,7 +199,7 @@ export default function HomePage() {
                 className="w-full h-[46px] rounded-[10px] bg-signature-gradient text-white font-sans font-semibold text-[15px] flex items-center justify-center gap-2 hover:brightness-108 hover:shadow-[0_8px_30px_-6px_rgba(168,85,247,0.55)] active:translate-y-[1px] transition-all cursor-pointer"
               >
                 <span>{continueLabel}</span>
-                <span>→</span>
+                <span>&rarr;</span>
               </Link>
             </div>
           </div>
@@ -216,7 +211,7 @@ export default function HomePage() {
               href="/onboarding"
               className="inline-flex h-[42px] px-6 rounded-[10px] bg-signature-gradient text-white font-sans font-semibold text-xs items-center gap-2"
             >
-              Start Onboarding →
+              Start Onboarding &rarr;
             </Link>
           </div>
         )}
@@ -293,15 +288,15 @@ export default function HomePage() {
                 <div className="flex items-center gap-2 shrink-0 font-mono text-xs">
                   <Link href={`/quest?mode=solo&concept=${encodeURIComponent(concept.id)}`} className="px-2.5 py-1.5 rounded-[8px] bg-violet-600/20 border border-violet-500/40 text-violet-300 hover:bg-violet-600/30 text-[11px] font-semibold flex items-center gap-1">
                     <span>Solo</span>
-                    <span>🔒</span>
+                    <span>🛡️</span>
                   </Link>
                   {hasAtt ? (
                     <Link href={`/quest?concept=${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-raised border border-line text-text hover:border-cyan">
-                      Practice →
+                      Practice &rarr;
                     </Link>
                   ) : (
-                    <Link href={`${lessonPath}/${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-signature-gradient text-white font-sans font-semibold text-xs">
-                      Start Lesson →
+                    <Link href={`${lessonPath}/${encodeURIComponent(concept.id)}`} className="px-3 py-1.5 rounded-[8px] bg-cyan/15 border border-cyan/40 text-cyan hover:bg-cyan/25 font-semibold">
+                      Learn &rarr;
                     </Link>
                   )}
                 </div>
@@ -311,43 +306,36 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* RECENT ATTEMPTS AUDIT */}
-      <section className="bg-raised/40 border border-line/50 rounded-[16px] p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] tracking-eyebrow uppercase text-muted font-bold">
-            RECENT ACTIVITY
-          </span>
-          <Link href="/history" className="font-mono text-xs text-cyan hover:underline">
-            View history →
-          </Link>
-        </div>
-
-        {recentAttempts.length > 0 ? (
+      {/* RECENT ATTEMPTS */}
+      {recentAttempts.length > 0 && (
+        <section className="bg-[#120E22]/90 border border-line/60 rounded-[16px] p-5 space-y-3">
+          <div className="flex items-center justify-between border-b border-line/40 pb-2.5">
+            <span className="font-mono text-[10px] tracking-eyebrow uppercase text-muted font-bold">
+              RECENT LOGS
+            </span>
+            <Link href="/history" className="font-mono text-xs text-cyan hover:underline">
+              View Full History &rarr;
+            </Link>
+          </div>
           <div className="space-y-2">
             {recentAttempts.map((att) => (
-              <div
-                key={att.id}
-                className="flex items-center justify-between p-2.5 rounded-[10px] bg-panel/60 border border-line/30 text-xs font-sans"
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <span className={`w-2 h-2 rounded-full ${att.isCorrect ? 'bg-success' : 'bg-danger'}`} />
-                  <span className="text-text font-medium truncate">{att.conceptName}</span>
+              <div key={att.id} className="flex items-center justify-between text-xs py-1">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${att.isCorrect ? 'bg-[#00FF87]' : 'bg-[#FF0055]'}`} />
+                  <span className="font-sans text-text font-medium">{att.conceptName}</span>
+                  {att.isSolo && (
+                    <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300">
+                      Solo
+                    </span>
+                  )}
                 </div>
-                <span className="font-mono text-[10px] text-muted shrink-0">
-                  {formatRelativeTime(att.timestamp)}
-                </span>
+                <span className="font-mono text-[11px] text-muted">{formatRelativeTime(att.timestamp)}</span>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="text-xs font-sans text-muted py-2">No attempts recorded yet. Complete a quest to start your log.</div>
-        )}
-      </section>
+        </section>
+      )}
 
-      {/* FEEDBACK & REPORT FOOTER */}
-      <section className="flex justify-end pt-2 pb-6">
-        <FeedbackSheet />
-      </section>
     </div>
   );
 }
