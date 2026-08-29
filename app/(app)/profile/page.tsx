@@ -2,30 +2,143 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getStoreData, clearStoreData, switchActiveGraph, saveLearnerProfile, UserStoreData, SkillGraph } from '@/lib/store';
+import { getStoreData, clearStoreData, switchActiveGraph, saveLearnerProfile, saveStoreData, UserStoreData, SkillGraph } from '@/lib/store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { User, Globe, Clock, Sparkles, Check, CheckCircle2, Shield, AlertCircle, Save, LogOut, RefreshCw } from 'lucide-react';
 
 export default function ProfilePage() {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
+
+  // Editable Form Fields
+  const [handle, setHandle] = useState<string>('Learner');
+  const [language, setLanguage] = useState<'english' | 'tanglish' | 'tamil'>('english');
+  const [dailyMinutes, setDailyMinutes] = useState<number>(60);
   const [learningMode, setLearningMode] = useState<'tutor' | 'read' | 'quest'>('tutor');
+  const [startingLevel, setStartingLevel] = useState<string>('Complete beginner');
+
+  // UI state
+  const [saving, setSaving] = useState<boolean>(false);
+  const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    const store = getStoreData();
-    setStoreData(store);
-    const mode = store.learnerProfile?.learningMode as 'tutor' | 'read' | 'quest';
-    if (mode) setLearningMode(mode);
+    const loadProfileData = async () => {
+      const store = getStoreData();
+      setStoreData(store);
+
+      if (store.handle) setHandle(store.handle);
+      if (store.learnerProfile?.language) setLanguage(store.learnerProfile.language as any);
+      if (store.learnerProfile?.dailyMinutes) setDailyMinutes(store.learnerProfile.dailyMinutes);
+      if (store.learnerProfile?.learningMode) setLearningMode(store.learnerProfile.learningMode as any);
+      if (store.learnerProfile?.startingLevel) setStartingLevel(store.learnerProfile.startingLevel);
+
+      // Check if logged in with Supabase and fetch latest cloud profile
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData?.user?.id;
+
+          if (userId) {
+            const { data: profileRow } = await supabase
+              .from('profiles')
+              .select('handle')
+              .eq('id', userId)
+              .single();
+
+            if (profileRow?.handle) {
+              setHandle(profileRow.handle);
+            }
+
+            const { data: learnerRow } = await supabase
+              .from('learner_profile')
+              .select('language, daily_minutes, learning_mode, starting_level')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+            if (learnerRow) {
+              if (learnerRow.language) setLanguage(learnerRow.language as any);
+              if (learnerRow.daily_minutes) setDailyMinutes(learnerRow.daily_minutes);
+              if (learnerRow.learning_mode) setLearningMode(learnerRow.learning_mode as any);
+              if (learnerRow.starting_level) setStartingLevel(learnerRow.starting_level);
+            }
+          }
+        } catch (err) {
+          console.warn('Supabase profile load notice:', err);
+        }
+      }
+    };
+
+    loadProfileData();
   }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      // 1. Save to local store
+      const trimmedHandle = handle.trim() || 'Learner';
+      const current = getStoreData();
+      current.handle = trimmedHandle;
+
+      const updatedProfile = {
+        name: trimmedHandle,
+        language,
+        dailyMinutes,
+        learningMode,
+        startingLevel,
+      };
+
+      const updatedStore = saveLearnerProfile(updatedProfile);
+      updatedStore.handle = trimmedHandle;
+      saveStoreData(updatedStore);
+      setStoreData(updatedStore);
+
+      // 2. Save to Supabase (if connected)
+      if (isSupabaseConfigured && supabase) {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+
+        if (userId) {
+          // Upsert to profiles table
+          await supabase.from('profiles').upsert({
+            id: userId,
+            handle: trimmedHandle,
+            updated_at: new Date().toISOString(),
+          });
+
+          // Upsert to learner_profile table
+          await supabase.from('learner_profile').upsert(
+            {
+              user_id: userId,
+              topic: updatedStore.goalText || 'Skill Goal',
+              language,
+              daily_minutes: dailyMinutes,
+              learning_mode: learningMode,
+              starting_level: startingLevel,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' }
+          );
+        }
+      }
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3500);
+    } catch (err: any) {
+      console.error('Failed to save profile:', err);
+      setSaveError(err.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSwitchGoal = (graphId: string) => {
     const updated = switchActiveGraph(graphId);
     setStoreData(updated);
     window.location.reload();
-  };
-
-  const handleChangeLearningMode = (mode: 'tutor' | 'read' | 'quest') => {
-    setLearningMode(mode);
-    const updated = saveLearnerProfile({ learningMode: mode });
-    setStoreData(updated);
   };
 
   const handleResetData = () => {
@@ -46,186 +159,325 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="space-y-6 select-none pt-4 max-w-xl mx-auto">
+    <div className="space-y-6 select-none pt-4 max-w-2xl mx-auto font-sans pb-12">
+      
+      {/* Header */}
       <div>
-        <h1 className="font-sans font-semibold text-2xl text-text">Profile & Preferences</h1>
-        <p className="font-sans text-xs text-muted mt-1">
-          Manage your active learning goals, switch between skill graphs, or change your lesson teaching mode.
+        <div className="flex items-center gap-2">
+          <User className="w-6 h-6 text-[#00F0FF]" />
+          <h1 className="font-sans font-bold text-2xl text-white">Profile & Learning Settings</h1>
+        </div>
+        <p className="font-sans text-xs text-slate-400 mt-1">
+          Customize your learner handle, teaching mode, daily pace, and language preferences.
         </p>
       </div>
 
-      {/* Account Info Card */}
-      <div className="bg-[#150F2A] rounded-[16px] border border-line/40 p-6 space-y-5">
-        <div className="flex items-center justify-between pb-4 border-b border-line/40">
+      {/* Success Notification Toast */}
+      {saveSuccess && (
+        <div className="p-3.5 rounded-2xl bg-[#00FF87]/15 border border-[#00FF87]/40 text-[#00FF87] text-xs font-sans flex items-center justify-between animate-fadeIn shadow-lg">
+          <div className="flex items-center gap-2 font-semibold">
+            <CheckCircle2 className="w-4 h-4 text-[#00FF87]" />
+            <span>Profile settings saved successfully!</span>
+          </div>
+          <span className="font-mono text-[10px] uppercase font-bold text-[#00FF87]/80">Saved to Cloud & Device</span>
+        </div>
+      )}
+
+      {/* Error Notification */}
+      {saveError && (
+        <div className="p-3.5 rounded-2xl bg-[#FF0055]/15 border border-[#FF0055]/40 text-[#FF7185] text-xs font-sans flex items-center gap-2 animate-fadeIn shadow-lg">
+          <AlertCircle className="w-4 h-4 text-[#FF0055]" />
+          <span>{saveError}</span>
+        </div>
+      )}
+
+      {/* EDIT PROFILE FORM */}
+      <form onSubmit={handleSaveProfile} className="bg-[#120E24] rounded-[24px] border border-white/10 p-5 sm:p-7 space-y-6 shadow-2xl">
+        
+        {/* User Identity Section */}
+        <div className="flex items-center justify-between pb-5 border-b border-white/10 flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-signature-gradient p-0.5">
-              <div className="w-full h-full rounded-full bg-panel flex items-center justify-center font-mono font-bold text-sm">
-                {storeData?.handle ? storeData.handle.slice(0, 2).toUpperCase() : 'OP'}
+            <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#00F0FF] via-[#A855F7] to-[#FF0055] p-0.5 shadow-[0_0_15px_rgba(0,240,255,0.3)]">
+              <div className="w-full h-full rounded-full bg-[#0D0D1A] flex items-center justify-center font-mono font-bold text-base text-white">
+                {handle ? handle.slice(0, 2).toUpperCase() : 'LE'}
               </div>
             </div>
             <div>
-              <h2 className="font-sans font-semibold text-base text-text">
-                {storeData?.handle || 'Learner'}
+              <h2 className="font-sans font-bold text-lg text-white">
+                {handle || 'Learner'}
               </h2>
-              <span className="font-mono text-[10px] text-cyan uppercase tracking-eyebrow">
-                AUTHENTICATED SESSION
+              <span className="font-mono text-[10px] text-[#00F0FF] uppercase tracking-wider font-bold">
+                AUTHENTICATED LEARNER
               </span>
             </div>
           </div>
 
-          {/* REWARDS TILE (MOVED FROM HOME STAT STRIP) */}
-          <div className="bg-[#1A1430] border border-violet/30 px-3.5 py-2 rounded-[10px] text-center font-mono shrink-0">
-            <span className="text-[9px] text-muted block uppercase">REWARDS</span>
-            <span className="text-sm font-bold text-violet">+{storeData?.rewardsCount || 0} 🏆</span>
+          <div className="bg-[#1A1430] border border-[#A855F7]/40 px-4 py-2 rounded-xl text-center font-mono shrink-0 shadow-inner">
+            <span className="text-[9px] text-slate-400 block uppercase font-medium">REWARDS</span>
+            <span className="text-sm font-bold text-[#A855F7]">+{storeData?.rewardsCount || 0} ✨</span>
           </div>
         </div>
 
-        {/* LEARNING LESSON MODE PREFERENCE */}
-        <div className="space-y-3 pt-1 border-b border-line/40 pb-5">
-          <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow block">
-            LESSON TEACHING MODE PREFERENCE
-          </span>
-          <div className="grid grid-cols-3 gap-2">
+        {/* 1. Name / Handle Input */}
+        <div className="space-y-2">
+          <label className="font-mono text-[11px] uppercase text-[#00F0FF] font-bold tracking-wider block">
+            Learner Display Name
+          </label>
+          <input
+            type="text"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            placeholder="Enter your name or handle"
+            className="w-full h-11 px-4 rounded-xl bg-black/40 border border-white/15 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#00F0FF] font-sans transition-all"
+            required
+          />
+        </div>
+
+        {/* 2. Teaching Mode Selection */}
+        <div className="space-y-2.5">
+          <label className="font-mono text-[11px] uppercase text-[#00F0FF] font-bold tracking-wider block">
+            Lesson Teaching Mode
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <button
               type="button"
-              onClick={() => handleChangeLearningMode('tutor')}
-              className={`p-3 rounded-[12px] border text-left flex flex-col justify-between transition-all cursor-pointer ${
+              onClick={() => setLearningMode('tutor')}
+              className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
                 learningMode === 'tutor'
-                  ? 'bg-cyan/15 border-cyan text-cyan font-semibold shadow-[0_0_15px_rgba(0,229,255,0.2)]'
-                  : 'bg-raised/40 border-line/40 text-muted hover:text-text'
+                  ? 'bg-[#00F0FF]/15 border-[#00F0FF] text-white font-semibold shadow-[0_0_15px_rgba(0,240,255,0.25)]'
+                  : 'bg-black/30 border-white/10 text-slate-400 hover:text-white'
               }`}
             >
-              <span className="font-sans text-xs font-bold block mb-1">🤖 Tutor Mode</span>
-              <span className="font-mono text-[9px] leading-tight block">Paced speech, avatar, and Python whiteboard.</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-sans text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>🤖</span>
+                  <span>Tutor Mode</span>
+                </span>
+                {learningMode === 'tutor' && <Check className="w-4 h-4 text-[#00F0FF]" />}
+              </div>
+              <span className="font-sans text-[11px] text-slate-400 leading-tight">
+                XYRA voice teacher, blackboard notes & checkpoints.
+              </span>
             </button>
 
             <button
               type="button"
-              onClick={() => handleChangeLearningMode('read')}
-              className={`p-3 rounded-[12px] border text-left flex flex-col justify-between transition-all cursor-pointer ${
+              onClick={() => setLearningMode('read')}
+              className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
                 learningMode === 'read'
-                  ? 'bg-cyan/15 border-cyan text-cyan font-semibold shadow-[0_0_15px_rgba(0,229,255,0.2)]'
-                  : 'bg-raised/40 border-line/40 text-muted hover:text-text'
+                  ? 'bg-[#00F0FF]/15 border-[#00F0FF] text-white font-semibold shadow-[0_0_15px_rgba(0,240,255,0.25)]'
+                  : 'bg-black/30 border-white/10 text-slate-400 hover:text-white'
               }`}
             >
-              <span className="font-sans text-xs font-bold block mb-1">📖 Read Mode</span>
-              <span className="font-mono text-[9px] leading-tight block">Interactive text chunks revealed at your own pace.</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-sans text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>📖</span>
+                  <span>Read Mode</span>
+                </span>
+                {learningMode === 'read' && <Check className="w-4 h-4 text-[#00F0FF]" />}
+              </div>
+              <span className="font-sans text-[11px] text-slate-400 leading-tight">
+                Self-paced text chunks with shadow escape mechanics.
+              </span>
             </button>
 
             <button
               type="button"
-              onClick={() => handleChangeLearningMode('quest')}
-              className={`p-3 rounded-[12px] border text-left flex flex-col justify-between transition-all cursor-pointer ${
+              onClick={() => setLearningMode('quest')}
+              className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
                 learningMode === 'quest'
-                  ? 'bg-cyan/15 border-cyan text-cyan font-semibold shadow-[0_0_15px_rgba(0,229,255,0.2)]'
-                  : 'bg-raised/40 border-line/40 text-muted hover:text-text'
+                  ? 'bg-[#00F0FF]/15 border-[#00F0FF] text-white font-semibold shadow-[0_0_15px_rgba(0,240,255,0.25)]'
+                  : 'bg-black/30 border-white/10 text-slate-400 hover:text-white'
               }`}
             >
-              <span className="font-sans text-xs font-bold block mb-1">🎯 Quest Only</span>
-              <span className="font-mono text-[9px] leading-tight block">Skip lessons and jump straight to assessment quests.</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-sans text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>⚡</span>
+                  <span>Quest Only</span>
+                </span>
+                {learningMode === 'quest' && <Check className="w-4 h-4 text-[#00F0FF]" />}
+              </div>
+              <span className="font-sans text-[11px] text-slate-400 leading-tight">
+                Skip lessons and jump straight to adaptive quest questions.
+              </span>
             </button>
           </div>
         </div>
 
-        {/* SKILL GRAPHS LIST & GOAL SWITCHER */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
-              YOUR SKILL GRAPHS ({storeData?.graphs?.length || 1})
-            </span>
-            <Link
-              href="/onboarding"
-              className="h-8 px-3 rounded-[8px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center gap-1.5 hover:brightness-108 transition-all"
-            >
-              <span>＋ New Goal</span>
-            </Link>
-          </div>
-
+        {/* 3. Language & Daily Time Settings Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          {/* Language Selection */}
           <div className="space-y-2">
-            {storeData?.graphs?.map((graph: SkillGraph) => {
-              const isActive = graph.id === storeData.activeGraphId;
-              const conceptCount = graph.concepts?.length || 0;
-              const attemptCount = graph.attempts?.length || 0;
-
-              return (
-                <div
-                  key={graph.id}
-                  className={`p-4 rounded-[12px] border transition-all ${
-                    isActive
-                      ? 'bg-cyan/10 border-cyan text-text'
-                      : 'bg-raised/40 border-line/40 text-muted'
+            <label className="font-mono text-[11px] uppercase text-[#00F0FF] font-bold tracking-wider flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5" />
+              <span>Teaching Language</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['english', 'tanglish', 'tamil'] as const).map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => setLanguage(lang)}
+                  className={`h-10 rounded-xl border font-mono text-xs capitalize transition-all cursor-pointer ${
+                    language === lang
+                      ? 'bg-[#00F0FF] text-black font-bold shadow-md'
+                      : 'bg-black/30 border-white/10 text-slate-400 hover:text-white'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-sans font-semibold text-sm text-text flex items-center gap-2">
-                        <span>{graph.goalText}</span>
-                        {isActive && (
-                          <span className="font-mono text-[9px] px-2 py-0.5 rounded bg-cyan/20 text-cyan uppercase font-bold">
-                            ACTIVE
-                          </span>
-                        )}
-                      </h3>
-                      <p className="font-mono text-[11px] text-muted mt-1">
-                        {conceptCount} Concepts • {attemptCount} Attempts
-                      </p>
-                    </div>
-
-                    {!isActive && (
-                      <button
-                        type="button"
-                        onClick={() => handleSwitchGoal(graph.id)}
-                        className="h-8 px-3 rounded-[8px] bg-raised border border-line text-xs font-sans text-text font-medium hover:border-cyan transition-colors cursor-pointer"
-                      >
-                        Switch to Goal
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* MANUAL TESTING SOLO MODE LAUNCHER */}
-        <div className="p-4 rounded-[14px] bg-violet-600/15 border border-violet-500/40 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="text-violet-400 text-lg">🔒</span>
-              <div>
-                <h3 className="font-sans font-semibold text-sm text-text">Launch Solo Mode (Manual Test)</h3>
-                <p className="font-sans text-xs text-muted">6 items with zero assistance, hints, or mid-session feedback.</p>
-              </div>
+                  {lang}
+                </button>
+              ))}
             </div>
-            <Link
-              href="/quest?mode=solo"
-              className="h-9 px-4 rounded-[10px] bg-violet-600 hover:bg-violet-500 text-white font-sans font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-[0_0_15px_rgba(147,51,234,0.3)] shrink-0"
-            >
-              <span>Start Solo Session</span>
-              <span>🔒</span>
-            </Link>
+          </div>
+
+          {/* Daily Minutes Selection */}
+          <div className="space-y-2">
+            <label className="font-mono text-[11px] uppercase text-[#00F0FF] font-bold tracking-wider flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Daily Practice Goal</span>
+            </label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[15, 30, 60, 120].map((mins) => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setDailyMinutes(mins)}
+                  className={`h-10 rounded-xl border font-mono text-xs transition-all cursor-pointer ${
+                    dailyMinutes === mins
+                      ? 'bg-[#A855F7] text-white font-bold shadow-md'
+                      : 'bg-black/30 border-white/10 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {mins}m
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* 4. Starting Level Selection */}
+        <div className="space-y-2">
+          <label className="font-mono text-[11px] uppercase text-[#00F0FF] font-bold tracking-wider block">
+            Initial Difficulty Baseline
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {['Complete beginner', 'Know basics', 'Advanced'].map((lvl) => (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => setStartingLevel(lvl)}
+                className={`h-10 rounded-xl border font-sans text-xs transition-all cursor-pointer ${
+                  startingLevel === lvl
+                    ? 'bg-[#00FF87] text-black font-bold shadow-md'
+                    : 'bg-black/30 border-white/10 text-slate-400 hover:text-white'
+                }`}
+              >
+                {lvl}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Reset & Sign Out Controls */}
-        <div className="space-y-2.5 pt-4 border-t border-line/40">
+        {/* Submit Save Button */}
+        <div className="pt-2">
           <button
-            type="button"
-            onClick={handleResetData}
-            className="w-full h-10 rounded-[10px] bg-danger/15 border border-danger/40 text-danger hover:bg-danger/25 font-sans font-medium text-xs flex items-center justify-center transition-colors cursor-pointer"
+            type="submit"
+            disabled={saving}
+            className="w-full h-11 rounded-2xl bg-[#00F0FF] text-black font-mono font-bold text-xs flex items-center justify-center gap-2 hover:brightness-110 shadow-lg cursor-pointer transition-all disabled:opacity-50"
           >
-            Reset Store to Fresh Zero-State (Testing)
+            {saving ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>{saving ? 'Saving Profile...' : 'Save Profile Changes'}</span>
           </button>
+        </div>
 
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="w-full h-10 rounded-[10px] border border-line text-muted hover:text-text font-sans font-medium text-xs flex items-center justify-center transition-colors cursor-pointer"
+      </form>
+
+      {/* SKILL GRAPHS LIST & GOAL SWITCHER */}
+      <div className="bg-[#120E24] rounded-[24px] border border-white/10 p-5 sm:p-7 space-y-4 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase text-[#00F0FF] font-bold tracking-wider">
+            YOUR SKILL GRAPHS ({storeData?.graphs?.length || 1})
+          </span>
+          <Link
+            href="/onboarding"
+            className="h-8 px-3 rounded-lg bg-[#00F0FF] text-black font-mono font-bold text-xs flex items-center gap-1.5 hover:brightness-110 transition-all"
           >
-            Sign out
-          </button>
+            <span>+ New Goal</span>
+          </Link>
+        </div>
+
+        <div className="space-y-2.5">
+          {storeData?.graphs?.map((graph: SkillGraph) => {
+            const isActive = graph.id === storeData.activeGraphId;
+            const conceptCount = graph.concepts?.length || 0;
+            const attemptCount = graph.attempts?.length || 0;
+
+            return (
+              <div
+                key={graph.id}
+                className={`p-4 rounded-2xl border transition-all ${
+                  isActive
+                    ? 'bg-[#00F0FF]/10 border-[#00F0FF] text-white shadow-md'
+                    : 'bg-black/30 border-white/10 text-slate-400'
+                }`}
+              >
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h3 className="font-sans font-bold text-sm text-white flex items-center gap-2">
+                      <span>{graph.goalText}</span>
+                      {isActive && (
+                        <span className="font-mono text-[9px] px-2 py-0.5 rounded-full bg-[#00F0FF]/20 text-[#00F0FF] uppercase font-bold border border-[#00F0FF]/40">
+                          ACTIVE
+                        </span>
+                      )}
+                    </h3>
+                    <p className="font-mono text-[11px] text-slate-400 mt-1">
+                      {conceptCount} Concepts &middot; {attemptCount} Attempts
+                    </p>
+                  </div>
+
+                  {!isActive && (
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchGoal(graph.id)}
+                      className="h-8 px-3 rounded-xl bg-white/10 border border-white/15 text-xs font-sans text-white font-semibold hover:bg-white/20 transition-colors cursor-pointer"
+                    >
+                      Switch to Goal
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Reset & Sign Out Controls */}
+      <div className="space-y-2.5 pt-2">
+        <button
+          type="button"
+          onClick={handleResetData}
+          className="w-full h-11 rounded-2xl bg-[#FF0055]/10 border border-[#FF0055]/30 text-[#FF7185] hover:bg-[#FF0055]/20 font-sans font-semibold text-xs flex items-center justify-center transition-colors cursor-pointer"
+        >
+          Reset Store to Fresh Zero-State (Testing)
+        </button>
+
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="w-full h-11 rounded-2xl border border-white/10 text-slate-400 hover:text-white font-sans font-medium text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Sign out</span>
+        </button>
+      </div>
+
     </div>
   );
 }

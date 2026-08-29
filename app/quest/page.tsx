@@ -7,6 +7,7 @@ import { StateHud } from '@/components/StateHud';
 import { getStoreData, recordAttempt, saveActiveSession, clearActiveSession, selectNextTarget, setGraphContent, computeItemHash, Attempt, FlowState } from '@/lib/store';
 import { selectQuest, TARGET_SUCCESS, idealDifficulty } from '@/lib/engine/difficulty';
 import { MotivationState, Quest as SeededItem } from '@/lib/types';
+import { HelpCircle, Sparkles, X, Volume2, Play, ArrowRight } from 'lucide-react';
 
 const SESSION_STORAGE_KEY = 'xpedition_active_quest_session';
 
@@ -57,6 +58,12 @@ function QuestContent() {
     'Adaptive challenge alignment',
   ]);
 
+  // Ask XYRA Modal State in Quest
+  const [isAskXyraOpen, setIsAskXyraOpen] = useState<boolean>(false);
+  const [xyraResponse, setXyraResponse] = useState<string | null>(null);
+  const [xyraLoading, setXyraLoading] = useState<boolean>(false);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track tab switches for behavioral telemetry
@@ -98,102 +105,85 @@ function QuestContent() {
     let totalLen = isSoloRequested ? 6 : (target.totalLength || 6);
     if (lenParam && !isSoloRequested) {
       totalLen = parseInt(lenParam, 10) || 3;
-    } else if (store.flowState === 'drifting' && !isSoloRequested) {
-      totalLen = 4;
     }
 
-    const activeQuests = store.quests || [];
-    const conceptsMap = new Map((store.concepts || []).map((c) => [c.id, c.name]));
-
-    const pool: SeededItem[] = activeQuests.map((q: any) => ({
-      id: q.id,
-      conceptId: q.conceptId,
-      conceptName: conceptsMap.get(q.conceptId) || store.goalText || 'Core Concept',
-      prompt: q.prompt,
-      options: q.options,
-      correctIndex: q.answerIndex ?? q.correctIndex ?? 0,
-      explanation: q.explanation || '',
-      difficulty: Number(q.difficulty) || 0,
-    }));
-
-    // Construct seenIds Set from past attempts for the active graph
     const seenIds = new Set<string>();
-    (store.attempts || []).forEach((att) => {
-      if (att.id) seenIds.add(att.id);
+    store.attempts?.forEach((att) => {
+      if (att.itemHash) seenIds.add(att.itemHash);
     });
 
-    // Adaptive Selection via lib/engine/difficulty.ts (excluding seen items)
-    const sessionItems: SeededItem[] = [];
-    const currentTheta = isSoloRequested
-      ? (store.concepts?.find((c) => c.id === targetConceptId)?.thetaSolo ?? store.calibratedTheta ?? -0.4)
-      : (store.calibratedTheta ?? -0.4);
-    
-    const candidatePool = targetConceptId ? pool.filter((i) => i.conceptId === targetConceptId) : pool;
+    const activeGraph = store.graphs?.find((g) => g.id === store.activeGraphId) || store.graphs?.[0];
+    let pool: SeededItem[] = (activeGraph?.quests as SeededItem[]) || [];
+
+    if (targetConceptId) {
+      const filtered = pool.filter((q) => q.conceptId === targetConceptId);
+      if (filtered.length > 0) pool = filtered;
+    }
+
+    const selectedItems: SeededItem[] = [];
+    const poolCopy = [...pool];
+    let currentTheta = activeGraph?.calibratedTheta ?? -0.4;
+    let simMotivation: MotivationState = (store.flowState as MotivationState) || 'flow';
 
     for (let i = 0; i < totalLen; i++) {
-      const { quest: nextItem } = selectQuest(candidatePool, currentTheta, store.flowState || 'flow', seenIds);
-      if (nextItem) {
-        sessionItems.push(nextItem as SeededItem);
-        seenIds.add(nextItem.id);
+      const { quest, ideal } = selectQuest(poolCopy, currentTheta, simMotivation, seenIds);
+      if (quest) {
+        selectedItems.push(quest);
+        seenIds.add(quest.id);
+        const idx = poolCopy.findIndex((q) => q.id === quest.id);
+        if (idx >= 0) poolCopy.splice(idx, 1);
+        currentTheta = ideal;
       } else {
-        // If targeted concept items are exhausted, search across the broader path pool
-        const { quest: nextPathItem } = selectQuest(pool, currentTheta, store.flowState || 'flow', seenIds);
-        if (nextPathItem) {
-          sessionItems.push(nextPathItem as SeededItem);
-          seenIds.add(nextPathItem.id);
-        } else {
-          break;
-        }
+        break;
       }
     }
 
-    // Check for item bank exhaustion
-    if (sessionItems.length === 0) {
+    if (selectedItems.length === 0) {
       setIsExhausted(true);
       return;
     }
 
-    // Resume position if persistent activeSession exists for this concept
-    let initialIndex = 0;
-    const activeSession = store.activeSession;
-    if (!isSoloRequested && activeSession && activeSession.conceptId === (targetConceptId || sessionItems[0]?.conceptId) && activeSession.currentIndex < sessionItems.length) {
-      initialIndex = activeSession.currentIndex;
-    }
-
-    const newSession: SessionState = {
-      items: sessionItems,
-      currentIndex: initialIndex,
+    const initialSession: SessionState = {
+      items: selectedItems,
+      currentIndex: 0,
       attempts: [],
-      initialFlowState: store.flowState,
-      conceptId: targetConceptId || sessionItems[0]?.conceptId,
-      totalLength: sessionItems.length,
+      initialFlowState: store.flowState || 'flow',
+      conceptId: targetConceptId || selectedItems[0]?.conceptId,
+      totalLength: selectedItems.length,
       isSolo: isSoloRequested,
     };
 
-    setSession(newSession);
-    setCurrentFlowState(store.flowState || 'flow');
+    setSession(initialSession);
+    setCurrentFlowState(initialSession.initialFlowState);
 
     if (!isSoloRequested) {
       saveActiveSession({
-        conceptId: newSession.conceptId || sessionItems[0]?.conceptId || '',
-        conceptName: sessionItems[0]?.conceptName || 'Core Concept',
-        currentIndex: initialIndex,
-        totalLength: sessionItems.length,
+        conceptId: initialSession.conceptId || selectedItems[0]?.conceptId || 'c_1',
+        conceptName: selectedItems[0]?.conceptName || 'Core Concept',
+        currentIndex: 0,
+        totalLength: selectedItems.length,
         completedItemIds: [],
         updatedAt: Date.now(),
       });
     }
+  }, [conceptParam, lenParam, isSoloRequested]);
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
-    }
-  }, [conceptParam, lenParam, modeParam]);
+  // Live item hesitation timer
+  useEffect(() => {
+    if (isSubmitted || !session) return;
+    timerRef.current = setInterval(() => {
+      setHesitationSeconds((prev) => prev + 1);
+    }, 1000);
 
-  // Handle regenerating a fresh item bank when exhausted
-  const handleRegenerateBank = async () => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isSubmitted, session]);
+
+  const handleRegeneratePool = async () => {
     setIsRegenerating(true);
     const store = getStoreData();
-    const goal = store.goalText || 'Learning Goal';
+    const goal = store.goalText || 'Python Core';
 
     try {
       const res = await fetch('/api/goal', {
@@ -210,15 +200,15 @@ function QuestContent() {
             name: c.name,
             masteryPercentage: 0,
             itemsNext: 3,
-            retentionRisk: 0.0,
+            retentionRisk: 0,
             ptsSinceCalibration: 0,
+            baselineTheta: -0.4,
           }));
+
           setGraphContent(goal, formattedConcepts, data.quests, false);
           clearActiveSession();
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem(SESSION_STORAGE_KEY);
-          }
           window.location.reload();
+          return;
         }
       }
     } catch (err) {
@@ -228,56 +218,107 @@ function QuestContent() {
     }
   };
 
-  const handleStartSoloSession = () => {
-    setShowSoloPreScreen(false);
-  };
-
-  const handleExitQuest = () => {
-    if (session?.isSolo && session.attempts.length > 0) {
-      // Void mid-session exit attempts
-      session.attempts.forEach((att) => {
-        const voidAttempt: Attempt = { ...att, isSolo: true, isVoid: true };
-        recordAttempt(voidAttempt);
-      });
-    }
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(SESSION_STORAGE_KEY);
-    }
-    router.push('/home');
-  };
-
-  const handleOptionSelect = (idx: number) => {
+  const handleOptionSelect = (index: number) => {
     if (isSubmitted) return;
-    if (selectedOption !== null && selectedOption !== idx) {
+    if (selectedOption !== null && selectedOption !== index) {
       setRetryCount((prev) => prev + 1);
     }
-    setSelectedOption(idx);
+    setSelectedOption(index);
   };
 
   const handleToggleHint = () => {
-    if (session?.isSolo) return; // No hints in Solo mode
+    if (session?.isSolo) return;
     if (!showHint) {
       setHintCount((prev) => prev + 1);
     }
     setShowHint(!showHint);
   };
 
+  // ASK XYRA HANDLER IN QUEST
+  const handleAskXyra = async (type: 'explain' | 'hint' | 'lost') => {
+    const currentItem = session?.items[session.currentIndex];
+    if (!currentItem) return;
+    setXyraLoading(true);
+    setXyraResponse(null);
+
+    if (type === 'hint') {
+      const hintMsg = currentItem.explanation
+        ? `Hint: ${currentItem.explanation.split('.')[0]}. Consider what the question is asking step-by-step.`
+        : `Focus on the core principle of ${currentItem.conceptName || 'this concept'} and eliminate contradictory options.`;
+      setXyraResponse(hintMsg);
+      setXyraLoading(false);
+      setHintCount((prev) => prev + 1);
+      return;
+    }
+
+    if (type === 'lost') {
+      const lostMsg = `Don't worry! For "${currentItem.conceptName || 'this concept'}", think of the simplest everyday example. Look at the key terms in the prompt and match them with fundamentals.`;
+      setXyraResponse(lostMsg);
+      setXyraLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          concept: currentItem.conceptName || 'Core Concept',
+          prompt: currentItem.prompt,
+          chosen: selectedOption !== null ? currentItem.options[selectedOption] : '',
+          correct: currentItem.options[currentItem.correctIndex ?? currentItem.answerIndex ?? 0],
+          questId: currentItem.id,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setXyraResponse(data.advice || currentItem.explanation || 'Focus on how the core mechanism operates under standard conditions.');
+      } else {
+        setXyraResponse(currentItem.explanation || 'Focus on the main principle being tested here.');
+      }
+    } catch (e) {
+      setXyraResponse(currentItem.explanation || 'Review the core rules of this topic.');
+    } finally {
+      setXyraLoading(false);
+    }
+  };
+
+  const handleSpeakXyra = (text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleSubmitAnswer = () => {
     if (selectedOption === null || isSubmitted || !session) return;
 
-    setIsSubmitted(true);
     const currentItem = session.items[session.currentIndex];
-    const isCorrect = selectedOption === currentItem.correctIndex;
+    const correctIdx = currentItem.correctIndex ?? currentItem.answerIndex ?? 0;
+    const isCorrect = selectedOption === correctIdx;
 
-    const recentAttempts = [...session.attempts, {
-      id: currentItem.id,
+    setIsSubmitted(true);
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const itemHash = computeItemHash(currentItem.prompt, currentItem.options);
+    const attempt: Attempt = {
+      id: `att_${Date.now()}_${session.currentIndex}`,
       conceptId: currentItem.conceptId,
       conceptName: currentItem.conceptName || 'Core Concept',
       isCorrect,
-      confidence: userConfidence || undefined,
-      isSolo: session.isSolo || false,
+      confidence: userConfidence || 'known',
       timestamp: Date.now(),
-    }];
+      isSolo: Boolean(session.isSolo),
+      chosenIndex: selectedOption,
+      chosenText: currentItem.options[selectedOption],
+      correctIndex: correctIdx,
+      itemHash,
+    };
 
     const nextMotivation: MotivationState =
       !isCorrect && (hesitationSeconds > 10 || hintCount > 0 || retryCount > 0)
@@ -288,147 +329,141 @@ function QuestContent() {
 
     const currentStoreData = getStoreData();
     const currentTheta = currentStoreData.calibratedTheta ?? -0.4;
-    const targetProb = TARGET_SUCCESS[nextMotivation] ?? 0.78;
-    const idealDiff = idealDifficulty(currentTheta, targetProb);
+    const target = TARGET_SUCCESS[nextMotivation] ?? 0.8;
+    const idealDiff = idealDifficulty(currentTheta, target);
 
     setCurrentFlowState(nextMotivation);
-    setTargetSuccessRate(Math.round(targetProb * 100));
-    setAbilityTheta(Number(currentTheta.toFixed(2)));
-    setNextDifficultyB(Number(idealDiff.toFixed(2)));
+    setTargetSuccessRate(Math.round(target * 100));
+    setAbilityTheta(parseFloat(currentTheta.toFixed(2)));
+    setNextDifficultyB(parseFloat(idealDiff.toFixed(2)));
 
-    if (nextMotivation === 'frustrated') {
-      setWhySignals([
-        'Elevated hesitation latency (>10s)',
-        'Option selection changed multiple times',
-        session.isSolo ? 'Incorrect answer submitted — Solo mode (Interventions suppressed)' : 'Incorrect answer submitted — target success set to 92%',
-      ]);
-    } else if (nextMotivation === 'bored') {
-      setWhySignals([
-        'Sub-4s instant response latency',
-        'High consecutive accuracy — target success set to 62%',
-      ]);
-    } else {
-      setWhySignals([
-        'Steady response latency',
-        'Optimal challenge match — target success set to 78%',
-      ]);
-    }
+    const newSignals = [];
+    if (hesitationSeconds > 8) newSignals.push(`Hesitation noted (${hesitationSeconds}s)`);
+    if (retryCount > 0) newSignals.push(`Option shifts detected (${retryCount}x)`);
+    if (hintCount > 0) newSignals.push(`Scaffolding hints utilized`);
+    if (newSignals.length === 0) newSignals.push('Optimal response pace & immediate recall');
+    setWhySignals(newSignals);
 
-    const itemHash = computeItemHash(currentItem.prompt || (currentItem as any).ask || '', currentItem.options);
+    recordAttempt(attempt);
 
-    const newAttempt: Attempt = {
-      id: currentItem.id,
-      conceptId: currentItem.conceptId,
-      conceptName: currentItem.conceptName || 'Core Concept',
-      isCorrect,
-      confidence: userConfidence || undefined,
-      isSolo: session.isSolo || false,
-      timestamp: Date.now(),
-      chosenIndex: selectedOption,
-      chosenText: currentItem.options[selectedOption],
-      correctIndex: currentItem.correctIndex ?? currentItem.answerIndex ?? 0,
-      itemHash,
-    };
-
-    recordAttempt(newAttempt);
-
-    const updatedSession: SessionState = {
-      ...session,
-      attempts: recentAttempts,
-    };
-
+    const nextAttempts = [...session.attempts, attempt];
+    const updatedSession = { ...session, attempts: nextAttempts };
     setSession(updatedSession);
+
+    if (!session.isSolo && typeof window !== 'undefined') {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+    }
   };
 
   const handleNextItem = () => {
     if (!session) return;
-    const currentItem = session.items[session.currentIndex];
-    const isLastItem = session.currentIndex === session.totalLength - 1;
 
-    if (isLastItem) {
-      if (!session.isSolo) {
-        clearActiveSession(currentItem.conceptName);
-      }
+    if (session.currentIndex + 1 >= session.totalLength) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(SESSION_STORAGE_KEY);
       }
-      router.push(`/session-summary${session.isSolo ? '?mode=solo' : ''}`);
-    } else {
-      const nextIndex = session.currentIndex + 1;
-      const updatedSession: SessionState = {
-        ...session,
+      const currentConceptName = session.items[session.currentIndex]?.conceptName || 'Core Concept';
+      clearActiveSession(currentConceptName);
+
+      const targetConcept = conceptParam || session.conceptId || session.items[0]?.conceptId;
+      router.push(`/session-summary?concept=${encodeURIComponent(targetConcept || '')}&mode=${session.isSolo ? 'solo' : 'assisted'}`);
+      return;
+    }
+
+    const nextIndex = session.currentIndex + 1;
+    const nextItem = session.items[nextIndex];
+    const nextSession: SessionState = {
+      ...session,
+      currentIndex: nextIndex,
+    };
+
+    setSession(nextSession);
+    setSelectedOption(null);
+    setUserConfidence(null);
+    setIsSubmitted(false);
+    setShowHint(false);
+    setHesitationSeconds(0);
+
+    if (!session.isSolo && nextItem) {
+      saveActiveSession({
+        conceptId: session.conceptId || nextItem.conceptId,
+        conceptName: nextItem.conceptName || 'Core Concept',
         currentIndex: nextIndex,
-      };
-      setSession(updatedSession);
-      setSelectedOption(null);
-      setUserConfidence(null);
-      setIsSubmitted(false);
-      setShowHint(false);
-      setHesitationSeconds(0);
-
-      if (!session.isSolo) {
-        saveActiveSession({
-          conceptId: session.conceptId || currentItem.conceptId,
-          conceptName: currentItem.conceptName || 'Core Concept',
-          currentIndex: nextIndex,
-          totalLength: session.totalLength,
-          completedItemIds: session.items.slice(0, nextIndex).map((i) => i.id),
-          updatedAt: Date.now(),
-        });
-      }
-
+        totalLength: session.totalLength,
+        completedItemIds: nextSession.attempts.map((a) => a.id),
+        updatedAt: Date.now(),
+      });
       if (typeof window !== 'undefined') {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession));
       }
     }
   };
 
-  // Hesitation timer
-  useEffect(() => {
-    if (isSubmitted) return;
-
-    timerRef.current = setInterval(() => {
-      setHesitationSeconds((prev) => {
-        const nextSec = prev + 1;
-        if (nextSec > 15 && currentFlowState === 'flow') {
-          setWhySignals(['Extended latency before first selection', 'Elevated cognitive load']);
-        }
-        return nextSec;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isSubmitted, session?.currentIndex, currentFlowState]);
-
   if (isExhausted) {
     return (
-      <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-6 text-center select-none">
-        <div className="max-w-md w-full bg-[#120E22] border border-line rounded-[20px] p-8 space-y-6">
-          <div className="w-14 h-14 rounded-full bg-cyan/15 border border-cyan/30 text-cyan text-2xl flex items-center justify-center mx-auto">
-            🎓
-          </div>
+      <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-6 select-none font-sans">
+        <div className="max-w-md w-full bg-panel border border-line rounded-[20px] p-8 text-center space-y-6 shadow-2xl">
           <div className="space-y-2">
-            <h1 className="font-sans font-bold text-xl text-text">Path Items Exhausted</h1>
+            <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
+              CONCEPT POOL COMPLETED
+            </span>
+            <h1 className="font-sans font-bold text-xl text-text">Item Bank Exhausted</h1>
             <p className="font-sans text-xs text-muted leading-relaxed">
-              You&apos;ve cleared every generated item in this learning path! No item recycling.
+              You have completed all generated questions for this concept!
             </p>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 pt-2">
             <button
               type="button"
               disabled={isRegenerating}
-              onClick={handleRegenerateBank}
-              className="w-full h-[46px] rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer"
+              onClick={handleRegeneratePool}
+              className="w-full h-11 rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer disabled:opacity-50"
             >
-              <span>{isRegenerating ? 'Generating fresh questions...' : '🔄 Generate 14 Fresh Items'}</span>
+              <span>{isRegenerating ? 'Generating fresh questions...' : 'Generate New Item Bank'}</span>
+              <span>&rarr;</span>
             </button>
             <Link
               href="/home"
-              className="block font-mono text-xs text-muted hover:text-text pt-1"
+              className="w-full h-10 rounded-[12px] border border-line text-muted hover:text-text font-sans font-medium text-xs flex items-center justify-center transition-colors block text-center"
             >
-              Not now
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showSoloPreScreen && isSoloRequested) {
+    return (
+      <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-6 select-none font-sans">
+        <div className="max-w-md w-full bg-[#1A1430] border border-violet/40 rounded-[20px] p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-12 h-12 rounded-full bg-violet/20 border border-violet flex items-center justify-center text-violet-400 font-mono text-xl mx-auto">
+            🛡️
+          </div>
+          <div className="space-y-2">
+            <span className="font-mono text-[10px] uppercase text-violet font-bold tracking-eyebrow">
+              OFFICIAL ASSESSMENT MODE
+            </span>
+            <h1 className="font-sans font-bold text-xl text-text">Solo Mode</h1>
+            <p className="font-sans text-xs text-muted leading-relaxed">
+              6 items without hints, mid-session feedback, or AI assistance.
+            </p>
+          </div>
+          <div className="space-y-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowSoloPreScreen(false)}
+              className="w-full h-11 rounded-[12px] bg-violet hover:bg-violet-hot text-white font-sans font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <span>Begin Assessment</span>
+              <span>&rarr;</span>
+            </button>
+            <Link
+              href="/home"
+              className="w-full h-10 rounded-[12px] border border-line text-muted hover:text-text font-sans font-medium text-xs flex items-center justify-center transition-colors block text-center"
+            >
+              Cancel
             </Link>
           </div>
         </div>
@@ -438,42 +473,31 @@ function QuestContent() {
 
   if (!session || !session.items[session.currentIndex]) {
     return (
-      <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-4">
-        <div className="font-mono text-sm text-muted animate-pulse">Loading adaptive quest item...</div>
+      <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-4 font-mono text-sm text-cyan animate-pulse">
+        Initializing adaptive quest...
       </div>
     );
   }
 
   const currentItem = session.items[session.currentIndex];
-  const isLastItem = session.currentIndex === session.totalLength - 1;
+  const isLastItem = session.currentIndex + 1 >= session.totalLength;
 
   return (
-    <div className="h-[100dvh] w-full bg-ink text-text select-none relative flex flex-col justify-between overflow-hidden">
-      {/* Top Header Bar */}
-      <header className="h-[60px] px-4 sm:px-6 border-b border-line/60 flex items-center justify-between bg-[#120E22]/80 backdrop-blur-xl shrink-0 z-30">
+    <div className="min-h-[100dvh] bg-ink text-text flex flex-col justify-between select-none relative font-sans">
+      
+      {/* Top Header Strip */}
+      <header className="h-12 px-4 bg-ink border-b border-line flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleExitQuest}
-            className="text-muted hover:text-text font-mono text-xs flex items-center gap-1 cursor-pointer"
-          >
-            ✕ Exit
-          </button>
-          <span className="h-4 w-[1px] bg-line" />
-          <span className="font-mono text-xs text-cyan font-semibold">
-            {session.currentIndex + 1} / {session.totalLength}
+          <Link href="/home" className="text-muted hover:text-text font-mono text-sm">
+            &larr;
+          </Link>
+          <span className="font-mono text-xs text-muted">
+            Question {session.currentIndex + 1} of {session.totalLength}
           </span>
         </div>
 
-        {session.isSolo && (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-600/20 border border-violet-500/40 text-violet-300 font-mono text-[10px] uppercase font-bold tracking-wider animate-pulse">
-            <span>🔒</span>
-            <span>SOLO MODE — NO HELP REACHABLE</span>
-          </div>
-        )}
-
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase text-muted tracking-eyebrow hidden sm:inline font-bold">
+          <span className="font-sans font-semibold text-xs text-text truncate max-w-[160px] sm:max-w-[260px]">
             {currentItem.conceptName}
           </span>
           <span className="font-mono text-xs px-2 py-0.5 rounded bg-raised border border-line text-text">
@@ -500,20 +524,21 @@ function QuestContent() {
           />
         )}
 
-        {/* Quest Item Card */}
-        <div className="bg-[#120E22]/90 border border-line rounded-[20px] p-4 sm:p-8 space-y-4 sm:space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-          <div className="space-y-1.5 sm:space-y-2">
+        {/* Question Card */}
+        <div className="bg-panel border border-line/60 rounded-[18px] p-4 sm:p-5 space-y-4 shadow-2xl my-auto">
+          
+          <div className="space-y-1.5">
             <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
-              QUESTION {session.currentIndex + 1} OF {session.totalLength} ({currentItem.id})
+              {session.isSolo ? 'SOLO EVALUATION ITEM' : 'ADAPTIVE ITEM'}
             </span>
-            <h1 className="font-sans font-semibold text-base sm:text-xl text-text leading-snug">
+            <h1 className="font-sans font-bold text-sm sm:text-base text-text leading-snug">
               {currentItem.prompt}
             </h1>
           </div>
 
-          {/* CONFIDENCE ASK (BEFORE OPTIONS ARE REVEALED) */}
-          {userConfidence === null ? (
-            <div className="p-4 sm:p-5 rounded-[16px] bg-[#1A1430]/90 border border-violet/40 space-y-3 sm:space-y-4 animate-fadeIn my-1 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
+          {/* CONFIDENCE CHECK PRE-STEP (Only in Assisted Mode) */}
+          {!session.isSolo && userConfidence === null ? (
+            <div className="py-6 px-4 rounded-[14px] bg-raised/50 border border-line/80 text-center space-y-4 animate-fadeIn">
               <div className="text-center space-y-1">
                 <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
                   CONFIDENCE CHECK
@@ -529,7 +554,7 @@ function QuestContent() {
                   onClick={() => setUserConfidence('known')}
                   className="h-[44px] px-3 rounded-[12px] bg-cyan/15 border border-cyan/50 hover:border-cyan text-cyan font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer hover:bg-cyan/25 active:scale-98 shadow-[0_0_15px_rgba(0,229,255,0.2)]"
                 >
-                  <span className="text-base">✓</span>
+                  <span>✓</span>
                   <span>I know this</span>
                 </button>
 
@@ -538,23 +563,22 @@ function QuestContent() {
                   onClick={() => setUserConfidence('unsure')}
                   className="h-[44px] px-3 rounded-[12px] bg-raised border border-line hover:border-muted text-text font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer hover:bg-raised/80 active:scale-98"
                 >
-                  <span className="text-base">?</span>
+                  <span>?</span>
                   <span>Not sure</span>
                 </button>
               </div>
             </div>
           ) : (
-            /* OPTIONS (REVEALED ONLY AFTER CONFIDENCE SELECTION) */
+            /* OPTIONS */
             <div className="space-y-2 sm:space-y-3 animate-fadeIn">
               {currentItem.options.map((optionText, idx) => {
                 const isSelected = selectedOption === idx;
-                const isCorrect = idx === currentItem.correctIndex;
+                const isCorrect = idx === (currentItem.correctIndex ?? currentItem.answerIndex ?? 0);
 
                 let optionStyle = 'bg-[#1A1430]/85 border-white/[0.09] hover:border-cyan text-text';
 
                 if (isSubmitted) {
                   if (session.isSolo) {
-                    // Solo Mode: NO MID-SESSION FEEDBACK (No green/red)
                     optionStyle = isSelected
                       ? 'bg-violet-600/30 border-violet text-text font-semibold'
                       : 'bg-[#1A1430]/40 border-transparent text-muted/50';
@@ -597,22 +621,7 @@ function QuestContent() {
             </div>
           )}
 
-          {/* THE BLIND-SPOT MOMENT (ONLY IN ASSISTED MODE) */}
-          {!session.isSolo && isSubmitted && userConfidence === 'known' && selectedOption !== currentItem.correctIndex && (
-            <div className="p-5 rounded-[14px] bg-amber-500/15 border border-amber-500/50 space-y-2 animate-fadeIn shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
-                <span className="font-mono text-xs font-bold text-amber-300 uppercase tracking-wide">
-                  Worth stopping on.
-                </span>
-              </div>
-              <p className="font-sans text-xs text-amber-200/90 leading-relaxed font-normal">
-                You expected to get this. That gap between what you think you know and what you do know is where exams and interviews catch people out.
-              </p>
-            </div>
-          )}
-
-          {/* Explanation Banner (ONLY IN ASSISTED MODE) */}
+          {/* Explanation Banner */}
           {!session.isSolo && isSubmitted && (
             <div className="p-4 rounded-[12px] bg-panel border border-line space-y-1 animate-fadeIn">
               <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
@@ -624,10 +633,10 @@ function QuestContent() {
             </div>
           )}
 
-          {/* Scaffolding Hint (ONLY IN ASSISTED MODE) */}
+          {/* Scaffolding Hint */}
           {!session.isSolo && showHint && (
             <div className="p-3.5 rounded-[12px] bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-sans animate-fadeIn">
-              💡 <strong>Hint:</strong> Focus on the primary metabolic output or key enzyme action involved.
+              💡 <strong>Hint:</strong> Focus on the primary metabolic output or key mechanism involved.
             </div>
           )}
 
@@ -643,7 +652,7 @@ function QuestContent() {
               </button>
             ) : (
               <span className="font-mono text-[10px] uppercase text-violet-400 font-bold tracking-wider">
-                🔒 Solo (No Assistance)
+                🛡️ Solo (No Assistance)
               </span>
             )}
 
@@ -667,7 +676,7 @@ function QuestContent() {
                 className="h-[46px] px-6 rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center gap-2 hover:brightness-108 transition-all cursor-pointer"
               >
                 <span>{isLastItem ? 'Complete Quest' : 'Next Question'}</span>
-                <span>→</span>
+                <span>&rarr;</span>
               </button>
             )}
           </div>
@@ -675,6 +684,123 @@ function QuestContent() {
         </div>
 
       </main>
+
+      {/* 3. ASK XYRA FLOATING BUTTON (Visible in Assisted Quest Mode) */}
+      {!session.isSolo && (
+        <div className="fixed bottom-5 right-5 z-40">
+          <button
+            type="button"
+            onClick={() => setIsAskXyraOpen(true)}
+            className="h-11 px-4 rounded-full bg-[#0D0D1A] border border-[#00F0FF]/50 hover:border-[#00F0FF] text-[#00F0FF] font-mono font-bold text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.35)] hover:scale-105 transition-all cursor-pointer group backdrop-blur-md"
+          >
+            <div className="w-6 h-6 rounded-full bg-[#00F0FF]/20 border border-[#00F0FF] flex items-center justify-center text-[10px] font-bold text-[#00F0FF] shadow-[0_0_8px_rgba(0,240,255,0.5)]">
+              X
+            </div>
+            <span>Ask XYRA</span>
+            <span className="w-2 h-2 rounded-full bg-[#00FF87] animate-pulse" />
+          </button>
+        </div>
+      )}
+
+      {/* ASK XYRA MODAL */}
+      {isAskXyraOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#0D0D1A] border border-[#00F0FF]/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#00F0FF]">
+                <div className="w-5 h-5 rounded-full border border-[#00F0FF] bg-[#00F0FF]/20 text-[#00F0FF] font-mono font-bold text-[9px] flex items-center justify-center shrink-0">
+                  X
+                </div>
+                <span>Ask XYRA</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAskXyraOpen(false);
+                  setXyraResponse(null);
+                }}
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {!xyraResponse ? (
+              <div className="space-y-2 pt-1 font-sans text-xs">
+                <button
+                  type="button"
+                  disabled={xyraLoading}
+                  onClick={() => handleAskXyra('explain')}
+                  className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+                >
+                  <span>&ldquo;Explain this&rdquo;</span>
+                  <span className="font-mono text-xs">&rarr;</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={xyraLoading}
+                  onClick={() => handleAskXyra('hint')}
+                  className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+                >
+                  <span>&ldquo;Give a hint&rdquo;</span>
+                  <span className="font-mono text-xs">&rarr;</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={xyraLoading}
+                  onClick={() => handleAskXyra('lost')}
+                  className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+                >
+                  <span>&ldquo;I&apos;m lost&rdquo;</span>
+                  <span className="font-mono text-xs">&rarr;</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 animate-fadeIn">
+                <div className="p-3.5 rounded-2xl bg-[#00F0FF]/15 border border-[#00F0FF]/40 text-slate-100 text-xs font-sans space-y-2">
+                  <div className="flex items-center justify-between border-b border-[#00F0FF]/20 pb-1.5">
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#00F0FF] font-bold">
+                      <span>XYRA says:</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSpeakXyra(xyraResponse)}
+                      className="text-[10px] font-mono text-[#00F0FF] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>{isSpeaking ? 'Speaking...' : 'Read Aloud'}</span>
+                    </button>
+                  </div>
+                  <p className="leading-relaxed font-medium">{xyraResponse}</p>
+                </div>
+
+                <div className="flex items-center justify-between pt-1 font-mono text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setXyraResponse(null)}
+                    className="text-slate-400 hover:text-white transition-colors cursor-pointer text-[11px]"
+                  >
+                    &larr; Ask another question
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAskXyraOpen(false);
+                      setXyraResponse(null);
+                    }}
+                    className="px-4 py-1.5 rounded-xl bg-[#00F0FF] text-black font-bold hover:brightness-110 cursor-pointer transition-all"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
