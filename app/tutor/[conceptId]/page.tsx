@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { getStoreData, saveStoreData, recordAttempt, computeItemHash, UserStoreData } from '@/lib/store';
 import { BoardVisual, VisualSpec } from '@/components/BoardVisual';
 import { downloadNotesPdf, downloadFlashcardsPdf } from '@/lib/pdf';
+import { Volume2, VolumeX, HelpCircle, FileText, X, Check, ArrowLeft, ArrowRight, Play, Sparkles } from 'lucide-react';
 
 interface LessonChunk {
   say: string;
@@ -56,8 +57,12 @@ export default function TutorPage() {
   const [accumulatedNotes, setAccumulatedNotes] = useState<string[]>([]);
   const [isTopicsExpanded, setIsTopicsExpanded] = useState<boolean>(false);
   const [showRaiseHandNotice, setShowRaiseHandNotice] = useState<string | null>(null);
-  const [showMenuDropdown, setShowMenuDropdown] = useState<boolean>(false);
   const [robotImgPath, setRobotImgPath] = useState<string>('/robot.png');
+
+  // Modals for Ask XYRA & My Notes
+  const [isAskXyraOpen, setIsAskXyraOpen] = useState<boolean>(false);
+  const [isNotesOpen, setIsNotesOpen] = useState<boolean>(false);
+  const [userNotes, setUserNotes] = useState<string>('');
 
   // Timers, Audio Ref & Cache
   const wordTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,6 +84,23 @@ export default function TutorPage() {
   const searchParams = useSearchParams();
   const queryParam = searchParams?.get('q') || '';
   const isQuickLearnMode = conceptId === 'quick' || Boolean(queryParam);
+
+  // Load saved notes locally per session
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`xyra_notes_${conceptId}`);
+      if (saved) {
+        setUserNotes(saved);
+      }
+    }
+  }, [conceptId]);
+
+  const handleSaveNotes = (text: string) => {
+    setUserNotes(text);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`xyra_notes_${conceptId}`, text);
+    }
+  };
 
   useEffect(() => {
     const store = getStoreData();
@@ -238,23 +260,22 @@ export default function TutorPage() {
     router.push('/home');
   };
 
-  // RAISE HAND HANDLER WITH NO-AI "SAY AGAIN" AND CACHED EXAMPLES
-  const handleRaiseHandOption = async (option: 'say_again' | 'another_example' | 'im_lost') => {
+  // ASK XYRA HANDLER (3 fixed options with XYRA's name)
+  const handleAskXyraOption = async (option: 'say_again' | 'another_example' | 'im_lost') => {
+    setIsAskXyraOpen(false);
     stopSpeech();
 
     if (option === 'say_again') {
-      // 1. "Say again" does NOT call AI. Instant replay from start!
-      setShowRaiseHandNotice('Replaying current topic...');
+      setShowRaiseHandNotice('Replaying current topic for you...');
       setRevealedWordCount(0);
       setIsChunkComplete(false);
       setTutorState('talking');
-      setTimeout(() => setShowRaiseHandNotice(null), 1500);
+      setTimeout(() => setShowRaiseHandNotice(null), 1800);
       return;
     }
 
     const cacheKey = `${option}_${currentChunkIndex}_${conceptId}`;
     if (raiseHandCacheRef.current.has(cacheKey)) {
-      // 2. Serve from cache instantly
       const cached = raiseHandCacheRef.current.get(cacheKey)!;
       setShowRaiseHandNotice(cached);
       setTutorState(option === 'another_example' ? 'talking' : 'thinking');
@@ -263,13 +284,12 @@ export default function TutorPage() {
 
     try {
       setIsAiLoading(true);
-      setShowRaiseHandNotice(option === 'another_example' ? 'Thinking of another example...' : 'Simplifying key concept...');
+      setShowRaiseHandNotice(option === 'another_example' ? 'XYRA is creating another example...' : 'XYRA is breaking this down simply...');
       setTutorState('thinking');
 
-      // AI Helper response
       const fallbackMsg = option === 'another_example'
-        ? `Another example for ${conceptName}: Think of this like an assembly line where each step depends on the previous output.`
-        : `Key takeaway: Focus on how ${conceptName} operates in real systems.`;
+        ? `XYRA's Example for ${conceptName}: Imagine a step-by-step conveyor belt where output from stage A directly feeds stage B.`
+        : `XYRA's Summary: Core focus is how ${conceptName} processes inputs in real production systems.`;
 
       raiseHandCacheRef.current.set(cacheKey, fallbackMsg);
       setShowRaiseHandNotice(fallbackMsg);
@@ -313,23 +333,23 @@ export default function TutorPage() {
 
   if (loading) {
     return (
-      <div className="h-screen w-full bg-ink text-text flex items-center justify-center p-4 font-mono text-sm text-muted animate-pulse">
-        Entering Robo Classroom for &quot;{conceptName}&quot;...
+      <div className="h-screen w-full bg-[#0A0A1A] text-slate-100 flex items-center justify-center p-4 font-mono text-sm text-[#00F0FF] animate-pulse">
+        Connecting to XYRA Classroom for &quot;{conceptName}&quot;...
       </div>
     );
   }
 
   if (error || !lesson) {
     return (
-      <div className="h-screen w-full bg-ink text-text flex items-center justify-center p-6 text-center select-none">
-        <div className="max-w-md w-full bg-[#120E22] border border-line rounded-[20px] p-8 space-y-6">
+      <div className="h-screen w-full bg-[#0A0A1A] text-slate-100 flex items-center justify-center p-6 text-center select-none">
+        <div className="max-w-md w-full bg-[#0D0D1A] border border-[#00F0FF]/30 rounded-[24px] p-8 space-y-6 shadow-2xl glow-cyan">
           <div className="space-y-2">
-            <span className="font-mono text-[10px] uppercase text-cyan font-bold tracking-eyebrow">
-              CLASSROOM NOTICE
+            <span className="font-mono text-[10px] uppercase text-[#00F0FF] font-bold tracking-widest">
+              XYRA CLASSROOM NOTICE
             </span>
-            <h1 className="font-sans font-bold text-xl text-text">{conceptName}</h1>
-            <p className="font-sans text-xs text-muted leading-relaxed">
-              {error || 'Unable to connect to AI tutor endpoint.'}
+            <h1 className="font-sans font-bold text-xl text-white">{conceptName}</h1>
+            <p className="font-sans text-xs text-slate-400 leading-relaxed">
+              {error || 'Unable to connect to XYRA tutor endpoint.'}
             </p>
           </div>
 
@@ -337,16 +357,16 @@ export default function TutorPage() {
             <button
               type="button"
               onClick={handleProceedToQuest}
-              className="w-full h-11 rounded-[12px] bg-signature-gradient text-white font-sans font-semibold text-xs flex items-center justify-center gap-2 hover:brightness-108 transition-all cursor-pointer"
+              className="w-full h-11 rounded-[14px] bg-[#00F0FF] text-black font-mono font-bold text-xs flex items-center justify-center gap-2 hover:brightness-110 transition-all cursor-pointer shadow-lg"
             >
               <span>Skip directly to Quest Questions</span>
-              <span>→</span>
+              <span>&rarr;</span>
             </button>
 
             <button
               type="button"
               onClick={handleExit}
-              className="w-full h-10 rounded-[12px] border border-line text-muted hover:text-text font-sans font-medium text-xs flex items-center justify-center transition-all cursor-pointer"
+              className="w-full h-10 rounded-[14px] border border-white/10 text-slate-400 hover:text-white font-sans font-medium text-xs flex items-center justify-center transition-all cursor-pointer"
             >
               Back to Home
             </button>
@@ -357,65 +377,30 @@ export default function TutorPage() {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-[#0B0E14] text-[#E6E8EC] select-none flex flex-col justify-between relative">
+    <div className="h-screen w-full overflow-hidden bg-[#0A0A1A] text-slate-100 select-none flex flex-col justify-between relative font-sans">
       
-      {/* 1. SLIM HEADER (h-12, fixed top) */}
-      <header className="h-12 px-4 bg-[#0B0E14] border-b border-white/10 flex items-center justify-between shrink-0 relative z-30">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleExit}
-            className="text-white/80 hover:text-white transition-colors cursor-pointer text-lg font-bold"
-            aria-label="Back to dashboard"
-          >
-            ←
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-mono font-bold tracking-wider uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-              LIVE
-            </span>
-            <span className="font-sans font-semibold text-xs sm:text-sm text-white truncate max-w-[180px] sm:max-w-[320px]">
-              Robo Class / {conceptName}
-            </span>
-          </div>
-        </div>
+      {/* 6. HEADER (Section 6) */}
+      <header className="h-12 px-4 bg-[#0D0D1A] border-b border-white/10 flex items-center justify-between shrink-0 relative z-30 font-sans">
+        {/* Left: ← Exit */}
+        <button
+          type="button"
+          onClick={handleExit}
+          className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors cursor-pointer text-xs font-semibold"
+          aria-label="Exit classroom"
+        >
+          <span className="text-base font-bold">&larr;</span>
+          <span>Exit</span>
+        </button>
 
-        <div className="flex items-center gap-2 relative">
-          <button
-            type="button"
-            onClick={() => setShowMenuDropdown(!showMenuDropdown)}
-            className="text-white/80 hover:text-white p-1 transition-colors cursor-pointer text-lg"
-            aria-label="Menu options"
-          >
-            ⋮
-          </button>
+        {/* Center: concept name */}
+        <span className="font-sans font-bold text-xs sm:text-sm text-white truncate max-w-[200px] sm:max-w-[340px] text-center">
+          {conceptName}
+        </span>
 
-          {showMenuDropdown && (
-            <div className="absolute right-0 top-9 w-48 bg-[#151921] border border-white/15 rounded-[12px] p-2 shadow-2xl z-40 font-mono text-xs space-y-1 animate-fadeIn">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMenuDropdown(false);
-                  handleProceedToQuest();
-                }}
-                className="w-full text-left px-3 py-2 rounded-[8px] hover:bg-white/10 text-[#2196F3] flex items-center justify-between cursor-pointer font-semibold"
-              >
-                <span>Skip to Questions</span>
-                <span>→</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMenuDropdown(false);
-                  handleExit();
-                }}
-                className="w-full text-left px-3 py-2 rounded-[8px] hover:bg-white/10 text-gray-400 cursor-pointer"
-              >
-                Exit Class
-              </button>
-            </div>
-          )}
+        {/* Right: XYRA 🟢 */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] text-xs font-mono font-bold shadow-[0_0_10px_rgba(0,240,255,0.2)]">
+          <span>XYRA</span>
+          <span className="w-2 h-2 rounded-full bg-[#00FF87] animate-pulse" />
         </div>
       </header>
 
@@ -424,74 +409,99 @@ export default function TutorPage() {
         
         {/* Notice Banner */}
         {showRaiseHandNotice && (
-          <div className="p-2 rounded-[10px] bg-violet-600/20 border border-violet-500/40 text-violet-200 font-sans text-xs flex items-center justify-between animate-fadeIn shrink-0">
-            <span>✋ {showRaiseHandNotice}</span>
-            <button type="button" onClick={() => setShowRaiseHandNotice(null)} className="text-violet-400 text-xs font-mono cursor-pointer">✕</button>
+          <div className="p-2.5 rounded-2xl bg-[#00F0FF]/15 border border-[#00F0FF]/40 text-[#00F0FF] font-sans text-xs flex items-center justify-between animate-fadeIn shrink-0 shadow-lg">
+            <span className="font-medium">✨ {showRaiseHandNotice}</span>
+            <button type="button" onClick={() => setShowRaiseHandNotice(null)} className="text-cyan-400 text-xs font-mono cursor-pointer hover:text-white">✕</button>
           </div>
         )}
 
         {!showCheckpoint ? (
           <div className="flex flex-col space-y-2 flex-1 min-h-0">
             
-            {/* 2. BLACKBOARD PANEL (h-[52vh], relative overflow-hidden) */}
+            {/* 2. CLASSROOM FEEL — THE BOARD (Section 2) */}
             <div
-              className="relative w-full h-[52vh] border-4 border-[#3D2918] rounded-[18px] shadow-2xl overflow-hidden shrink-0 bg-[#1A2B24]"
+              className="relative w-full h-[52vh] border-4 border-[#3D2918] rounded-[20px] shadow-2xl overflow-hidden shrink-0 bg-[#1A2B24]"
               style={{
                 backgroundImage: 'url(/blackboard.jpg)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}
             >
-              <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+              {/* Dark Overlay & Chalk Dust Radial Effect */}
+              <div className="absolute inset-0 bg-black/25 pointer-events-none z-0" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_35%,rgba(255,255,255,0.07),transparent_65%)] pointer-events-none z-10" />
 
-              {/* SPEECH BUBBLE (top-left, max-w-[42%], max-h-[35%] overflow-y-auto, 13px font) */}
-              <div className="speech-bubble absolute top-3 left-3 z-30 w-[42%] max-w-[42%] max-h-[35%] overflow-y-auto bg-white text-[#1A1A23] p-2 sm:p-2.5 rounded-[12px] shadow-xl text-[13px] sm:text-sm animate-fadeIn">
+              {/* Chalk Header: XYRA's Classroom */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 font-chalk text-xs sm:text-sm text-[#EDEAE0]/40 tracking-widest uppercase select-none">
+                XYRA&apos;s Classroom
+              </div>
+
+              {/* Session / Concept Indicator Bottom-Right */}
+              <div className="absolute bottom-5 right-3 z-20 font-chalk text-[11px] sm:text-xs text-[#EDEAE0]/45 select-none tracking-wide">
+                Session 1 &middot; Concept {currentChunkIndex + 1} of {lesson.chunks.length}
+              </div>
+
+              {/* 3. XYRA SPEAKS — SPEECH BUBBLE REDESIGN (Section 3) */}
+              <div className="speech-bubble absolute top-3 left-3 z-30 w-[44%] max-w-[44%] max-h-[38%] overflow-y-auto bg-[#0D1117]/95 border border-[#00F0FF]/40 text-[#E6E8EC] p-2.5 sm:p-3 rounded-[16px] shadow-xl text-[12px] sm:text-xs backdrop-blur-md animate-fadeIn">
+                {/* Pointer tail pointing down to robot head */}
                 <div
-                  className="absolute left-5 -bottom-2 w-0 h-0 border-t-[8px] border-t-white border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent pointer-events-none"
+                  className="absolute -bottom-2 left-6 w-0 h-0 border-t-[8px] border-t-[#0D1117] border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent pointer-events-none z-30"
+                  aria-hidden="true"
+                />
+                <div
+                  className="absolute -bottom-[9px] left-[23px] w-0 h-0 border-t-[8px] border-t-[#00F0FF]/40 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent pointer-events-none z-20"
                   aria-hidden="true"
                 />
 
-                <div className="space-y-1">
-                  <p className="font-sans font-medium text-[13px] text-[#1A1A23] leading-snug">
-                    {revealedText || <span className="font-mono text-gray-400 animate-pulse">. . .</span>}
-                    {!isChunkComplete && revealedText && <span className="inline-block w-1.5 h-3 ml-1 bg-[#2196F3] animate-pulse" />}
+                <div className="space-y-1.5">
+                  {/* Avatar Circle & XYRA says: Label */}
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#00F0FF] font-bold tracking-wide border-b border-[#00F0FF]/20 pb-1">
+                    <div className="w-4 h-4 rounded-full border border-[#00F0FF] bg-[#00F0FF]/15 text-[#00F0FF] font-mono font-bold text-[9px] flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(0,240,255,0.4)]">
+                      X
+                    </div>
+                    <span>XYRA says:</span>
+                  </div>
+
+                  <p className="font-sans font-medium text-xs sm:text-[13px] text-slate-100 leading-snug">
+                    {revealedText || <span className="font-mono text-cyan-400/60 animate-pulse">Thinking...</span>}
+                    {!isChunkComplete && revealedText && <span className="inline-block w-1.5 h-3 ml-1 bg-[#00F0FF] animate-pulse" />}
                   </p>
 
-                  <div className="pt-1 flex items-center justify-between text-[10px] font-mono border-t border-gray-100">
-                    <span className="text-gray-400">{currentChunkIndex + 1}/{lesson.chunks.length}</span>
+                  <div className="pt-1 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>{currentChunkIndex + 1}/{lesson.chunks.length}</span>
                     {isChunkComplete && (
                       <button
                         type="button"
                         onClick={handleNextChunk}
-                        className="ml-auto px-2 py-0.5 rounded bg-[#2196F3] hover:bg-[#1976D2] text-white font-sans font-semibold text-[10px] cursor-pointer"
+                        className="ml-auto px-2.5 py-0.5 rounded-lg bg-[#00F0FF] hover:bg-[#00C2FF] text-black font-sans font-bold text-[10px] cursor-pointer shadow transition-all"
                       >
-                        Next →
+                        Next &rarr;
                       </button>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* BOARD TEXT (right side, left-[45%], chalk font Caveat, color #EDEAE0) */}
-              <div className="board-text absolute top-3 right-3 left-[45%] bottom-5 overflow-y-auto font-['Caveat','Kalam',cursive] text-[#EDEAE0] text-sm sm:text-base leading-relaxed space-y-2 pr-1 z-10">
-                <div className="pb-1 border-b border-[#EDEAE0]/40">
-                  <h2 className="text-base sm:text-xl font-semibold text-white tracking-wide">
+              {/* BOARD TEXT (chalk font Caveat) */}
+              <div className="board-text absolute top-8 right-3 left-[47%] bottom-6 overflow-y-auto font-chalk text-[#EDEAE0] text-sm sm:text-base leading-relaxed space-y-2 pr-1 z-10">
+                <div className="pb-1 mb-2 border-b-2 border-dashed border-[#EDEAE0]/30">
+                  <h2 className="text-lg sm:text-2xl font-bold text-white font-chalk tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
                     {conceptName}
                   </h2>
                 </div>
 
-                {/* SVG Visual Diagram rendering if visual spec is present */}
+                {/* Visual Spec if present */}
                 {currentChunk?.visual && (
                   <BoardVisual visual={currentChunk.visual} />
                 )}
 
-                {/* Accumulated chunks on board */}
+                {/* Accumulated Notes */}
                 {accumulatedNotes.length > 0 && (
                   <div className="space-y-1.5">
                     {accumulatedNotes.map((pt, idx) => (
-                      <div key={idx} className="flex items-start gap-1 text-[#EDEAE0]/85">
+                      <div key={idx} className="flex items-start gap-1.5 text-[#EDEAE0]/85">
                         <span className="text-amber-300 font-mono text-xs mt-0.5 select-none">✎</span>
-                        <p className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pt}</p>
+                        <p className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] font-chalk">{pt}</p>
                       </div>
                     ))}
                   </div>
@@ -499,46 +509,59 @@ export default function TutorPage() {
 
                 {/* Current writing chunk */}
                 {revealedText && (
-                  <div className="flex items-start gap-1 text-[#EDEAE0] font-semibold animate-fadeIn">
+                  <div className="flex items-start gap-1.5 text-white font-semibold animate-fadeIn">
                     <span className="text-cyan-300 font-mono text-xs mt-0.5 select-none animate-pulse">✏</span>
-                    <p className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{revealedText}</p>
+                    <p className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] font-chalk">{revealedText}</p>
                   </div>
                 )}
               </div>
 
-              {/* WOODEN LEDGE (h-4 bg-[#8B6340], absolute bottom-0) */}
-              <div className="chalk-ledge absolute bottom-0 left-0 right-0 h-4 bg-[#8B6340] border-t border-[#5C3A21] flex items-center justify-end px-3 gap-2 z-10">
+              {/* WOODEN LEDGE AT BOTTOM — Chalk Stubs & Eraser */}
+              <div className="chalk-ledge absolute bottom-0 left-0 right-0 h-4.5 bg-[#8B6340] border-t border-[#5C3A21] flex items-center justify-end px-4 gap-2 z-10 shadow-inner font-sans">
+                <span className="w-6 h-2.5 bg-[#4A3728] border border-[#2D1F16] rounded-xs shadow" title="Board Eraser" />
                 <span className="w-4 h-1.5 bg-[#EDEAE0] rounded-sm transform -rotate-6 opacity-90" title="White chalk stub" />
                 <span className="w-3.5 h-1.5 bg-[#FDD835] rounded-sm transform rotate-12 opacity-90" title="Yellow chalk stub" />
                 <span className="w-5 h-1.5 bg-[#00E5FF] rounded-sm transform -rotate-3 opacity-90" title="Cyan chalk stub" />
               </div>
 
-              {/* ROBOT CHARACTER PNG (absolute bottom-0 left-0, h-[45%], object-contain) */}
-              <img
-                src={robotImgPath}
-                onError={() => {
-                  if (robotImgPath === '/robot.png') {
-                    setRobotImgPath('/images/robot.png');
-                  }
-                }}
-                alt="XPedition tutor robot"
-                className={`robot-image absolute bottom-0 left-0 z-20 h-[45%] object-contain object-bottom transition-transform duration-300 state-${tutorState}`}
-              />
+              {/* 1. XYRA ROBOT CHARACTER & NAME LABEL (Section 1) */}
+              <div className="absolute bottom-1.5 left-2 z-20 flex flex-col items-center select-none">
+                <img
+                  src={robotImgPath}
+                  onError={() => {
+                    if (robotImgPath === '/robot.png') {
+                      setRobotImgPath('/images/robot.png');
+                    }
+                  }}
+                  alt="XYRA — Your AI Teacher"
+                  className={`robot-image h-[38vh] sm:h-[44vh] max-h-[220px] object-contain object-bottom transition-all duration-300 state-${tutorState}`}
+                />
+                <div className="bg-[#0B0E14]/90 border border-[#00F0FF]/40 backdrop-blur-md px-2.5 py-0.5 rounded-lg shadow-lg flex flex-col items-center -mt-2 z-30 pointer-events-auto">
+                  <span className={`font-mono text-[11px] font-bold text-[#00F0FF] tracking-widest ${tutorState === 'talking' ? 'animate-pulse' : ''}`}>
+                    XYRA
+                  </span>
+                  <span className="font-sans text-[9px] text-slate-400 font-medium tracking-tight">
+                    Your AI Teacher
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* 3. TODAY'S TOPICS (collapsible, ~h-[18vh]) */}
-            <div className="bg-[#151921] border border-white/10 rounded-[14px] p-2 sm:p-3 space-y-1.5 shrink-0">
+            {/* 4. TODAY'S TOPICS -> XYRA'S LESSON PLAN (Section 4) */}
+            <div className="bg-[#0D0D1A] border border-white/10 rounded-[14px] p-2.5 sm:p-3 space-y-1.5 shrink-0 shadow-md">
               <button
                 type="button"
                 onClick={() => setIsTopicsExpanded(!isTopicsExpanded)}
-                className="w-full flex items-center justify-between text-xs font-mono font-bold text-gray-300 hover:text-white cursor-pointer"
+                className="w-full flex items-center justify-between text-xs font-mono font-bold text-slate-200 hover:text-white cursor-pointer"
               >
-                <div className="flex items-center gap-1.5">
-                  <span>📋</span>
-                  <span>Today&apos;s Topics</span>
-                  <span className="text-[10px] text-gray-400">({lesson.chunks.length})</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#00F0FF]">📋</span>
+                  <span>XYRA&apos;s Lesson Plan</span>
+                  <span className="text-[10px] text-cyan-400/80 font-normal">
+                    ({currentChunkIndex} of {lesson.chunks.length} complete)
+                  </span>
                 </div>
-                <span className="text-gray-400 text-xs">{isTopicsExpanded ? '▲ Hide' : '▼ Show'}</span>
+                <span className="text-slate-400 text-[11px]">{isTopicsExpanded ? '▲ Hide' : '▼ Show'}</span>
               </button>
 
               <div className={`${isTopicsExpanded ? 'block' : 'hidden sm:block'} space-y-1.5 pt-1.5 border-t border-white/10 animate-fadeIn`}>
@@ -549,73 +572,45 @@ export default function TutorPage() {
                   return (
                     <div
                       key={idx}
-                      className={`flex items-center gap-2 py-1 px-2 rounded-[6px] text-xs ${
+                      className={`flex items-center justify-between py-1.5 px-2.5 rounded-xl text-xs font-sans transition-all ${
                         isCurrent
-                          ? 'text-[#2196F3] font-bold bg-[#2196F3]/10'
+                          ? 'text-[#00F0FF] font-bold bg-[#00F0FF]/10 border border-[#00F0FF]/30 shadow-[0_0_10px_rgba(0,240,255,0.2)]'
                           : isDone
-                            ? 'text-white/80'
-                            : 'text-gray-500'
+                            ? 'text-slate-300'
+                            : 'text-slate-500'
                       }`}
                     >
-                      <span className="font-mono text-xs">
-                        {isDone ? <span className="text-[#2196F3] font-bold">✓</span> : isCurrent ? <span className="text-[#2196F3] font-bold">●</span> : <span className="text-gray-500">○</span>}
-                      </span>
-                      <span className="truncate font-sans text-[11px]">
-                        Topic {idx + 1}: {chk.say.substring(0, 30)}...
-                      </span>
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-mono text-xs">
+                          {isDone ? <span className="text-[#00FF87] font-bold">✓</span> : isCurrent ? <span className="text-[#00F0FF] font-bold">●</span> : <span className="text-slate-600">○</span>}
+                        </span>
+                        <span className="truncate text-[11px]">
+                          Topic {idx + 1}: {chk.say.substring(0, 34)}...
+                        </span>
+                      </div>
+
+                      {isCurrent && (
+                        <span className="text-[#00F0FF] font-mono font-bold text-xs shrink-0">&rarr;</span>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* 4. RAISE HAND HELPER (3 Pill Buttons: "Say again", "Another example", "I'm lost") */}
-            <div className="bg-[#151921] border border-[#2196F3]/30 rounded-[14px] p-2 space-y-1.5 shrink-0">
-              <div className="font-mono text-[9px] uppercase text-[#2196F3] font-bold text-center tracking-wider">
-                ✋ RAISE HAND FOR HELP
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleRaiseHandOption('say_again')}
-                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
-                >
-                  <span>🔁 Say again</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isAiLoading}
-                  onClick={() => handleRaiseHandOption('another_example')}
-                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
-                >
-                  <span>{isAiLoading ? '⏳ Thinking...' : '💡 Another ex.'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isAiLoading}
-                  onClick={() => handleRaiseHandOption('im_lost')}
-                  className="h-[36px] px-2 rounded-full bg-[#2196F3]/10 border border-[#2196F3]/40 hover:border-[#2196F3] text-[#2196F3] font-sans font-semibold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
-                >
-                  <span>{isAiLoading ? '⏳ Thinking...' : '😕 I\'m lost'}</span>
-                </button>
-              </div>
-            </div>
-
           </div>
         ) : (
-          /* CHECKPOINT SCREEN & PDF DOWNLOAD OPTIONS */
-          <div className="bg-[#151921] border border-white/10 rounded-[18px] p-4 space-y-4 shadow-2xl my-auto animate-fadeIn">
+          /* CHECKPOINT SCREEN & CREDENTIALS */
+          <div className="bg-[#0D0D1A] border border-[#00F0FF]/30 rounded-[20px] p-5 space-y-4 shadow-2xl my-auto animate-fadeIn glow-cyan">
             <div className="flex items-center gap-3">
               <img
                 src={robotImgPath}
-                alt="Robot teacher"
+                alt="XYRA teacher"
                 className={`h-14 w-auto object-contain state-${tutorState}`}
               />
               <div>
-                <span className="font-mono text-[9px] uppercase text-[#2196F3] font-bold block">
-                  CLASSROOM CHECKPOINT VERIFICATION
+                <span className="font-mono text-[9px] uppercase text-[#00F0FF] font-bold block tracking-wider">
+                  XYRA CLASSROOM CHECKPOINT
                 </span>
                 <h2 className="font-sans font-semibold text-xs sm:text-sm text-white leading-snug">
                   {lesson.checkpoint.ask}
@@ -628,18 +623,18 @@ export default function TutorPage() {
                 const isSelected = selectedOption === idx;
                 const isAnswerIdx = idx === lesson.checkpoint.answerIndex;
 
-                let optionStyle = 'bg-[#1C212C] border-white/10 hover:border-[#2196F3] text-white';
+                let optionStyle = 'bg-[#151924] border-white/10 hover:border-[#00F0FF]/60 text-white';
 
                 if (isSubmitted) {
                   if (isAnswerIdx) {
-                    optionStyle = 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-semibold';
+                    optionStyle = 'bg-[#00FF87]/20 border-[#00FF87] text-[#00FF87] font-semibold';
                   } else if (isSelected) {
-                    optionStyle = 'bg-rose-500/20 border-rose-400 text-rose-300 font-semibold';
+                    optionStyle = 'bg-[#FF0055]/20 border-[#FF0055] text-[#FF7185] font-semibold';
                   } else {
-                    optionStyle = 'bg-black/30 border-transparent text-gray-500';
+                    optionStyle = 'bg-black/30 border-transparent text-slate-500';
                   }
                 } else if (isSelected) {
-                  optionStyle = 'bg-[#2196F3]/20 border-[#2196F3] text-white shadow';
+                  optionStyle = 'bg-[#00F0FF]/20 border-[#00F0FF] text-white shadow-lg glow-cyan';
                 }
 
                 return (
@@ -648,10 +643,10 @@ export default function TutorPage() {
                     type="button"
                     disabled={isSubmitted}
                     onClick={() => handleOptionSelect(idx)}
-                    className={`w-full min-h-[44px] p-3 rounded-[10px] border text-left font-sans text-xs flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
+                    className={`w-full min-h-[44px] p-3 rounded-2xl border text-left font-sans text-xs flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
                   >
                     <div className="flex items-center gap-2.5 pr-2">
-                      <span className="font-mono text-xs font-bold text-[#2196F3] min-w-[16px]">
+                      <span className="font-mono text-xs font-bold text-[#00F0FF] min-w-[16px]">
                         {String.fromCharCode(65 + idx)}.
                       </span>
                       <span className="leading-snug">{optionText}</span>
@@ -663,32 +658,32 @@ export default function TutorPage() {
 
             {isSubmitted && (
               <div className="space-y-3 animate-fadeIn">
-                <div className={`p-3 rounded-[10px] border ${isCorrect ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-rose-500/20 border-rose-400 text-rose-200'}`}>
+                <div className={`p-3.5 rounded-2xl border ${isCorrect ? 'bg-[#00FF87]/15 border-[#00FF87]/40 text-[#00FF87]' : 'bg-[#FF0055]/15 border-[#FF0055]/40 text-[#FF7185]'}`}>
                   <span className="font-mono text-xs font-bold block mb-1">
-                    {isCorrect ? '✓ Excellent work!' : '✕ Let\'s review.'}
+                    {isCorrect ? '✓ Excellent work!' : '✕ Let\'s review this together.'}
                   </span>
                   <p className="font-sans text-xs leading-relaxed">
                     {lesson.checkpoint.why}
                   </p>
                 </div>
 
-                {/* PDF DOWNLOAD BUTTONS FOR LESSON NOTES & FLASHCARDS */}
+                {/* PDF DOWNLOAD BUTTONS */}
                 <div className="pt-2 border-t border-white/10 space-y-2">
-                  <span className="font-mono text-[9px] uppercase text-[#2196F3] font-bold block">
+                  <span className="font-mono text-[9px] uppercase text-[#00F0FF] font-bold block tracking-wider">
                     DOWNLOAD LESSON CREDENTIALS
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => downloadNotesPdf({ conceptName, chunks: lesson.chunks })}
-                      className="h-9 px-3 rounded-[8px] bg-[#1C212C] border border-[#2196F3]/40 text-[#2196F3] font-sans font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-[#2196F3]/10 cursor-pointer"
+                      className="h-9 px-3 rounded-xl bg-[#00F0FF]/10 border border-[#00F0FF]/40 text-[#00F0FF] font-mono font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-[#00F0FF]/20 cursor-pointer transition-all"
                     >
                       <span>📄 Notes PDF</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => downloadFlashcardsPdf({ conceptName, chunks: lesson.chunks })}
-                      className="h-9 px-3 rounded-[8px] bg-[#1C212C] border border-violet-400/40 text-violet-300 font-sans font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-violet-600/10 cursor-pointer"
+                      className="h-9 px-3 rounded-xl bg-[#A855F7]/10 border border-[#A855F7]/40 text-[#A855F7] font-mono font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-[#A855F7]/20 cursor-pointer transition-all"
                     >
                       <span>🃏 Flashcards</span>
                     </button>
@@ -706,19 +701,19 @@ export default function TutorPage() {
                         setIsSubmitted(false);
                         setIsCorrect(null);
                       }}
-                      className="h-[36px] px-3 rounded-[8px] bg-[#1C212C] border border-white/20 text-xs font-sans text-white hover:border-[#2196F3] cursor-pointer"
+                      className="h-[38px] px-3 rounded-xl bg-black/40 border border-white/20 text-xs font-sans text-white hover:border-[#00F0FF] cursor-pointer transition-all"
                     >
-                      ← Revisit Lesson
+                      &larr; Revisit Lesson
                     </button>
                   )}
 
                   <button
                     type="button"
                     onClick={handleProceedToQuest}
-                    className="h-[36px] px-4 rounded-[8px] bg-[#2196F3] hover:bg-[#1976D2] text-white font-sans font-semibold text-xs flex items-center gap-1.5 ml-auto shadow cursor-pointer"
+                    className="h-[38px] px-4 rounded-xl bg-[#00F0FF] hover:bg-[#00C2FF] text-black font-mono font-bold text-xs flex items-center gap-1.5 ml-auto shadow-lg cursor-pointer transition-all"
                   >
                     <span>Start Quest Questions</span>
-                    <span>→</span>
+                    <span>&rarr;</span>
                   </button>
                 </div>
               </div>
@@ -730,10 +725,10 @@ export default function TutorPage() {
                   type="button"
                   disabled={selectedOption === null}
                   onClick={handleSubmitCheckpoint}
-                  className={`h-[38px] px-5 rounded-[10px] font-sans font-semibold text-xs transition-all cursor-pointer ${
+                  className={`h-[40px] px-5 rounded-2xl font-mono font-bold text-xs transition-all cursor-pointer ${
                     selectedOption !== null
-                      ? 'bg-[#2196F3] hover:bg-[#1976D2] text-white font-bold'
-                      : 'bg-black/40 text-gray-500 border border-white/10 cursor-not-allowed'
+                      ? 'bg-[#00F0FF] hover:bg-[#00C2FF] text-black shadow-lg glow-cyan'
+                      : 'bg-black/40 text-slate-500 border border-white/10 cursor-not-allowed'
                   }`}
                 >
                   Verify Checkpoint
@@ -745,64 +740,159 @@ export default function TutorPage() {
 
       </div>
 
-      {/* 5. BOTTOM BAR (h-16, fixed bottom) */}
-      <footer className="h-16 px-4 bg-[#0B0E14] border-t border-white/10 flex items-center justify-around shrink-0 relative z-30">
+      {/* 5. BOTTOM BAR — CLASSROOM CONTROLS (Section 5) */}
+      <footer className="h-16 px-4 bg-[#0D0D1A] border-t border-white/10 flex items-center justify-around shrink-0 relative z-30 font-sans">
         
-        {/* Mute */}
+        {/* 1. Volume (Mute / Unmute) */}
         <button
           type="button"
           onClick={handleToggleMute}
-          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
+          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group min-w-[64px]"
         >
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition-all ${
-            isMuted ? 'bg-[#212631] text-gray-400' : 'bg-[#212631] group-hover:bg-[#2A3140]'
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+            isMuted ? 'bg-white/5 text-slate-500 border border-white/10' : 'bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/40 shadow-[0_0_10px_rgba(0,240,255,0.2)]'
           }`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </div>
-          <span className="font-sans text-[10px] text-gray-300 font-medium">
-            {isMuted ? 'Unmute' : 'Mute'}
+          <span className="font-mono text-[10px] text-slate-300 font-bold">
+            Volume
           </span>
         </button>
 
-        {/* Camera Off (Greyed out) */}
-        <div className="flex flex-col items-center justify-center gap-0.5 opacity-50 cursor-not-allowed">
-          <div className="w-9 h-9 rounded-full bg-[#1A1D24] flex items-center justify-center text-gray-500">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <span className="font-sans text-[10px] text-gray-500 font-medium">Cam Off</span>
-        </div>
-
-        {/* Raise Hand */}
+        {/* 2. Ask XYRA (Opens popup with 3 fixed options) */}
         <button
           type="button"
-          onClick={() => handleRaiseHandOption('say_again')}
-          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
+          onClick={() => setIsAskXyraOpen(true)}
+          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group min-w-[64px]"
         >
-          <div className="w-9 h-9 rounded-full bg-[#2196F3]/20 border border-[#2196F3]/40 flex items-center justify-center text-[#2196F3] group-hover:bg-[#2196F3]/30 transition-all">
-            <span className="text-sm">✋</span>
+          <div className="w-9 h-9 rounded-full bg-[#00F0FF]/15 border border-[#00F0FF]/40 text-[#00F0FF] group-hover:bg-[#00F0FF]/25 flex items-center justify-center transition-all shadow-[0_0_12px_rgba(0,240,255,0.3)]">
+            <HelpCircle className="w-4 h-4" />
           </div>
-          <span className="font-sans text-[10px] text-[#2196F3] font-medium">Raise Hand</span>
+          <span className="font-mono text-[10px] text-[#00F0FF] font-bold">
+            Ask XYRA
+          </span>
         </button>
 
-        {/* Chat / Topics */}
+        {/* 3. My Notes (Opens modal for session notes) */}
         <button
           type="button"
-          onClick={() => setIsTopicsExpanded(!isTopicsExpanded)}
-          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group"
+          onClick={() => setIsNotesOpen(true)}
+          className="flex flex-col items-center justify-center gap-0.5 cursor-pointer group min-w-[64px]"
         >
-          <div className="w-9 h-9 rounded-full bg-[#212631] flex items-center justify-center text-white group-hover:bg-[#2A3140] transition-all">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+          <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 text-slate-200 group-hover:bg-white/20 flex items-center justify-center transition-all">
+            <FileText className="w-4 h-4" />
           </div>
-          <span className="font-sans text-[10px] text-gray-300 font-medium">Topics</span>
+          <span className="font-mono text-[10px] text-slate-300 font-bold">
+            My Notes
+          </span>
         </button>
 
       </footer>
+
+      {/* MODAL: ASK XYRA OPTIONS */}
+      {isAskXyraOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#0D0D1A] border border-[#00F0FF]/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl glow-cyan">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#00F0FF]">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Ask XYRA</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAskXyraOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 pt-1 font-sans text-xs">
+              <button
+                type="button"
+                onClick={() => handleAskXyraOption('say_again')}
+                className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+              >
+                <span>&ldquo;Say that again, XYRA&rdquo;</span>
+                <span className="font-mono text-xs">&rarr;</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleAskXyraOption('another_example')}
+                className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+              >
+                <span>&ldquo;Give me another example&rdquo;</span>
+                <span className="font-mono text-xs">&rarr;</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleAskXyraOption('im_lost')}
+                className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+              >
+                <span>&ldquo;I&apos;m lost, XYRA&rdquo;</span>
+                <span className="font-mono text-xs">&rarr;</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: MY NOTES */}
+      {isNotesOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#0D0D1A] border border-white/15 rounded-3xl p-5 max-w-md w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 font-mono text-xs font-bold text-white">
+                <FileText className="w-4 h-4 text-[#00F0FF]" />
+                <span>My Notes — {conceptName}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNotesOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 font-sans text-xs">
+              <textarea
+                rows={6}
+                value={userNotes}
+                onChange={(e) => handleSaveNotes(e.target.value)}
+                placeholder="Type your personal classroom study notes here... Auto-saved locally per session."
+                className="w-full bg-[#05050D] border border-white/15 rounded-2xl p-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00F0FF] leading-relaxed resize-none"
+              />
+
+              {accumulatedNotes.length > 0 && (
+                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                  <span className="font-mono text-[10px] text-[#00F0FF] uppercase font-bold block">
+                    Key Lesson Chunks ({accumulatedNotes.length})
+                  </span>
+                  <div className="max-h-24 overflow-y-auto space-y-1 pr-1 font-chalk text-[13px] text-[#EDEAE0]">
+                    {accumulatedNotes.map((n, i) => (
+                      <p key={i}>&bull; {n}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1 font-mono text-xs">
+              <button
+                type="button"
+                onClick={() => setIsNotesOpen(false)}
+                className="px-4 py-2 rounded-xl bg-[#00F0FF] text-black font-bold hover:brightness-110 cursor-pointer transition-all"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
