@@ -7,13 +7,14 @@ import { usePathname } from 'next/navigation';
 export interface TabItem {
   name: string;
   href: string;
-  iconName: 'home' | 'history' | 'passport' | 'profile';
+  iconName: 'home' | 'history' | 'planet' | 'passport' | 'profile';
 }
 
 const navItems: TabItem[] = [
   { name: 'Home', href: '/home', iconName: 'home' },
   { name: 'History', href: '/history', iconName: 'history' },
-  { name: 'Skill Passport', href: '/passport', iconName: 'passport' },
+  { name: 'World', href: '/world', iconName: 'planet' },
+  { name: 'Passport', href: '/passport', iconName: 'passport' },
   { name: 'Profile', href: '/profile', iconName: 'profile' },
 ];
 
@@ -35,7 +36,7 @@ export const TabBar: React.FC = () => {
       case 'home':
         return (
           <svg
-            className="w-[22px] h-[22px] transition-colors"
+            className="w-[19px] h-[19px] transition-colors"
             fill={isActive ? 'currentColor' : 'none'}
             stroke="currentColor"
             strokeWidth="1.75"
@@ -51,7 +52,7 @@ export const TabBar: React.FC = () => {
       case 'history':
         return (
           <svg
-            className="w-[22px] h-[22px] transition-colors"
+            className="w-[19px] h-[19px] transition-colors"
             fill={isActive ? 'currentColor' : 'none'}
             stroke="currentColor"
             strokeWidth="1.75"
@@ -64,10 +65,27 @@ export const TabBar: React.FC = () => {
             />
           </svg>
         );
+      case 'planet':
+        return (
+          <svg
+            className="w-[19px] h-[19px] transition-colors"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            viewBox="0 0 24 24"
+          >
+            <circle cx="12" cy="12" r="6" fill={isActive ? 'currentColor' : 'none'} />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3.5 15.5c4.5 3 12.5 3 17-3M6.5 8.5C11 5.5 19 5.5 20.5 8.5"
+            />
+          </svg>
+        );
       case 'passport':
         return (
           <svg
-            className="w-[22px] h-[22px] transition-colors"
+            className="w-[19px] h-[19px] transition-colors"
             fill={isActive ? 'currentColor' : 'none'}
             stroke="currentColor"
             strokeWidth="1.75"
@@ -83,7 +101,7 @@ export const TabBar: React.FC = () => {
       case 'profile':
         return (
           <svg
-            className="w-[22px] h-[22px] transition-colors"
+            className="w-[19px] h-[19px] transition-colors"
             fill={isActive ? 'currentColor' : 'none'}
             stroke="currentColor"
             strokeWidth="1.75"
@@ -105,17 +123,17 @@ export const TabBar: React.FC = () => {
           MOBILE BOTTOM TAB BAR (< 1024px)
           ========================================================================= */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 block lg:hidden border-t border-white/[0.07] bg-[#120E22]/72 backdrop-blur-[24px] saturate-[1.15] supports-[not(backdrop-filter:blur(1px))]:bg-[#120E22]/96"
+        className="fixed bottom-0 left-0 right-0 z-40 block lg:hidden border-t border-white/[0.07] bg-[#120E22]/85 backdrop-blur-[24px] saturate-[1.15]"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        <div className="relative h-[68px] flex items-center justify-around px-2">
+        <div className="relative h-[62px] flex items-center justify-around px-1">
           {/* Sliding 3px Top Active Indicator Pill */}
           <div
             className="absolute top-0 h-[3px] w-6 bg-signature-gradient rounded-b-full transition-all duration-220 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{
-              left: `calc(${(activeIndex + 0.5) * 25}% - 12px)`,
+              left: `calc(${(activeIndex + 0.5) * 20}% - 12px)`,
             }}
           />
 
@@ -126,14 +144,14 @@ export const TabBar: React.FC = () => {
                 key={item.href}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex-1 h-full min-w-[48px] min-h-[48px] flex flex-col items-center justify-center gap-1 transition-colors ${
+                className={`flex-1 h-full min-w-[40px] min-h-[48px] flex flex-col items-center justify-center gap-0.5 transition-colors ${
                   isActive ? 'text-text' : 'text-muted hover:text-text'
                 }`}
               >
-                <div className={isActive ? 'text-cyan' : 'text-muted'}>
+                <div className={isActive ? 'text-[#00F0FF]' : 'text-muted'}>
                   {renderIcon(item.iconName, isActive)}
                 </div>
-                <span className="font-sans font-medium text-[10px] leading-none">
+                <span className="font-sans font-medium text-[9px] leading-tight tracking-tight">
                   {item.name}
                 </span>
               </Link>
@@ -171,3 +189,4 @@ export const TabBar: React.FC = () => {
     </>
   );
 };
+export default TabBar;
