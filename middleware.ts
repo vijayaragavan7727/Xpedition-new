@@ -16,8 +16,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Legacy route redirect: /arena -> /home
-  if (pathname === '/arena' || pathname.startsWith('/arena/')) {
+  // TEMPORARY REVIEW MODE: Directly route / and /arena to /home without requiring login
+  if (pathname === '/' || pathname === '/arena' || pathname.startsWith('/arena/')) {
     return NextResponse.redirect(new URL('/home', request.url));
   }
 
@@ -70,8 +70,8 @@ export async function middleware(request: NextRequest) {
     console.warn('[Middleware Auth Warning] getUser fetch failed:', err);
   }
 
-
-  // 7. Protected route check
+  // 7. Protected route check (COMMENTED OUT TEMPORARILY FOR REVIEW MODE)
+  /*
   const protectedRoutes = ['/home', '/history', '/passport', '/profile', '/quest', '/calibrate'];
   const isProtectedRoute = protectedRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
@@ -89,6 +89,7 @@ export async function middleware(request: NextRequest) {
       return redirectResp;
     }
   }
+  */
 
   // Return mutated response object with updated cookies
   return response;
