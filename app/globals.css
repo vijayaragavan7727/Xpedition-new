@@ -130,35 +130,51 @@ body {
   }
 }
 
-/* Robot Avatar PNG States & Keyframes */
-@keyframes float {
+/* Robot Avatar PNG States & Keyframes (XYRA Character State Glow & Movement) */
+@keyframes xyraFloatSlow {
   0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-6px); }
+  50%       { transform: translateY(-7px); }
 }
 
-@keyframes pulse-glow {
-  0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.05); }
+@keyframes xyraFloatFast {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-11px); }
 }
 
-.state-idle {
-  animation: float 4s ease-in-out infinite;
-  filter: drop-shadow(0 0 8px rgba(34,211,238,0.3));
+@keyframes xyraBounceOnce {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  30%       { transform: translateY(-18px) scale(1.04); }
+  60%       { transform: translateY(0px) scale(0.98); }
+  80%       { transform: translateY(-5px) scale(1.02); }
 }
 
-.state-talking {
-  animation: float 2s ease-in-out infinite;
-  filter: drop-shadow(0 0 16px rgba(34,211,238,0.7));
+/* state: idle -> soft cyan glow, slow float */
+.xyra-state-idle, .state-idle {
+  filter: drop-shadow(0 0 16px rgba(0, 240, 255, 0.5));
+  animation: xyraFloatSlow 3.5s ease-in-out infinite;
 }
 
-.state-thinking {
-  transform: rotate(-3deg);
-  filter: drop-shadow(0 0 8px rgba(168,85,247,0.4));
+/* state: talking -> brighter cyan, faster float */
+.xyra-state-talking, .state-talking {
+  filter: drop-shadow(0 0 28px rgba(0, 240, 255, 0.9));
+  animation: xyraFloatFast 1.8s ease-in-out infinite;
 }
 
-.state-happy {
-  animation: pulse-glow 0.5s ease-in-out 2;
-  filter: drop-shadow(0 0 24px rgba(34,211,238,0.9));
+/* state: thinking -> violet glow, slight head tilt */
+.xyra-state-thinking, .state-thinking {
+  filter: drop-shadow(0 0 26px rgba(168, 85, 247, 0.85));
+  transform: rotate(-4deg);
+  transition: transform 0.4s ease-out, filter 0.4s ease-out;
+}
+
+/* state: happy -> warm white flare, bounce once */
+.xyra-state-happy, .state-happy {
+  filter: drop-shadow(0 0 32px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 18px rgba(0, 255, 135, 0.8));
+  animation: xyraBounceOnce 0.85s ease-out 1;
+}
+
+.font-chalk {
+  font-family: var(--font-caveat), var(--font-kalam), 'Caveat', 'Kalam', cursive, sans-serif;
 }
 
 
