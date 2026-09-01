@@ -148,7 +148,7 @@ export default function WorldShareModal({
 
     ctx.font = 'bold 10px monospace';
     ctx.fillStyle = '#94A3B8';
-    ctx.fillText('TERRAFORM LEVEL', 355, 298);
+    ctx.fillText('MASTERY LEVEL', 355, 298);
 
     ctx.font = 'bold 26px monospace';
     ctx.fillStyle = '#00FF87';

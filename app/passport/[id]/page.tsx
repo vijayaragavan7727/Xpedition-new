@@ -60,7 +60,7 @@ export default function PublicPassportPage({ params }: { params: { id: string } 
               <span>Tier {tierInfo.tierNumber} &middot; {tierInfo.name}</span>
             </div>
             <span className="font-mono text-xs font-bold text-[#00F0FF]">
-              {overallMastery}% Terraformed
+              {overallMastery}% Mastery
             </span>
           </div>
         </div>
