@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { getStoreData } from '@/lib/store';
+import { getNextStep } from '@/lib/onboarding';
 import { Eye, EyeOff } from 'lucide-react';
 
 export const AuthCard: React.FC = () => {
@@ -17,6 +19,24 @@ export const AuthCard: React.FC = () => {
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
   const emailInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if returning user is already authenticated
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      if (!isSupabaseConfigured || !supabase) return;
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.user) {
+          const store = getStoreData();
+          const next = getNextStep(store);
+          const targetUrl = next === 'goal' ? '/onboarding' : next === 'calibrate' ? '/calibrate' : '/home';
+          window.location.href = targetUrl;
+        }
+      } catch (e) {}
+    };
+
+    checkExistingSession();
+  }, []);
 
   // Validate Supabase URL format at startup before credential entry
   const urlValidation = useMemo(() => {
@@ -193,9 +213,13 @@ export const AuthCard: React.FC = () => {
           }
         }
 
+        const store = getStoreData();
+        const next = getNextStep(store);
+        const targetUrl = next === 'goal' ? '/onboarding' : next === 'calibrate' ? '/calibrate' : '/home';
+
         setSubmitSuccess(true);
         setTimeout(() => {
-          window.location.href = '/home';
+          window.location.href = targetUrl;
         }, 800);
       } else {
         // Sign In Flow
@@ -224,9 +248,13 @@ export const AuthCard: React.FC = () => {
           }
         }
 
+        const store = getStoreData();
+        const next = getNextStep(store);
+        const targetUrl = next === 'goal' ? '/onboarding' : next === 'calibrate' ? '/calibrate' : '/home';
+
         setSubmitSuccess(true);
         setTimeout(() => {
-          window.location.href = '/home';
+          window.location.href = targetUrl;
         }, 600);
       }
     } catch (err: any) {
