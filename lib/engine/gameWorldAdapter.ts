@@ -1,7 +1,7 @@
 /**
  * Game World Progression & State Adapter
  * Connects learner XP, streak, accuracy, BKT mastery, and concept skills
- * directly to the top-down continuous learning strategy world.
+ * directly to the 5 living learning territory zones.
  */
 
 import { UserStoreData, calculateStreak } from '../store';
@@ -9,11 +9,15 @@ import { thetaToPercent } from './mastery';
 
 export type WorldTierLevel = 1 | 2 | 3 | 4 | 5;
 
-export type GameLocationType =
+export type GameZoneType =
+  | 'learning_camp'
+  | 'skill_district'
+  | 'challenge_arena'
+  | 'project_valley'
+  | 'career_city'
   | 'knowledge_core'
   | 'course_academy'
   | 'skill_lab'
-  | 'challenge_arena'
   | 'reward_vault'
   | 'practice_grounds'
   | 'career_hub'
@@ -25,27 +29,37 @@ export type GameLocationType =
   | 'elixir_condenser'
   | 'workshop';
 
-export interface GameBuildingState {
+export interface LearningZone {
   id: string;
   name: string;
-  conceptId?: string;
-  conceptName: string;
-  type: GameLocationType;
+  tagline: string;
+  type: GameZoneType;
   level: number; // 1 to 5
-  isUpgrading: boolean;
+  tierName: string;
+  icon: string;
   masteryPercent: number;
-  upgradeProgress: number; // 0 to 100
-  title: string;
-  subtitle: string;
-  statsLabel: string;
-  questsCompleted: number;
-  actionText: string;
+  completedQuests: number;
+  questsCompleted?: number;
+  totalQuests: number;
+  status: 'unlocked' | 'in_progress' | 'mastered' | 'completed' | 'locked';
+  unlockRequirement: string;
+  actionTitle: string;
+  actionText?: string;
+  title?: string;
+  subtitle?: string;
+  isUpgrading?: boolean;
+  upgradeProgress?: number;
   actionUrl: string;
-  status: 'unlocked' | 'in_progress' | 'completed' | 'locked';
-  gridX: number; // 0 to 100% on continuous map
-  gridY: number; // 0 to 100% on continuous map
+  accentColor: string;
+  environmentFeatures: string[];
+  gridX: number; // 0 to 100 on continuous terrain map
+  gridY: number; // 0 to 100 on continuous terrain map
   position: [number, number, number];
+  conceptName?: string;
+  statsLabel: string;
 }
+
+export type GameBuildingState = LearningZone;
 
 export interface GameMentorDialogue {
   npcName: string;
@@ -81,33 +95,40 @@ export interface PlayableGameWorldData {
     crystal: number;
     gold: number;
   };
+  zones: {
+    learningCamp: LearningZone;
+    skillDistrict: LearningZone;
+    challengeArena: LearningZone;
+    projectValley: LearningZone;
+    careerCity: LearningZone;
+  };
+  // Backward compatibility aliases
   buildings: {
-    knowledgeCore: GameBuildingState;
-    courseAcademy: GameBuildingState;
-    skillLab: GameBuildingState;
-    challengeArena: GameBuildingState;
-    rewardVault: GameBuildingState;
-    practiceGrounds: GameBuildingState;
-    careerHub: GameBuildingState;
-    // Backwards compatibility aliases
-    hq: GameBuildingState;
-    library: GameBuildingState;
-    questBoard: GameBuildingState;
-    aiLab: GameBuildingState;
-    goldVault: GameBuildingState;
-    elixirCondenser: GameBuildingState;
-    workshop: GameBuildingState;
+    knowledgeCore: LearningZone;
+    courseAcademy: LearningZone;
+    skillLab: LearningZone;
+    challengeArena: LearningZone;
+    rewardVault: LearningZone;
+    practiceGrounds: LearningZone;
+    careerHub: LearningZone;
+    hq: LearningZone;
+    library: LearningZone;
+    questBoard: LearningZone;
+    aiLab: LearningZone;
+    goldVault: LearningZone;
+    elixirCondenser: LearningZone;
+    workshop: LearningZone;
   };
   mentor: GameMentorDialogue;
 }
 
 // XP Thresholds for World Evolution Tiers
 const WORLD_TIER_THRESHOLDS: { tier: WorldTierLevel; name: string; minXp: number; maxXp: number }[] = [
-  { tier: 1, name: 'Base Camp (Tier 1)', minXp: 0, maxXp: 500 },
-  { tier: 2, name: 'Fortified Settlement (Tier 2)', minXp: 500, maxXp: 1500 },
-  { tier: 3, name: 'Learning Stronghold (Tier 3)', minXp: 1500, maxXp: 3000 },
-  { tier: 4, name: 'Grand Citadel (Tier 4)', minXp: 3000, maxXp: 5000 },
-  { tier: 5, name: 'Metropolis Kingdom (Tier 5)', minXp: 5000, maxXp: 10000 },
+  { tier: 1, name: 'Pioneer Camp (Tier 1)', minXp: 0, maxXp: 500 },
+  { tier: 2, name: 'Settled Haven (Tier 2)', minXp: 500, maxXp: 1500 },
+  { tier: 3, name: 'Grand Stronghold (Tier 3)', minXp: 1500, maxXp: 3000 },
+  { tier: 4, name: 'Sovereign Citadel (Tier 4)', minXp: 3000, maxXp: 5000 },
+  { tier: 5, name: 'Empire Metropolis (Tier 5)', minXp: 5000, maxXp: 10000 },
 ];
 
 export function computeGameWorldData(store: UserStoreData, fallbackXp: number = 240): PlayableGameWorldData {
@@ -162,182 +183,148 @@ export function computeGameWorldData(store: UserStoreData, fallbackXp: number = 
   const c0 = concepts[0] || { id: 'c0', name: 'Core Foundations & Syntax', masteryPercentage: 80 };
   const c1 = concepts[1] || { id: 'c1', name: 'Object Architecture & Data', masteryPercentage: 65 };
   const c2 = concepts[2] || { id: 'c2', name: 'Algorithmic Problem Solving', masteryPercentage: 45 };
-  const c3 = concepts[3] || { id: 'c3', name: 'System Optimization & AI', masteryPercentage: 30 };
 
   const getPct = (c: any) => (c.thetaAssisted !== undefined ? thetaToPercent(c.thetaAssisted) : c.masteryPercentage || 50);
 
-  // Building Upgrade Levels based on real progression
-  const hqLevel = currentTierInfo.tier >= 4 ? 4 : currentTierInfo.tier >= 2 ? 3 : 2;
-  const academyLevel = getPct(c1) >= 80 ? 3 : getPct(c1) >= 40 ? 2 : 1;
-  const skillLabLevel = getPct(c2) >= 80 ? 3 : getPct(c2) >= 40 ? 2 : 1;
-  const arenaLevel = attempts.length >= 15 ? 3 : attempts.length >= 5 ? 2 : 1;
-  const vaultLevel = totalXp >= 1500 ? 3 : totalXp >= 500 ? 2 : 1;
-  const practiceLevel = getPct(c0) >= 80 ? 3 : getPct(c0) >= 40 ? 2 : 1;
-  const careerLevel = 1;
-
-  // Weakest Concept for Mentor Recommendations
-  const sortedConcepts = [...concepts].sort((a: any, b: any) => getPct(a) - getPct(b));
-  const weakestConcept = sortedConcepts[0] || c0;
-
-  const mentorDialogue: GameMentorDialogue = {
-    npcName: 'XYRA (Commander)',
-    avatarIcon: '🤖',
-    greeting: `Commander ${store.handle || 'Learner'}! Your village has ${workerCount} active builders. Recommended target: ${weakestConcept.name}.`,
-    recommendedConceptId: weakestConcept.id,
-    recommendedConceptName: weakestConcept.name,
-    challengeTitle: `Adaptive Quest: ${weakestConcept.name}`,
-    difficultyLabel: accuracyRate > 80 ? 'Mastery Raid' : 'Target Practice',
-    actionUrl: `/quest?concept=${encodeURIComponent(weakestConcept.id)}`,
-  };
-
-  const knowledgeCore: GameBuildingState = {
-    id: 'loc_knowledge_core',
-    name: 'Knowledge Core',
-    conceptName: 'Sovereign Domain Citadel',
-    type: 'knowledge_core',
-    level: hqLevel,
-    isUpgrading: false,
-    masteryPercent: avgMastery,
-    upgradeProgress: worldProgressPercent,
-    title: `Knowledge Core (Lv.${hqLevel})`,
-    subtitle: `${currentTierInfo.name}`,
-    statsLabel: `${totalXp} Total XP · ${streak} Day Streak`,
+  // 1. LEARNING CAMP (South - Basic/Beginner Learning)
+  const campLevel = getPct(c0) >= 80 ? 4 : getPct(c0) >= 50 ? 3 : getPct(c0) >= 20 ? 2 : 1;
+  const learningCamp: LearningZone = {
+    id: 'zone_learning_camp',
+    name: 'Learning Camp',
+    tagline: 'Foundations & Starter Lodge',
+    type: 'learning_camp',
+    level: campLevel,
+    tierName: campLevel >= 4 ? 'Grand Lodge' : campLevel >= 2 ? 'Outpost Manor' : 'Pioneer Camp',
+    icon: '🏕️',
+    masteryPercent: getPct(c0),
+    completedQuests: attempts.length,
     questsCompleted: attempts.length,
-    actionText: worldProgressPercent >= 100 ? 'Ascend Citadel' : 'Continue Learning',
-    actionUrl: '/home',
-    status: avgMastery >= 90 ? 'completed' : 'unlocked',
+    totalQuests: Math.max(10, attempts.length + 5),
+    status: 'unlocked',
+    unlockRequirement: 'Unlocked by Default',
+    actionTitle: 'Practice Basics',
+    actionUrl: `/quest?concept=${encodeURIComponent(c0.id)}`,
+    accentColor: '#10B981',
+    environmentFeatures: ['Campfire & Embers', 'Tent Lodges', 'Torchlit Trails', 'Timber Stacks'],
     gridX: 50,
-    gridY: 46,
-    position: [0, 0, -1.8],
+    gridY: 82,
+    position: [0, 0, 4],
+    conceptName: c0.name,
+    statsLabel: `${getPct(c0)}% Syntax Mastery · Lv.${campLevel}`,
   };
 
-  const courseAcademy: GameBuildingState = {
-    id: 'loc_course_academy',
-    name: 'Course Academy',
-    conceptId: c1.id,
-    conceptName: c1.name,
-    type: 'course_academy',
-    level: academyLevel,
-    isUpgrading: false,
+  // 2. SKILL DISTRICT (Mid-West - Skill-Building Modules & Library)
+  const districtLevel = getPct(c1) >= 80 ? 4 : getPct(c1) >= 50 ? 3 : getPct(c1) >= 20 ? 2 : 1;
+  const skillDistrict: LearningZone = {
+    id: 'zone_skill_district',
+    name: 'Skill District',
+    tagline: 'Academy Library & Spires',
+    type: 'skill_district',
+    level: districtLevel,
+    tierName: districtLevel >= 4 ? 'Sovereign Academy' : districtLevel >= 2 ? 'Grand Archive' : 'Scriptorium',
+    icon: '🏛️',
     masteryPercent: getPct(c1),
-    upgradeProgress: getPct(c1),
-    title: `Academy: ${c1.name}`,
-    subtitle: `Level ${academyLevel} · ${getPct(c1)}% Mastered`,
-    statsLabel: `${masteredCount}/${concepts.length || 5} Concepts Mastered`,
-    questsCompleted: Math.floor(attempts.length * 0.35),
-    actionText: 'Study Modules',
+    completedQuests: Math.floor(attempts.length * 0.4),
+    totalQuests: concepts.length * 4 || 16,
+    status: 'unlocked',
+    unlockRequirement: 'Complete Camp Basics',
+    actionTitle: 'Study Modules',
     actionUrl: `/quest?concept=${encodeURIComponent(c1.id)}`,
-    status: getPct(c1) >= 80 ? 'completed' : 'in_progress',
-    gridX: 26,
-    gridY: 30,
-    position: [-3.8, 0, -1.5],
-  };
-
-  const skillLab: GameBuildingState = {
-    id: 'loc_skill_lab',
-    name: 'Skill Lab',
-    conceptId: c2.id,
-    conceptName: c2.name,
-    type: 'skill_lab',
-    level: skillLabLevel,
-    isUpgrading: false,
-    masteryPercent: getPct(c2),
-    upgradeProgress: getPct(c2),
-    title: `Skill Lab: ${c2.name}`,
-    subtitle: `Level ${skillLabLevel} · ${getPct(c2)}% Synthesized`,
-    statsLabel: `Synthesizing ${crystal} Mana Crystals`,
-    questsCompleted: Math.floor(attempts.length * 0.25),
-    actionText: 'Synthesize Skill',
-    actionUrl: `/quest?concept=${encodeURIComponent(c2.id)}`,
-    status: getPct(c2) >= 80 ? 'completed' : 'in_progress',
+    accentColor: '#38BDF8',
+    environmentFeatures: ['Observatory Dome', 'Crystal Libraries', 'Celestial Astrolabe', 'Cobblestone Plazas'],
     gridX: 25,
-    gridY: 62,
-    position: [-1.8, 0, 3.6],
+    gridY: 58,
+    position: [-3.5, 0, 1.5],
+    conceptName: c1.name,
+    statsLabel: `${masteredCount}/${concepts.length || 4} Modules Mastered`,
   };
 
-  const challengeArena: GameBuildingState = {
-    id: 'loc_challenge_arena',
+  // 3. CHALLENGE ARENA (Mid-East - Practice, Solo Raids & Assessments)
+  const arenaLevel = attempts.length >= 20 ? 4 : attempts.length >= 10 ? 3 : attempts.length >= 3 ? 2 : 1;
+  const challengeArena: LearningZone = {
+    id: 'zone_challenge_arena',
     name: 'Challenge Arena',
-    conceptName: 'PvP & Solo Mastery Colosseum',
+    tagline: 'PvP & Solo Colosseum',
     type: 'challenge_arena',
     level: arenaLevel,
-    isUpgrading: false,
+    tierName: arenaLevel >= 4 ? 'Imperial Colosseum' : arenaLevel >= 2 ? 'Battle Ground' : 'Training Pit',
+    icon: '⚔️',
     masteryPercent: accuracyRate,
-    upgradeProgress: Math.min(100, (attempts.length / 20) * 100),
-    title: `Challenge Arena (Lv.${arenaLevel})`,
-    subtitle: `${attempts.length} Battles Fought (${accuracyRate}% Win Rate)`,
-    statsLabel: `${Math.max(3, concepts.length)} Active Raids Available`,
-    questsCompleted: attempts.length,
-    actionText: 'Enter Arena',
+    completedQuests: attempts.length,
+    totalQuests: Math.max(25, attempts.length + 10),
+    status: 'unlocked',
+    unlockRequirement: 'Earn 100 XP to Raid',
+    actionTitle: 'Enter Arena',
     actionUrl: '/arena',
-    status: 'unlocked',
-    gridX: 74,
-    gridY: 30,
-    position: [3.8, 0, -1.5],
-  };
-
-  const rewardVault: GameBuildingState = {
-    id: 'loc_reward_vault',
-    name: 'Reward Vault',
-    conceptName: 'Treasury & Gold Reserves',
-    type: 'reward_vault',
-    level: vaultLevel,
-    isUpgrading: false,
-    masteryPercent: 88,
-    upgradeProgress: 88,
-    title: `Reward Vault (Lv.${vaultLevel})`,
-    subtitle: `${gold} Gold Ingot Reserves`,
-    statsLabel: `Capacity: ${Math.max(2000, totalXp * 3)} Gold`,
-    questsCompleted: attempts.length,
-    actionText: 'Claim Rewards',
-    actionUrl: '/history',
-    status: 'unlocked',
+    accentColor: '#EF4444',
+    environmentFeatures: ['Sand Duel Pit', 'Crossed Broadswords', 'Torch Braziers', 'War Banners'],
     gridX: 75,
-    gridY: 62,
-    position: [-3.6, 0, 2.2],
+    gridY: 58,
+    position: [3.5, 0, 1.5],
+    conceptName: 'PvP & Solo Mastery',
+    statsLabel: `${accuracyRate}% Win Accuracy · ${attempts.length} Battles`,
   };
 
-  const practiceGrounds: GameBuildingState = {
-    id: 'loc_practice_grounds',
-    name: 'Practice Grounds',
-    conceptId: c0.id,
-    conceptName: c0.name,
-    type: 'practice_grounds',
-    level: practiceLevel,
-    isUpgrading: false,
-    masteryPercent: getPct(c0),
-    upgradeProgress: getPct(c0),
-    title: `Forge: ${c0.name}`,
-    subtitle: `Level ${practiceLevel} · ${getPct(c0)}% Mastery`,
-    statsLabel: `${wood} Wood · ${stone} Stone Available`,
-    questsCompleted: Math.floor(attempts.length * 0.4),
-    actionText: 'Craft Mastery',
-    actionUrl: `/quest?concept=${encodeURIComponent(c0.id)}`,
-    status: getPct(c0) >= 80 ? 'completed' : 'in_progress',
-    gridX: 50,
-    gridY: 22,
-    position: [1.8, 0, 3.6],
+  // 4. PROJECT VALLEY (North-West - Projects & Engineering Works)
+  const valleyLevel = getPct(c2) >= 80 ? 4 : getPct(c2) >= 50 ? 3 : getPct(c2) >= 20 ? 2 : 1;
+  const isValleyUnlocked = totalXp >= 300 || attempts.length >= 5;
+  const projectValley: LearningZone = {
+    id: 'zone_project_valley',
+    name: 'Project Valley',
+    tagline: 'Engineering Forge & Watermill',
+    type: 'project_valley',
+    level: valleyLevel,
+    tierName: valleyLevel >= 4 ? 'Grand Foundry' : valleyLevel >= 2 ? 'Master Workshop' : 'Crafting Forge',
+    icon: '🛠️',
+    masteryPercent: getPct(c2),
+    completedQuests: Math.floor(attempts.length * 0.3),
+    totalQuests: 12,
+    status: isValleyUnlocked ? 'unlocked' : 'locked',
+    unlockRequirement: 'Reach 300 Total XP',
+    actionTitle: 'Build Projects',
+    actionUrl: `/quest?concept=${encodeURIComponent(c2.id)}`,
+    accentColor: '#F59E0B',
+    environmentFeatures: ['River Watermill', 'Smoking Anvil Chimney', 'Stone Arch Bridge', 'Lumber Mills'],
+    gridX: 30,
+    gridY: 30,
+    position: [-3, 0, -2],
+    conceptName: c2.name,
+    statsLabel: `${wood} Wood · ${stone} Stone Crafted`,
   };
 
-  const careerHub: GameBuildingState = {
-    id: 'loc_career_hub',
-    name: 'Career Hub',
-    conceptName: 'Industry Learning Hub',
-    type: 'career_hub',
-    level: careerLevel,
-    isUpgrading: false,
-    masteryPercent: 0,
-    upgradeProgress: 0,
-    title: 'Career Hub',
-    subtitle: 'Industry Learning · Unlocks at Tier 3',
-    statsLabel: 'Professional Skill Pathways',
-    questsCompleted: 0,
-    actionText: 'Explore Careers',
+  // 5. CAREER CITY (North-Center - Industry & Career Spire)
+  const isCityUnlocked = currentTierInfo.tier >= 2 || totalXp >= 600;
+  const cityLevel = totalXp >= 2000 ? 4 : totalXp >= 1000 ? 3 : totalXp >= 600 ? 2 : 1;
+  const careerCity: LearningZone = {
+    id: 'zone_career_city',
+    name: 'Career City',
+    tagline: 'Sky Spires & Industry Relay',
+    type: 'career_city',
+    level: cityLevel,
+    tierName: cityLevel >= 4 ? 'Metropolis Spire' : cityLevel >= 2 ? 'Tech Hub' : 'Ascent Tower',
+    icon: '🏙️',
+    masteryPercent: avgMastery,
+    completedQuests: 0,
+    totalQuests: 8,
+    status: isCityUnlocked ? 'unlocked' : 'locked',
+    unlockRequirement: 'Achieve Tier 2 Settlement',
+    actionTitle: 'Explore Careers',
     actionUrl: '/career',
-    status: currentTierInfo.tier >= 3 ? 'unlocked' : 'locked',
+    accentColor: '#8B5CF6',
+    environmentFeatures: ['Gilded Sky Towers', 'Satellite Relay Dish', 'Neon Cloudline', 'Citadel Gates'],
     gridX: 50,
-    gridY: 76,
-    position: [3.6, 0, 2.2],
+    gridY: 14,
+    position: [0, 0, -4.5],
+    conceptName: 'Professional Credentials',
+    statsLabel: isCityUnlocked ? 'Career Pathways Online' : 'Unlocks at 600 XP',
+  };
+
+  const zones = {
+    learningCamp,
+    skillDistrict,
+    challengeArena,
+    projectValley,
+    careerCity,
   };
 
   return {
@@ -355,7 +342,7 @@ export function computeGameWorldData(store: UserStoreData, fallbackXp: number = 
     totalWorkers,
     shieldHoursRemaining: 14,
     masteredTopicsCount: masteredCount,
-    totalTopicsCount: concepts.length || 6,
+    totalTopicsCount: concepts.length || 5,
     availableQuestsCount: Math.max(3, concepts.length),
     resources: {
       wood,
@@ -363,23 +350,33 @@ export function computeGameWorldData(store: UserStoreData, fallbackXp: number = 
       crystal,
       gold,
     },
+    zones,
     buildings: {
-      knowledgeCore,
-      courseAcademy,
-      skillLab,
-      challengeArena,
-      rewardVault,
-      practiceGrounds,
-      careerHub,
-      // Compatibility aliases
-      hq: knowledgeCore,
-      library: courseAcademy,
+      knowledgeCamp: learningCamp,
+      knowledgeCore: learningCamp,
+      courseAcademy: skillDistrict,
+      skillLab: projectValley,
+      challengeArena: challengeArena,
+      rewardVault: learningCamp,
+      practiceGrounds: projectValley,
+      careerHub: careerCity,
+      hq: learningCamp,
+      library: skillDistrict,
       questBoard: challengeArena,
-      aiLab: skillLab,
-      goldVault: rewardVault,
-      elixirCondenser: skillLab,
-      workshop: practiceGrounds,
+      aiLab: projectValley,
+      goldVault: learningCamp,
+      elixirCondenser: skillDistrict,
+      workshop: projectValley,
+    } as any,
+    mentor: {
+      npcName: 'XYRA (Commander)',
+      avatarIcon: '🤖',
+      greeting: `Commander ${store.handle || 'Learner'}! Your territory has ${workerCount} active builders.`,
+      recommendedConceptId: c0.id,
+      recommendedConceptName: c0.name,
+      challengeTitle: `Adaptive Quest: ${c0.name}`,
+      difficultyLabel: accuracyRate > 80 ? 'Mastery Raid' : 'Target Practice',
+      actionUrl: `/quest?concept=${encodeURIComponent(c0.id)}`,
     },
-    mentor: mentorDialogue,
   };
 }
