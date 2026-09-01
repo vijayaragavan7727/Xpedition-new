@@ -2,6 +2,9 @@
 
 import React, { useState } from 'react';
 import { FlowState } from '@/lib/store';
+import { Activity, Clock, RotateCcw, HelpCircle, ArrowRightLeft, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import Badge from './ui/Badge';
+import ProgressBar from './ui/ProgressBar';
 
 interface StateHudProps {
   flowState: FlowState;
@@ -10,10 +13,10 @@ interface StateHudProps {
   retryCount: number;
   hintCount: number;
   tabSwitchCount?: number;
-  latencyBaselineSeconds?: number; // e.g. 14.2s
-  abilityTheta?: number; // e.g. +0.45
-  nextDifficultyB?: number; // e.g. +0.50
-  targetSuccessRate?: number; // e.g. 75%
+  latencyBaselineSeconds?: number;
+  abilityTheta?: number;
+  nextDifficultyB?: number;
+  targetSuccessRate?: number;
   whySignals?: string[];
 }
 
@@ -26,7 +29,7 @@ export const StateHud: React.FC<StateHudProps> = ({
   tabSwitchCount = 0,
   latencyBaselineSeconds = 14.2,
   abilityTheta = 0.45,
-  nextDifficultyB = 0.50,
+  nextDifficultyB = 0.5,
   targetSuccessRate = 75,
   whySignals = ['Steady response latency', 'High accuracy trend', 'No scaffolding needed'],
 }) => {
@@ -41,78 +44,68 @@ export const StateHud: React.FC<StateHudProps> = ({
   const getFlowStateBadge = (state: FlowState) => {
     switch (state) {
       case 'flow':
-        return {
-          label: 'FLOW BAND',
-          colorClass: 'bg-success/15 border-success/40 text-success shadow-[0_0_12px_rgba(52,229,196,0.2)]',
-        };
+        return { label: 'FLOW STATE', variant: 'success' as const };
       case 'frustrated':
-        return {
-          label: 'HIGH FRICTION',
-          colorClass: 'bg-danger/15 border-danger/40 text-danger shadow-[0_0_12px_rgba(255,77,109,0.2)]',
-        };
+        return { label: 'FRICTION DETECTED', variant: 'danger' as const };
       case 'bored':
-        return {
-          label: 'LOW ENGAGEMENT',
-          colorClass: 'bg-amber-400/15 border-amber-400/40 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.2)]',
-        };
+        return { label: 'LOW ENGAGEMENT', variant: 'warning' as const };
       case 'drifting':
-        return {
-          label: 'DRIFTING',
-          colorClass: 'bg-amber-400/15 border-amber-400/40 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.2)]',
-        };
+        return { label: 'DRIFTING', variant: 'warning' as const };
       default:
-        return {
-          label: 'CALIBRATING',
-          colorClass: 'bg-muted/15 border-muted/40 text-muted',
-        };
+        return { label: 'CALIBRATING', variant: 'default' as const };
     }
   };
 
   const badge = getFlowStateBadge(flowState);
 
   return (
-    <aside className="w-full lg:w-[280px] bg-[#120E22]/90 border border-line rounded-[16px] overflow-hidden backdrop-blur-xl transition-all">
-      {/* Mobile Header Row (Collapsible Toggle) */}
+    <aside className="w-full lg:w-[280px] bg-[#121524]/90 border border-white/[0.08] rounded-2xl overflow-hidden backdrop-blur-xl shadow-lg transition-all">
+      {/* Header Row */}
       <button
         type="button"
         onClick={() => setIsOpenMobile(!isOpenMobile)}
-        className="w-full p-3.5 flex items-center justify-between bg-panel border-b border-line/60 lg:cursor-default"
+        className="w-full p-3.5 flex items-center justify-between bg-[#181C2E]/60 border-b border-white/[0.06] lg:cursor-default"
       >
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] tracking-eyebrow uppercase text-muted font-bold">
-            STATE ENGINE
+          <Activity className="w-4 h-4 text-cyan-400" />
+          <span className="font-mono text-[10px] tracking-wider uppercase text-slate-400 font-bold">
+            ADAPTIVE ENGINE
           </span>
-          <span
-            className={`font-mono text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase transition-all duration-300 motion-reduce:transition-none ${badge.colorClass}`}
-          >
+          <Badge variant={badge.variant} size="sm">
             {badge.label}
-          </span>
+          </Badge>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <span className="font-mono text-xs font-semibold text-cyan">
-            {targetSuccessRate}% target
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs font-bold text-cyan-400">
+            {targetSuccessRate}% Target
           </span>
-          <span className="lg:hidden text-muted text-xs">
-            {isOpenMobile ? '▲' : '▼'}
+          <span className="lg:hidden text-slate-400">
+            {isOpenMobile ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </span>
         </div>
       </button>
 
-      {/* Main HUD Body */}
+      {/* Main Body */}
       <div className={`${isOpenMobile ? 'block' : 'hidden lg:block'} p-4 space-y-3.5`}>
         {/* Row 1: Hesitation & Time-on-Item */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-raised p-2.5 rounded-[10px] space-y-0.5">
-            <span className="block font-mono text-[9px] uppercase text-muted">HESITATION</span>
-            <span className="block font-mono text-sm font-bold text-cyan animate-pulse">
+          <div className="bg-[#181C2E] p-2.5 rounded-xl border border-white/[0.06] space-y-0.5">
+            <div className="flex items-center gap-1 text-slate-400 font-mono text-[9px] uppercase">
+              <Clock className="w-3 h-3 text-cyan-400" />
+              <span>HESITATION</span>
+            </div>
+            <span className="block font-mono text-sm font-bold text-cyan-300">
               {formatTime(hesitationSeconds)}
             </span>
           </div>
 
-          <div className="bg-raised p-2.5 rounded-[10px] space-y-0.5">
-            <span className="block font-mono text-[9px] uppercase text-muted">TIME ON ITEM</span>
-            <span className="block font-mono text-sm font-bold text-text">
+          <div className="bg-[#181C2E] p-2.5 rounded-xl border border-white/[0.06] space-y-0.5">
+            <div className="flex items-center gap-1 text-slate-400 font-mono text-[9px] uppercase">
+              <Clock className="w-3 h-3 text-slate-400" />
+              <span>ITEM TIME</span>
+            </div>
+            <span className="block font-mono text-sm font-bold text-white">
               {formatTime(timeOnItemSeconds || hesitationSeconds)}
             </span>
           </div>
@@ -120,59 +113,53 @@ export const StateHud: React.FC<StateHudProps> = ({
 
         {/* Row 2: Retries, Hints, Tab Switches */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-raised p-2 rounded-[8px] text-center space-y-0.5">
-            <span className="block font-mono text-[8px] uppercase text-muted">RETRIES</span>
-            <span className="block font-mono text-xs font-bold text-text">{retryCount}</span>
+          <div className="bg-[#181C2E] p-2 rounded-xl border border-white/[0.06] text-center space-y-0.5">
+            <span className="block font-mono text-[8px] uppercase text-slate-400">RETRIES</span>
+            <span className="block font-mono text-xs font-bold text-white">{retryCount}</span>
           </div>
 
-          <div className="bg-raised p-2 rounded-[8px] text-center space-y-0.5">
-            <span className="block font-mono text-[8px] uppercase text-muted">HINTS</span>
-            <span className="block font-mono text-xs font-bold text-violet">{hintCount}</span>
+          <div className="bg-[#181C2E] p-2 rounded-xl border border-white/[0.06] text-center space-y-0.5">
+            <span className="block font-mono text-[8px] uppercase text-slate-400">HINTS</span>
+            <span className="block font-mono text-xs font-bold text-purple-400">{hintCount}</span>
           </div>
 
-          <div className="bg-raised p-2 rounded-[8px] text-center space-y-0.5">
-            <span className="block font-mono text-[8px] uppercase text-muted">SWITCHES</span>
-            <span className="block font-mono text-xs font-bold text-muted">{tabSwitchCount}</span>
+          <div className="bg-[#181C2E] p-2 rounded-xl border border-white/[0.06] text-center space-y-0.5">
+            <span className="block font-mono text-[8px] uppercase text-slate-400">SWITCHES</span>
+            <span className="block font-mono text-xs font-bold text-slate-400">{tabSwitchCount}</span>
           </div>
         </div>
 
-        {/* Row 3: Latency Baseline & Ability Parameters */}
-        <div className="bg-raised/70 p-2.5 rounded-[10px] space-y-1.5 border border-line/40">
+        {/* Row 3: Ability & Difficulty */}
+        <div className="bg-[#181C2E]/80 p-2.5 rounded-xl border border-white/[0.06] space-y-1">
           <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-muted">LATENCY BASELINE</span>
-            <span className="text-text font-bold">{latencyBaselineSeconds}s</span>
+            <span className="text-slate-400">LATENCY BASELINE</span>
+            <span className="text-white font-bold">{latencyBaselineSeconds}s</span>
           </div>
           <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-muted">ABILITY (θ) / DIFF (b)</span>
-            <span className="text-cyan font-bold">
+            <span className="text-slate-400">ABILITY / DIFFICULTY</span>
+            <span className="text-cyan-400 font-bold">
               θ={abilityTheta >= 0 ? `+${abilityTheta}` : abilityTheta} / b={nextDifficultyB >= 0 ? `+${nextDifficultyB}` : nextDifficultyB}
             </span>
           </div>
         </div>
 
         {/* Row 4: Target Success Meter */}
-        <div className="space-y-1">
-          <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-muted uppercase">TARGET SUCCESS RATE</span>
-            <span className="text-cyan font-bold">{targetSuccessRate}%</span>
-          </div>
-          <div className="h-2 w-full bg-raised rounded-full overflow-hidden p-0.5 border border-line/40">
-            <div
-              className="h-full bg-signature-gradient rounded-full transition-all duration-300"
-              style={{ width: `${targetSuccessRate}%` }}
-            />
-          </div>
-        </div>
+        <ProgressBar
+          value={targetSuccessRate}
+          label="Target Success Rate"
+          variant="cyan"
+          size="sm"
+        />
 
-        {/* Row 5: "Why" Telemetry Signal List */}
-        <div className="space-y-1.5 pt-2 border-t border-line/40">
-          <span className="font-mono text-[10px] tracking-eyebrow uppercase text-muted font-bold block">
+        {/* Row 5: Telemetry Signals */}
+        <div className="space-y-1.5 pt-2 border-t border-white/[0.06]">
+          <span className="font-mono text-[10px] tracking-wider uppercase text-slate-400 font-bold block">
             TELEMETRY SIGNALS
           </span>
           <ul className="space-y-1">
             {whySignals.map((signal, idx) => (
-              <li key={idx} className="flex items-center gap-2 font-sans text-xs text-text/90">
-                <span className="text-cyan text-[10px]">◆</span>
+              <li key={idx} className="flex items-center gap-2 font-sans text-xs text-slate-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
                 <span className="leading-snug">{signal}</span>
               </li>
             ))}
@@ -182,3 +169,5 @@ export const StateHud: React.FC<StateHudProps> = ({
     </aside>
   );
 };
+
+export default StateHud;

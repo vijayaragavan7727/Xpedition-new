@@ -10,7 +10,21 @@ import { WorldBuilding, detectBuildingStateTransitions } from '@/lib/worldEngine
 import { WorldThemeId } from '@/lib/themes';
 import XyraGreetingWidget from '@/components/XyraGreetingWidget';
 import WorldUnlockCelebration from '@/components/WorldUnlockCelebration';
-import { Send, Volume2, VolumeX, Sparkles, RefreshCw, Globe, ChevronRight } from 'lucide-react';
+import { Card, Button, Badge, ProgressBar } from '@/components/ui';
+import {
+  Send,
+  Volume2,
+  VolumeX,
+  Sparkles,
+  RefreshCw,
+  ArrowRight,
+  BookOpen,
+  Target,
+  Flame,
+  CheckCircle2,
+  AlertTriangle,
+  Zap,
+} from 'lucide-react';
 
 interface ChatExchange {
   id: string;
@@ -36,7 +50,6 @@ export default function HomePage() {
   useEffect(() => {
     if (!worldState) return;
 
-    // Check for new building unlock moments
     if (typeof window !== 'undefined') {
       try {
         const savedBuildingsStr = localStorage.getItem(`xpedition_prev_buildings_${worldState.skillGraphId}`);
@@ -54,7 +67,6 @@ export default function HomePage() {
       } catch (e) {}
     }
 
-    // Load daily home chat count from localStorage
     if (typeof window !== 'undefined') {
       const todayStr = new Date().toISOString().slice(0, 10);
       const savedDate = localStorage.getItem('xyra_home_chat_date');
@@ -68,19 +80,17 @@ export default function HomePage() {
         setHomeChatCount(0);
       }
     }
-  }, []);
+  }, [worldState]);
 
   const streak = storeData ? calculateStreak(storeData.attempts) : 0;
   const fadingConcepts = storeData ? storeData.concepts.filter((c) => c.retentionRisk > 0.35) : [];
   const hasSkillGraph = storeData ? storeData.concepts.length > 0 : false;
   const target = storeData ? selectNextTarget(storeData) : null;
 
-  // PRE-FETCH TOP TARGET LESSON IN BACKGROUND ON HOME MOUNT
   useEffect(() => {
     if (storeData && target?.conceptId) {
       const cacheKey = `xyra_lesson_${target.conceptId}`;
       if (typeof window !== 'undefined' && !sessionStorage.getItem(cacheKey)) {
-        console.time(`home-prefetch-${target.conceptId}`);
         fetch('/api/lesson', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -96,29 +106,22 @@ export default function HomePage() {
         })
           .then((res) => res.json())
           .then((data) => {
-            console.timeEnd(`home-prefetch-${target.conceptId}`);
             if (data?.chunks && typeof window !== 'undefined') {
               sessionStorage.setItem(cacheKey, JSON.stringify(data));
-              console.log(`[Home Prefetch] Pre-cached lesson for "${target.conceptName}" in sessionStorage`);
             }
           })
           .catch(() => {});
       }
     }
-
-    // PRE-FETCH WORLD BUILDING ASSETS IN BACKGROUND ON HOME MOUNT
-    if (worldState?.buildings && typeof window !== 'undefined') {
-      worldState.buildings.forEach((b) => {
-        if (b.imageUrl) {
-          const img = new Image();
-          img.src = b.imageUrl;
-        }
-      });
-    }
-  }, [storeData?.activeGraphId, target?.conceptId, worldState?.buildings]);
+  }, [storeData?.activeGraphId, target?.conceptId]);
 
   if (!storeData || !target) {
-    return <div className="py-12 text-center text-muted font-mono text-sm animate-pulse">Loading dashboard...</div>;
+    return (
+      <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400 font-mono text-xs animate-pulse">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <span>Loading Xpedition Dashboard...</span>
+      </div>
+    );
   }
 
   const stopAudio = () => {
@@ -244,8 +247,6 @@ export default function HomePage() {
 
   const attemptConceptIds = new Set((storeData.attempts || []).map((a) => a.conceptId));
 
-  // Determine Continue Card Link automatically:
-  // Never attempted -> /tutor (or /learn). Attempted or fading -> /quest
   const learningMode = storeData.learnerProfile?.learningMode || 'tutor';
   const showLessonFirst = !target.hasAttempts && !target.inProgress;
   const lessonPath = learningMode === 'read' ? '/learn' : '/tutor';
@@ -254,17 +255,16 @@ export default function HomePage() {
     ? `${lessonPath}/${encodeURIComponent(target.conceptId)}`
     : `/quest?concept=${encodeURIComponent(target.conceptId)}`;
 
-  // Ensure real concept name is resolved (never placeholder "Core Concept")
-  const realConceptName = (target.conceptName && target.conceptName !== 'Core Concept')
-    ? target.conceptName
-    : storeData.concepts?.[0]?.name || storeData.goalText || 'Active Topic';
+  const realConceptName =
+    target.conceptName && target.conceptName !== 'Core Concept'
+      ? target.conceptName
+      : storeData.concepts?.[0]?.name || storeData.goalText || 'Active Topic';
 
   const activeThemeId = (storeData.learnerProfile?.worldTheme as WorldThemeId) || 'cosmos';
 
   return (
-    <div className="space-y-5 select-none relative pb-16 font-sans">
-      
-      {/* 1. XYRA GREETING WIDGET (Top of Home Page) */}
+    <div className="space-y-6 select-none relative pb-16 font-sans">
+      {/* 1. XYRA AI COACH & GREETING */}
       <section className="pt-1">
         <XyraGreetingWidget
           storeData={storeData}
@@ -275,12 +275,12 @@ export default function HomePage() {
         />
       </section>
 
-      {/* 2. INLINE ASK XYRA CHAT BOX */}
-      <section className="bg-[#0D0D1A] border border-[#00F0FF]/40 rounded-[20px] p-4 sm:p-5 space-y-3 shadow-xl relative overflow-hidden backdrop-blur-xl">
+      {/* 2. INLINE AI TUTOR CHAT */}
+      <Card variant="default" className="p-4 sm:p-5 space-y-3.5">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[#00F0FF]/20 border border-[#00F0FF] flex items-center justify-center p-0.5 shadow-[0_0_8px_rgba(0,240,255,0.4)]">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center p-0.5 shadow-xs">
               <img
                 src={robotImgPath}
                 onError={() => {
@@ -290,66 +290,68 @@ export default function HomePage() {
                 className="w-5 h-5 object-contain"
               />
             </div>
-            <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#00F0FF]">
-              <span>XYRA</span>
-              <span className="w-2 h-2 rounded-full bg-[#00FF87] animate-pulse" />
-              <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-[#00F0FF]/10 text-cyan-300 font-medium">active</span>
+            <div>
+              <div className="flex items-center gap-1.5 font-sans font-bold text-xs text-white">
+                <span>XYRA AI Coach</span>
+                <Badge variant="cyan" size="sm">
+                  Active
+                </Badge>
+              </div>
+              <span className="font-sans text-[11px] text-slate-400">
+                Ask anything about your curriculum or study plan
+              </span>
             </div>
           </div>
-          <span className="font-mono text-[10px] text-slate-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-            {homeChatCount} / 5 today
+
+          <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] border border-white/[0.08] px-2 py-0.5 rounded-full">
+            {homeChatCount}/5 Today
           </span>
         </div>
-
-        {/* Subtitle */}
-        <p className="font-sans text-xs text-slate-300 font-medium">
-          &ldquo;What would you like to know?&rdquo;
-        </p>
 
         {/* Quick Suggestion Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
           {[
-            { label: 'My weakest?', query: 'Which concept am I weakest at?' },
-            { label: 'What next?', query: 'What should I study next?' },
-            { label: 'How am I doing?', query: 'How is my overall learning progress?' },
+            { label: 'My weakest concept?', query: 'Which concept am I weakest at?' },
+            { label: 'What to study next?', query: 'What should I study next?' },
+            { label: 'How is my pace?', query: 'How is my overall learning progress and pace?' },
           ].map((item, idx) => (
             <button
               key={idx}
               type="button"
               disabled={homeChatCount >= 5 || isChatLoading}
               onClick={() => handleSendHomeChat(item.query)}
-              className="px-2.5 py-1 rounded-full bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 border border-[#00F0FF]/30 text-[#00F0FF] text-[11px] font-sans font-medium whitespace-nowrap transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+              className="px-3 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-cyan-300 text-xs font-sans font-medium whitespace-nowrap transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             >
               ✨ {item.label}
             </button>
           ))}
         </div>
 
-        {/* Chat exchanges */}
+        {/* Chat Exchanges */}
         {chatExchanges.length > 0 && (
-          <div className="space-y-2.5 pt-1 border-t border-white/5">
+          <div className="space-y-2.5 pt-2 border-t border-white/[0.06]">
             {chatExchanges.slice(-2).map((item) => (
-              <div key={item.id} className="space-y-1.5 animate-fadeIn">
+              <div key={item.id} className="space-y-2 animate-in fade-in duration-200">
                 <div className="flex justify-end">
-                  <div className="max-w-[85%] px-3 py-1.5 rounded-xl bg-[#00F0FF] text-black font-semibold text-xs leading-snug rounded-tr-none shadow">
+                  <div className="max-w-[85%] px-3.5 py-2 rounded-2xl bg-indigo-600 text-white font-medium text-xs leading-snug rounded-tr-none shadow-md">
                     {item.query}
                   </div>
                 </div>
 
                 <div className="flex justify-start items-start gap-2">
-                  <div className="w-5 h-5 rounded-full bg-[#00F0FF]/20 border border-[#00F0FF]/50 flex items-center justify-center text-[8px] font-bold text-[#00F0FF] shrink-0 mt-0.5">
+                  <div className="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-[10px] font-bold text-cyan-300 shrink-0 mt-0.5">
                     X
                   </div>
-                  <div className="max-w-[85%] p-2.5 rounded-xl bg-[#151226] border border-[#00F0FF]/30 text-slate-100 text-xs leading-relaxed rounded-tl-none space-y-1.5 shadow-md">
+                  <div className="max-w-[85%] p-3 rounded-2xl bg-[#181C2E] border border-white/[0.08] text-slate-200 text-xs leading-relaxed rounded-tl-none space-y-2 shadow-sm">
                     <p>{item.reply}</p>
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-white/5">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1.5 border-t border-white/[0.06]">
                       <button
                         type="button"
                         onClick={() => handleSpeakInlineText(item.id, item.reply)}
-                        className="text-[#00F0FF] hover:underline flex items-center gap-1 font-bold cursor-pointer"
+                        className="text-cyan-400 hover:underline flex items-center gap-1 font-bold cursor-pointer"
                       >
                         {speakingExchangeId === item.id ? (
-                          <VolumeX className="w-3 h-3 text-[#FF0055]" />
+                          <VolumeX className="w-3 h-3 text-rose-400" />
                         ) : (
                           <Volume2 className="w-3 h-3" />
                         )}
@@ -365,13 +367,13 @@ export default function HomePage() {
         )}
 
         {isChatLoading && (
-          <div className="flex items-center gap-2 text-cyan-300 text-xs font-mono py-1">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00F0FF]" />
-            <span>XYRA is thinking...</span>
+          <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono py-1">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            <span>XYRA is analyzing your syllabus...</span>
           </div>
         )}
 
-        {/* Free text input form */}
+        {/* Input form */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -386,149 +388,180 @@ export default function HomePage() {
             onChange={(e) => setInlineInput(e.target.value)}
             placeholder={
               homeChatCount >= 5
-                ? 'Daily limit reached (5/5 messages).'
-                : 'Type anything about your goal or concepts...'
+                ? 'Daily message limit reached (5/5).'
+                : 'Ask XYRA anything about your goal or topics...'
             }
-            className="flex-1 h-10 px-3.5 rounded-xl bg-black/40 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00F0FF] transition-all disabled:opacity-40"
+            className="flex-1 h-10 px-3.5 rounded-xl bg-[#090A0F] border border-white/[0.12] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all disabled:opacity-40"
           />
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            size="md"
             disabled={!inlineInput.trim() || homeChatCount >= 5 || isChatLoading}
-            className="h-10 px-4 rounded-xl bg-[#00F0FF] hover:bg-[#00C2FF] text-black font-mono font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md shrink-0"
+            rightIcon={<Send className="w-3.5 h-3.5" />}
           >
-            <span>Send</span>
-            <Send className="w-3 h-3" />
-          </button>
+            Send
+          </Button>
         </form>
-      </section>
+      </Card>
 
-      {/* 3. CLEAN CONTINUE CARD */}
-      <section className="sticky top-0 z-20 pt-1 -mt-1 bg-ink/95 backdrop-blur-md rounded-[18px]">
-        <div className="card-glass-neon p-5 sm:p-6 rounded-[16px]">
-        {hasSkillGraph ? (
-          <div className="space-y-3.5">
-            <div>
-              <h2 className="font-sans font-bold text-xl text-text mb-1 tracking-tight">
-                {realConceptName}
-              </h2>
-              <span className="font-mono text-xs text-cyan font-medium block mb-2.5">
-                {target.masteryPercentage}% mastery
-              </span>
+      {/* 3. HERO ADAPTIVE CONTINUE CARD */}
+      <section className="sticky top-0 z-20 pt-1 -mt-1 bg-[#090A0F]/90 backdrop-blur-md rounded-2xl">
+        <Card variant="highlight" className="p-5 sm:p-6 space-y-4">
+          {hasSkillGraph ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="indigo" size="sm">
+                    Recommended Next
+                  </Badge>
+                  <span className="font-mono text-xs text-slate-400">
+                    {target.inProgress ? 'In Progress' : 'Ready to Start'}
+                  </span>
+                </div>
+                <Badge variant="cyan" size="sm">
+                  {target.masteryPercentage}% Mastery
+                </Badge>
+              </div>
 
-              {/* 6px Thicker Progress Bar */}
-              <div className="h-[6px] w-full bg-raised/90 rounded-full overflow-hidden border border-line/40">
-                <div
-                  className="h-full bg-signature-gradient rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(0,240,255,0.4)]"
-                  style={{
-                    width: target.inProgress
-                      ? `${(target.currentIndex / target.totalLength) * 100}%`
-                      : `${target.masteryPercentage}%`,
-                  }}
-                />
+              <div>
+                <h2 className="font-sans font-black text-xl sm:text-2xl text-white tracking-tight">
+                  {realConceptName}
+                </h2>
+                <p className="font-sans text-xs text-slate-300 mt-1">
+                  Goal: {storeData.goalText}
+                </p>
+              </div>
+
+              <ProgressBar
+                value={
+                  target.inProgress
+                    ? Math.round((target.currentIndex / target.totalLength) * 100)
+                    : target.masteryPercentage
+                }
+                variant="indigo"
+                size="md"
+                label="Module Progress"
+              />
+
+              <div className="pt-1">
+                <Link href={continueHref} className="block">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full shadow-[0_8px_25px_-6px_rgba(99,102,241,0.5)]"
+                    rightIcon={<ArrowRight className="w-4 h-4" />}
+                  >
+                    Continue Learning
+                  </Button>
+                </Link>
               </div>
             </div>
-
-            <div className="pt-1">
-              <Link
-                href={continueHref}
-                className="w-full h-[46px] rounded-[10px] bg-signature-gradient text-white font-sans font-semibold text-[15px] flex items-center justify-center gap-2 hover:brightness-108 hover:shadow-[0_8px_30px_-6px_rgba(168,85,247,0.55)] active:translate-y-[1px] transition-all cursor-pointer"
-              >
-                <span>Continue &rarr;</span>
+          ) : (
+            <div className="py-6 text-center space-y-3">
+              <h2 className="font-sans font-bold text-lg text-white">No active learning graph</h2>
+              <p className="font-sans text-xs text-slate-400">
+                Set up your target topic or syllabus to build your personal curriculum.
+              </p>
+              <Link href="/onboarding" className="inline-block">
+                <Button variant="primary" size="md" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                  Start Onboarding
+                </Button>
               </Link>
             </div>
-          </div>
-        ) : (
-          <div className="py-6 text-center space-y-3">
-            <h2 className="font-sans font-semibold text-lg text-text">No active course graph</h2>
-            <p className="font-sans text-xs text-muted">Set up your learning goal or syllabus to start.</p>
-            <Link
-              href="/onboarding"
-              className="inline-flex h-[42px] px-6 rounded-[10px] bg-signature-gradient text-white font-sans font-semibold text-xs items-center gap-2"
-            >
-              Start Onboarding &rarr;
-            </Link>
-          </div>
-        )}
-        </div>
+          )}
+        </Card>
       </section>
 
-      {/* 4. SKILL GRAPH CONCEPTS BREAKDOWN — 1-TAP DIRECT ROUTING */}
-      <section className="bg-[#120E22]/90 border border-line/60 rounded-[16px] p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-line/40 pb-3">
-          <span className="font-mono text-[10px] tracking-eyebrow uppercase text-muted font-bold">
-            SKILL GRAPH CONCEPTS ({storeData.concepts.length})
-          </span>
-          <span className="font-mono text-xs text-cyan">
-            Active Goal: {storeData.goalText}
-          </span>
+      {/* 4. CURRICULUM ROADMAP BREAKDOWN */}
+      <Card variant="default" className="p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+          <div>
+            <h3 className="font-sans font-bold text-sm text-white">Curriculum Roadmap</h3>
+            <p className="font-mono text-[11px] text-slate-400">
+              {storeData.concepts.length} Structured Concepts • {storeData.goalText}
+            </p>
+          </div>
+          <Badge variant="default" size="sm">
+            {storeData.attempts?.length || 0} Solved
+          </Badge>
         </div>
 
         <div className="space-y-2.5">
-          {storeData.concepts.map((concept) => {
+          {storeData.concepts.map((concept, index) => {
             const hasAtt = attemptConceptIds.has(concept.id);
             const isFading = concept.retentionRisk > 0.35;
 
-            // System decides automatically:
-            // Never attempted -> /tutor (or /learn). Attempted or fading -> /quest
             const conceptHref = !hasAtt
               ? `${lessonPath}/${encodeURIComponent(concept.id)}`
               : `/quest?concept=${encodeURIComponent(concept.id)}`;
 
-            const assistedPct = concept.thetaAssisted !== undefined ? thetaToPercent(concept.thetaAssisted) : concept.masteryPercentage;
+            const assistedPct =
+              concept.thetaAssisted !== undefined
+                ? thetaToPercent(concept.thetaAssisted)
+                : concept.masteryPercentage;
 
             return (
               <Link
                 key={concept.id}
                 href={conceptHref}
-                className="p-3.5 rounded-[12px] bg-panel/70 border border-line/40 flex items-center justify-between gap-3 hover:border-cyan hover:bg-panel/90 transition-all cursor-pointer group"
+                className="p-3.5 rounded-xl bg-[#181C2E]/80 border border-white/[0.06] hover:border-indigo-500/40 hover:bg-[#181C2E] flex items-center justify-between gap-3 transition-all cursor-pointer group"
               >
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-sans text-sm text-text font-semibold group-hover:text-cyan transition-colors truncate">
-                      {concept.name}
-                    </span>
-                    {!hasAtt && (
-                      <span className="font-mono text-[8px] uppercase px-1.5 py-0.5 rounded bg-violet/20 text-violet font-bold shrink-0">
-                        New
-                      </span>
-                    )}
-                    {isFading && (
-                      <span className="font-mono text-[8px] uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold shrink-0">
-                        Fading
-                      </span>
-                    )}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center font-mono text-xs font-bold text-slate-400 group-hover:text-cyan-300 transition-colors shrink-0">
+                    {index + 1}
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="h-1.5 w-28 bg-raised rounded-full overflow-hidden">
-                      <div className="h-full bg-cyan rounded-full" style={{ width: `${assistedPct}%` }} />
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-sans text-sm text-white font-semibold group-hover:text-cyan-300 transition-colors truncate">
+                        {concept.name}
+                      </span>
+                      {!hasAtt && (
+                        <Badge variant="indigo" size="sm">
+                          New
+                        </Badge>
+                      )}
+                      {isFading && (
+                        <Badge variant="danger" size="sm">
+                          Fading
+                        </Badge>
+                      )}
                     </div>
-                    <span className="font-mono text-[10px] text-muted">
-                      {assistedPct}% Mastery
-                    </span>
+
+                    <div className="flex items-center gap-3">
+                      <div className="h-1.5 w-24 bg-[#090A0F] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full"
+                          style={{ width: `${assistedPct}%` }}
+                        />
+                      </div>
+                      <span className="font-mono text-[10px] text-slate-400">
+                        {assistedPct}% Mastery
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0 font-mono text-xs text-muted group-hover:text-cyan transition-colors">
+                <div className="flex items-center gap-1.5 shrink-0 font-mono text-xs text-slate-400 group-hover:text-cyan-400 transition-colors">
                   <span className="text-[11px] font-semibold hidden sm:inline">
                     {!hasAtt ? 'Learn' : isFading ? 'Drill' : 'Practice'}
                   </span>
-                  <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </Link>
             );
           })}
         </div>
-      </section>
+      </Card>
 
-      {/* World Unlock Celebration Modal (Emotional payoff moment) */}
+      {/* World Unlock Celebration Modal */}
       <WorldUnlockCelebration
         unlockedBuilding={unlockedBuilding}
         allBuildings={worldState?.buildings || []}
         theme={activeThemeId}
         onDismiss={() => setUnlockedBuilding(null)}
       />
-
     </div>
   );
 }

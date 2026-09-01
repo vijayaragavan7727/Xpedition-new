@@ -3,178 +3,126 @@
 @tailwind utilities;
 
 :root {
-  --ink: #07060F;
-  --panel: #120E22;
-  --raised: #1A1430;
-  --line: #2E2450;
-  --violet: #A855F7;
-  --violet-hot: #C77DFF;
-  --cyan: #22D3EE;
-  --magenta: #FF00FF;
-  --text: #F2EEFF;
-  --muted: #9B93B8;
-  --danger: #FF4D6D;
-  --success: #34E5C4;
+  /* Startup-grade Design Tokens */
+  --bg-base: #090A0F;
+  --bg-surface: #121524;
+  --bg-elevated: #181C2E;
+  --bg-overlay: #1F243B;
+  
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-muted: rgba(255, 255, 255, 0.14);
+  --border-active: rgba(99, 102, 241, 0.4);
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+
+  --accent-primary: #6366F1;
+  --accent-cyan: #0EA5E9;
+  --accent-purple: #8B5CF6;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #F43F5E;
+
+  /* Legacy variable compatibility */
+  --ink: var(--bg-base);
+  --panel: var(--bg-surface);
+  --raised: var(--bg-elevated);
+  --line: var(--border-subtle);
+  --violet: var(--accent-primary);
+  --violet-hot: var(--accent-purple);
+  --cyan: var(--accent-cyan);
+  --magenta: #EC4899;
+  --text: var(--text-primary);
+  --muted: var(--text-secondary);
 }
 
 body {
-  background-color: var(--ink);
-  color: var(--text);
-  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Signature Gradient Text & Background */
+/* Linear-inspired Soft Gradient Utilities */
 .bg-signature-gradient {
-  background: linear-gradient(96deg, var(--cyan), var(--violet) 55%, #F472F6);
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #0EA5E9 100%);
 }
 
 .text-gradient {
-  background: linear-gradient(96deg, var(--cyan), var(--violet) 55%, #F472F6);
+  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 50%, #38BDF8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Glass Card with Masked Gradient Border */
-.card-glass-neon {
-  position: relative;
-  background: rgba(18, 14, 34, 0.55);
-  backdrop-filter: blur(28px) saturate(1.15);
-  -webkit-backdrop-filter: blur(28px) saturate(1.15);
-  border-radius: 18px;
-  padding: 36px 32px;
-  box-shadow:
-    0 40px 90px -24px rgba(0, 0, 0, 0.85),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+.text-gradient-accent {
+  background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.card-glass-neon::before {
+/* Startup-grade Card Glass with Subtle Border */
+.card-glass-neon, .card-startup {
+  position: relative;
+  background: rgba(18, 21, 36, 0.85);
+  backdrop-filter: blur(20px) saturate(1.1);
+  -webkit-backdrop-filter: blur(20px) saturate(1.1);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 20px 40px -15px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Subtle background glow effect for hero cards */
+.hero-glow {
+  position: relative;
+}
+.hero-glow::before {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  padding: 1px;
-  background: linear-gradient(140deg, rgba(34, 211, 238, 0.65), rgba(168, 85, 247, 0.55) 50%, rgba(255, 255, 255, 0.06));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-@supports not (backdrop-filter: blur(1px)) {
-  .card-glass-neon {
-    background: rgba(18, 14, 34, 0.94);
-  }
-}
-
-/* Card Scrim Radial Pool */
-.card-scrim-pool {
-  position: absolute;
-  width: 640px;
-  height: 640px;
-  top: 50%;
+  top: -40px;
   left: 50%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(7, 6, 15, 0.80) 0%, transparent 70%);
-  filter: blur(60px);
+  transform: translateX(-50%);
+  width: 320px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%);
+  filter: blur(40px);
   pointer-events: none;
+  z-index: -1;
 }
 
-/* CSS Neon City Fallback Background */
-.neon-city-fallback {
-  position: relative;
-  background-color: #07060F;
-  background-image:
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      transparent 12px,
-      rgba(34, 211, 238, 0.10) 12px,
-      rgba(34, 211, 238, 0.10) 16px,
-      transparent 16px,
-      transparent 32px,
-      rgba(168, 85, 247, 0.12) 32px,
-      rgba(168, 85, 247, 0.12) 38px
-    ),
-    linear-gradient(135deg, #07060F 0%, #1A0B2E 100%);
-  background-size: 160px 100%, 100% 100%;
-}
-
-/* Ambient Slow Drift Animation for Backdrop L0 */
-.ambient-drift-neon {
-  will-change: transform;
-  animation: slowDriftNeon 45s ease-in-out infinite alternate;
-}
-
-@keyframes slowDriftNeon {
-  0% {
-    transform: scale(1.04) translate3d(-8px, -4px, 0);
-  }
-  100% {
-    transform: scale(1.07) translate3d(8px, 4px, 0);
-  }
-}
-
-/* Motion gating for prefers-reduced-motion */
-@media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-  .ambient-drift-neon {
-    animation: none !important;
-    transform: scale(1.04) !important;
-  }
-}
-
-/* Robot Avatar PNG States & Keyframes (XYRA Character State Glow & Movement) */
+/* Character & Tutor Animations */
 @keyframes xyraFloatSlow {
   0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-7px); }
+  50%       { transform: translateY(-5px); }
 }
 
-@keyframes xyraFloatFast {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-11px); }
-}
-
-@keyframes xyraBounceOnce {
-  0%, 100% { transform: translateY(0px) scale(1); }
-  30%       { transform: translateY(-18px) scale(1.04); }
-  60%       { transform: translateY(0px) scale(0.98); }
-  80%       { transform: translateY(-5px) scale(1.02); }
-}
-
-/* state: idle -> soft cyan glow, slow float */
 .xyra-state-idle, .state-idle {
-  filter: drop-shadow(0 0 16px rgba(0, 240, 255, 0.5));
-  animation: xyraFloatSlow 3.5s ease-in-out infinite;
+  animation: xyraFloatSlow 4s ease-in-out infinite;
 }
 
-/* state: talking -> brighter cyan, faster float */
 .xyra-state-talking, .state-talking {
-  filter: drop-shadow(0 0 28px rgba(0, 240, 255, 0.9));
-  animation: xyraFloatFast 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 16px rgba(14, 165, 233, 0.6));
+  animation: xyraFloatSlow 2s ease-in-out infinite;
 }
 
-/* state: thinking -> violet glow, slight head tilt */
-.xyra-state-thinking, .state-thinking {
-  filter: drop-shadow(0 0 26px rgba(168, 85, 247, 0.85));
-  transform: rotate(-4deg);
-  transition: transform 0.4s ease-out, filter 0.4s ease-out;
+/* Custom Scrollbar for sleek UI */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-
-/* state: happy -> warm white flare, bounce once */
-.xyra-state-happy, .state-happy {
-  filter: drop-shadow(0 0 32px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 18px rgba(0, 255, 135, 0.8));
-  animation: xyraBounceOnce 0.85s ease-out 1;
+::-webkit-scrollbar-track {
+  background: #090A0F;
 }
-
-.font-chalk {
-  font-family: var(--font-caveat), var(--font-kalam), 'Caveat', 'Kalam', cursive, sans-serif;
+::-webkit-scrollbar-thumb {
+  background: #1F243B;
+  border-radius: 9999px;
 }
-
-
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
