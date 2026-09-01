@@ -1,26 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useWorldState } from '@/lib/hooks/world';
-import { TopDownGameWorld } from '@/components/game/TopDownGameWorld';
+import { computeGameWorldData } from '@/lib/engine/gameWorldAdapter';
+import TopDownGameWorld from '@/components/world/TopDownGameWorld';
 
 export default function WorldPage() {
   const { storeData, isLoading } = useWorldState();
 
-  if (!storeData && isLoading) {
+  const gameWorldData = useMemo(() => {
+    if (!storeData) return null;
+    return computeGameWorldData(storeData);
+  }, [storeData]);
+
+  if (!storeData || !gameWorldData) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[#1B381A] font-mono text-xs text-amber-300">
+      <div className="w-full h-full flex items-center justify-center bg-[#14291B] font-mono text-xs text-[#38BDF8]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
-          <span className="font-bold tracking-wide">Loading World Terrain...</span>
+          <div className="w-10 h-10 border-2 border-[#38BDF8] border-t-transparent rounded-full animate-spin" />
+          <span>Synchronizing Strategy Village...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full relative select-none overflow-hidden bg-[#1B381A]">
-      <TopDownGameWorld storeData={storeData} />
+    <div className="w-full h-full relative select-none overflow-hidden bg-[#14291B]">
+      <TopDownGameWorld worldData={gameWorldData} />
     </div>
   );
 }
