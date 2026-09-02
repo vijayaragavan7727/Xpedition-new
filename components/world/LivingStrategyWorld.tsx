@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PlayableGameWorldData, LearningZone } from '@/lib/engine/gameWorldAdapter';
+import WORLD_ASSETS from '@/lib/worldAssetMap';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -75,7 +76,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 450,
       width: 170,
       height: 150,
-      imageSrc: '/world/buildings/learning-camp.svg',
+      imageSrc: WORLD_ASSETS.buildings.learningCamp,
       zone: learningCampZone,
       defaultAction: 'Enter Camp',
       rewardXp: 80,
@@ -91,7 +92,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 200,
       width: 155,
       height: 135,
-      imageSrc: '/world/buildings/skill-lab.svg',
+      imageSrc: WORLD_ASSETS.buildings.skillLab,
       zone: skillLabZone,
       defaultAction: 'Enter Lab',
       rewardXp: 90,
@@ -107,7 +108,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 240,
       width: 160,
       height: 140,
-      imageSrc: '/world/buildings/challenge-arena.svg',
+      imageSrc: WORLD_ASSETS.buildings.challengeArena,
       zone: challengeArenaZone,
       defaultAction: 'Enter Arena',
       rewardXp: 120,
@@ -123,7 +124,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 440,
       width: 150,
       height: 130,
-      imageSrc: '/world/buildings/lumber-yard.svg',
+      imageSrc: WORLD_ASSETS.buildings.lumberYard,
       zone: projectValleyZone,
       defaultAction: 'Collect Timber',
       rewardXp: 60,
@@ -139,7 +140,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 660,
       width: 145,
       height: 130,
-      imageSrc: '/world/buildings/reward-vault.svg',
+      imageSrc: WORLD_ASSETS.buildings.rewardVault,
       zone: rewardVaultZone,
       defaultAction: 'Open Vault',
       rewardXp: 75,
@@ -155,7 +156,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 720,
       width: 165,
       height: 145,
-      imageSrc: '/world/buildings/career-academy.svg',
+      imageSrc: WORLD_ASSETS.buildings.careerAcademy,
       zone: careerCityZone,
       defaultAction: 'Build Your Future',
       rewardXp: 150,
@@ -171,7 +172,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 650,
       width: 155,
       height: 135,
-      imageSrc: '/world/buildings/project-workshop.svg',
+      imageSrc: WORLD_ASSETS.buildings.projectWorkshop,
       zone: projectValleyZone,
       defaultAction: 'Go to Workshop',
       rewardXp: 100,
@@ -187,7 +188,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 420,
       width: 150,
       height: 130,
-      imageSrc: '/world/buildings/quarry.svg',
+      imageSrc: WORLD_ASSETS.buildings.quarry,
       zone: learningCampZone,
       defaultAction: 'Mine Resources',
       rewardXp: 60,
@@ -205,7 +206,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 490,
       width: 42,
       height: 54,
-      imageSrc: '/world/characters/learner.svg',
+      imageSrc: WORLD_ASSETS.characters.learner,
     },
     {
       id: 'builder_npc',
@@ -214,7 +215,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 680,
       width: 40,
       height: 52,
-      imageSrc: '/world/characters/builder.svg',
+      imageSrc: WORLD_ASSETS.characters.builder,
     },
     {
       id: 'miner_npc',
@@ -223,7 +224,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 450,
       width: 40,
       height: 52,
-      imageSrc: '/world/characters/miner.svg',
+      imageSrc: WORLD_ASSETS.characters.miner,
     },
     {
       id: 'scholar_mentor',
@@ -232,7 +233,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 240,
       width: 40,
       height: 52,
-      imageSrc: '/world/characters/mentor.svg',
+      imageSrc: WORLD_ASSETS.characters.mentor,
     },
     {
       id: 'trainer_npc',
@@ -241,33 +242,33 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       y: 280,
       width: 40,
       height: 52,
-      imageSrc: '/world/characters/trainer.svg',
+      imageSrc: WORLD_ASSETS.characters.trainer,
     },
   ];
 
   // Sparse, Intentional Perimeter & Grove Trees (20 Trees)
   const treePositions = [
-    { x: 130, y: 190, src: '/world/props/tree-pine.svg' },
-    { x: 180, y: 140, src: '/world/props/tree-oak.svg' },
-    { x: 340, y: 120, src: '/world/props/tree-pine.svg' },
-    { x: 640, y: 125, src: '/world/props/tree-oak.svg' },
-    { x: 860, y: 160, src: '/world/props/tree-pine.svg' },
-    { x: 920, y: 260, src: '/world/props/tree-oak.svg' },
-    { x: 930, y: 380, src: '/world/props/tree-pine.svg' },
-    { x: 920, y: 550, src: '/world/props/tree-oak.svg' },
-    { x: 880, y: 720, src: '/world/props/tree-pine.svg' },
-    { x: 700, y: 830, src: '/world/props/tree-oak.svg' },
-    { x: 500, y: 860, src: '/world/props/tree-pine.svg' },
-    { x: 330, y: 840, src: '/world/props/tree-oak.svg' },
-    { x: 160, y: 780, src: '/world/props/tree-pine.svg' },
-    { x: 95, y: 590, src: '/world/props/tree-oak.svg' },
-    { x: 90, y: 310, src: '/world/props/tree-pine.svg' },
+    { x: 130, y: 190, src: WORLD_ASSETS.props.treePine },
+    { x: 180, y: 140, src: WORLD_ASSETS.props.treeOak },
+    { x: 340, y: 120, src: WORLD_ASSETS.props.treePine },
+    { x: 640, y: 125, src: WORLD_ASSETS.props.treeOak },
+    { x: 860, y: 160, src: WORLD_ASSETS.props.treePine },
+    { x: 920, y: 260, src: WORLD_ASSETS.props.treeOak },
+    { x: 930, y: 380, src: WORLD_ASSETS.props.treePine },
+    { x: 920, y: 550, src: WORLD_ASSETS.props.treeOak },
+    { x: 880, y: 720, src: WORLD_ASSETS.props.treePine },
+    { x: 700, y: 830, src: WORLD_ASSETS.props.treeOak },
+    { x: 500, y: 860, src: WORLD_ASSETS.props.treePine },
+    { x: 330, y: 840, src: WORLD_ASSETS.props.treeOak },
+    { x: 160, y: 780, src: WORLD_ASSETS.props.treePine },
+    { x: 95, y: 590, src: WORLD_ASSETS.props.treeOak },
+    { x: 90, y: 310, src: WORLD_ASSETS.props.treePine },
     // Interior natural groves
-    { x: 370, y: 330, src: '/world/props/tree-pine.svg' },
-    { x: 620, y: 330, src: '/world/props/tree-oak.svg' },
-    { x: 370, y: 550, src: '/world/props/tree-oak.svg' },
-    { x: 640, y: 540, src: '/world/props/tree-pine.svg' },
-    { x: 740, y: 440, src: '/world/props/tree-oak.svg' },
+    { x: 370, y: 330, src: WORLD_ASSETS.props.treePine },
+    { x: 620, y: 330, src: WORLD_ASSETS.props.treeOak },
+    { x: 370, y: 550, src: WORLD_ASSETS.props.treeOak },
+    { x: 640, y: 540, src: WORLD_ASSETS.props.treePine },
+    { x: 740, y: 440, src: WORLD_ASSETS.props.treeOak },
   ];
 
   // Apply GPU Transform Directly (60fps without React re-render overhead)
@@ -558,7 +559,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           <div className="absolute left-[545px] top-[475px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none flex flex-col items-center">
             <div className="absolute bottom-0 w-10 h-3.5 rounded-full bg-black/45 blur-[1px]" />
             <img
-              src="/world/props/campfire.svg"
+              src={WORLD_ASSETS.props.campfire}
               alt="Campfire"
               style={{ width: '46px', height: '46px', objectFit: 'contain' }}
               draggable={false}
@@ -571,7 +572,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           <div className="absolute left-[240px] top-[400px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
             <div className="absolute bottom-0 w-10 h-3.5 rounded-full bg-black/40 blur-[1px]" />
             <img
-              src="/world/props/stone-pile.svg"
+              src={WORLD_ASSETS.props.stonePile}
               alt="Stone Pile"
               style={{ width: '48px', height: '36px', objectFit: 'contain' }}
               draggable={false}
@@ -582,7 +583,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           <div className="absolute left-[760px] top-[470px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
             <div className="absolute bottom-0 w-10 h-3.5 rounded-full bg-black/40 blur-[1px]" />
             <img
-              src="/world/props/logs.svg"
+              src={WORLD_ASSETS.props.logs}
               alt="Timber Logs"
               style={{ width: '48px', height: '36px', objectFit: 'contain' }}
               draggable={false}
@@ -593,7 +594,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           <div className="absolute left-[330px] top-[630px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
             <div className="absolute bottom-0 w-9 h-3 rounded-full bg-black/40 blur-[1px]" />
             <img
-              src="/world/props/crates.svg"
+              src={WORLD_ASSETS.props.crates}
               alt="Crates"
               style={{ width: '42px', height: '34px', objectFit: 'contain' }}
               draggable={false}
@@ -603,7 +604,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           {/* Wildflowers */}
           <div className="absolute left-[500px] top-[340px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
             <img
-              src="/world/terrain/flowers.svg"
+              src={WORLD_ASSETS.terrain.flowers}
               alt="Flowers"
               style={{ width: '38px', height: '28px', objectFit: 'contain', opacity: 0.9 }}
               draggable={false}
@@ -611,7 +612,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           </div>
           <div className="absolute left-[500px] top-[570px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
             <img
-              src="/world/terrain/flowers.svg"
+              src={WORLD_ASSETS.terrain.flowers}
               alt="Flowers"
               style={{ width: '38px', height: '28px', objectFit: 'contain', opacity: 0.9 }}
               draggable={false}

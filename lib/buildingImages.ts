@@ -47,7 +47,7 @@ export function generateBuildingPrompt(conceptName: string, theme: string, state
 }
 
 export function getPollinationsImageUrl(conceptName: string, theme: string, state: BuildingState): string {
-  return '/world/buildings/learning-camp.svg';
+  return '/world/buildings/learning-camp.png';
 }
 
 export async function cacheBuildingImageToSupabase(

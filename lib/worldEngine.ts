@@ -147,14 +147,14 @@ export function computeWorldState(store: UserStoreData): WorldState {
     const buildingId = `bldg_${c.id}`;
 
     const defaultSvgs = [
-      '/world/buildings/learning-camp.svg',
-      '/world/buildings/skill-lab.svg',
-      '/world/buildings/project-workshop.svg',
-      '/world/buildings/challenge-arena.svg',
-      '/world/buildings/career-academy.svg',
-      '/world/buildings/reward-vault.svg',
-      '/world/buildings/quarry.svg',
-      '/world/buildings/lumber-yard.svg',
+      '/world/buildings/learning-camp.png',
+      '/world/buildings/skill-lab.png',
+      '/world/buildings/project-workshop.png',
+      '/world/buildings/challenge-arena.png',
+      '/world/buildings/career-academy.png',
+      '/world/buildings/reward-vault.png',
+      '/world/buildings/quarry.png',
+      '/world/buildings/lumber-yard.png',
     ];
     const resolvedImageUrl = defaultSvgs[idx % defaultSvgs.length];
 
