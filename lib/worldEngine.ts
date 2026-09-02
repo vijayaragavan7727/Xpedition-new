@@ -146,9 +146,17 @@ export function computeWorldState(store: UserStoreData): WorldState {
     const buildingName = deriveBuildingName(c.name, idx);
     const buildingId = `bldg_${c.id}`;
 
-    const prompt = generateBuildingPrompt(c.name, activeTheme, state);
-    const seed = getBuildingSeed(c.name, activeTheme);
-    const resolvedImageUrl = `/api/worldimage?prompt=${encodeURIComponent(prompt)}&seed=${seed}`;
+    const defaultSvgs = [
+      '/world/buildings/learning-camp.svg',
+      '/world/buildings/skill-lab.svg',
+      '/world/buildings/project-workshop.svg',
+      '/world/buildings/challenge-arena.svg',
+      '/world/buildings/career-academy.svg',
+      '/world/buildings/reward-vault.svg',
+      '/world/buildings/quarry.svg',
+      '/world/buildings/lumber-yard.svg',
+    ];
+    const resolvedImageUrl = defaultSvgs[idx % defaultSvgs.length];
 
     return {
       buildingId,

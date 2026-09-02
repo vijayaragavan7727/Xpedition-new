@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" width="200" height="180">
+    <defs>
+      <linearGradient id="vaultStone" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#94A3B8"/>
+        <stop offset="100%" stop-color="#334155"/>
+      </linearGradient>
+      <linearGradient id="crystalGlow" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#E879F9"/>
+        <stop offset="50%" stop-color="#C084FC"/>
+        <stop offset="100%" stop-color="#7E22CE"/>
+      </linearGradient>
+    </defs>
+    <!-- Ground Shadow -->
+    <ellipse cx="100" cy="155" rx="80" ry="18" fill="rgba(0,0,0,0.4)"/>
+    <!-- Ironbound Stone Fort Body -->
+    <rect x="45" y="80" width="110" height="70" rx="6" fill="url(#vaultStone)" stroke="#0F172A" stroke-width="3"/>
+    <!-- Golden Cornice Battlements -->
+    <rect x="40" y="72" width="120" height="12" fill="#EAB308" stroke="#854D0E" stroke-width="2" rx="2"/>
+    <!-- Heavy Vault Gear Dial Door -->
+    <circle cx="100" cy="120" r="22" fill="#475569" stroke="#EAB308" stroke-width="3"/>
+    <circle cx="100" cy="120" r="12" fill="#1E293B" stroke="#94A3B8" stroke-width="2"/>
+    <line x1="88" y1="120" x2="112" y2="120" stroke="#EAB308" stroke-width="3"/>
+    <line x1="100" y1="108" x2="100" y2="132" stroke="#EAB308" stroke-width="3"/>
+    <!-- Floating Giant Purple Mana Crystal in Roof Spire -->
+    <polygon points="100,20 115,50 100,68 85,50" fill="url(#crystalGlow)" stroke="#FDF4FF" stroke-width="2"/>
+    <polygon points="100,20 108,50 100,68" fill="#F0ABFC"/>
+  </svg>

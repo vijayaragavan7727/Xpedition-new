@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80" width="64" height="80">
+    <!-- Ground Shadow -->
+    <ellipse cx="32" cy="74" rx="16" ry="5" fill="rgba(0,0,0,0.35)"/>
+    <!-- Body / Tunic -->
+    <rect x="22" y="38" width="20" height="26" rx="4" fill="#3B82F6" stroke="#1D4ED8" stroke-width="1.5"/>
+    <!-- Wizard Cloak / Scarf -->
+    <path d="M18,36 Q32,48 46,36 L48,60 L16,60 Z" fill="#2563EB" opacity="0.9"/>
+    <!-- Head -->
+    <circle cx="32" cy="26" r="11" fill="#FED7AA" stroke="#EA580C" stroke-width="1"/>
+    <!-- Hair -->
+    <path d="M21,24 Q32,14 43,24 Q32,18 21,24 Z" fill="#78350F"/>
+    <!-- Scholar Cap / Hat -->
+    <polygon points="32,6 50,16 32,22 14,16" fill="#1E3A8A" stroke="#EAB308" stroke-width="1.5"/>
+    <rect x="26" y="16" width="12" height="6" fill="#1E3A8A"/>
+    <!-- Book in Hand -->
+    <rect x="40" y="44" width="12" height="15" rx="2" fill="#EF4444" stroke="#7F1D1D" stroke-width="1"/>
+  </svg>

@@ -47,9 +47,7 @@ export function generateBuildingPrompt(conceptName: string, theme: string, state
 }
 
 export function getPollinationsImageUrl(conceptName: string, theme: string, state: BuildingState): string {
-  const prompt = generateBuildingPrompt(conceptName, theme, state);
-  const seed = getBuildingSeed(conceptName, theme);
-  return `/api/worldimage?prompt=${encodeURIComponent(prompt)}&seed=${seed}`;
+  return '/world/buildings/learning-camp.svg';
 }
 
 export async function cacheBuildingImageToSupabase(

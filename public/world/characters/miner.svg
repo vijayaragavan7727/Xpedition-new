@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80" width="64" height="80">
+    <ellipse cx="32" cy="74" rx="16" ry="5" fill="rgba(0,0,0,0.35)"/>
+    <!-- Miner Tunic -->
+    <rect x="22" y="38" width="20" height="26" rx="4" fill="#475569" stroke="#1E293B" stroke-width="1.5"/>
+    <!-- Head -->
+    <circle cx="32" cy="26" r="11" fill="#FED7AA" stroke="#EA580C" stroke-width="1"/>
+    <!-- Miner Helmet with Light -->
+    <path d="M19,22 Q32,10 45,22 Z" fill="#0284C7" stroke="#0369A1" stroke-width="2"/>
+    <circle cx="32" cy="18" r="3.5" fill="#FDE047" stroke="#CA8A04"/>
+    <!-- Pickaxe in Hand -->
+    <line x1="45" y1="55" x2="45" y2="30" stroke="#78350F" stroke-width="3"/>
+    <path d="M37,30 Q45,26 53,30" stroke="#94A3B8" stroke-width="4" fill="none"/>
+  </svg>
