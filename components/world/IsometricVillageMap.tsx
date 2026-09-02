@@ -5,16 +5,15 @@ import { PlayableGameWorldData, LearningZone } from '@/lib/engine/gameWorldAdapt
 import GameTopHud from './GameTopHud';
 import IsometricGameBuilding from './IsometricGameBuilding';
 import BuildingActionPopup from './BuildingActionPopup';
-import WorkerCharacter from './WorkerCharacter';
 import Link from 'next/link';
-import { Swords, Compass, Maximize2, ShieldCheck, Flame, Hammer } from 'lucide-react';
+import { Swords, Compass, Maximize2, ShieldCheck, Flame, Hammer, Star, Sparkles, Navigation } from 'lucide-react';
 
 interface IsometricVillageMapProps {
   worldData: PlayableGameWorldData;
 }
 
-const VILLAGE_WIDTH = 740;
-const VILLAGE_HEIGHT = 740;
+const VILLAGE_WIDTH = 760;
+const VILLAGE_HEIGHT = 760;
 
 export default function IsometricVillageMap({ worldData }: IsometricVillageMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -27,7 +26,7 @@ export default function IsometricVillageMap({ worldData }: IsometricVillageMapPr
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const lastTouchDistRef = useRef<number | null>(null);
 
-  // Selected Building for Inspection Popup
+  // Selected Building for Inspection Sheet
   const [selectedBuilding, setSelectedBuilding] = useState<LearningZone | null>(null);
 
   // Auto-fit camera calculation on mount and resize
@@ -36,18 +35,18 @@ export default function IsometricVillageMap({ worldData }: IsometricVillageMapPr
     const containerWidth = containerRef.current.clientWidth || window.innerWidth;
     const containerHeight = containerRef.current.clientHeight || window.innerHeight;
 
-    // Available space accounting for top HUD (60px) and bottom nav/buttons (70px) and safe margins
-    const availableWidth = containerWidth - 12;
-    const availableHeight = containerHeight - 125;
+    // Available space accounting for Top HUD (60px) and Bottom Nav (70px)
+    const availableWidth = containerWidth - 16;
+    const availableHeight = containerHeight - 130;
 
     const scaleX = availableWidth / VILLAGE_WIDTH;
     const scaleY = availableHeight / VILLAGE_HEIGHT;
     const optimalScale = Math.min(scaleX, scaleY, 1.35);
 
-    const safeScale = Math.max(0.42, Math.min(optimalScale, 1.25));
+    const safeScale = Math.max(0.40, Math.min(optimalScale, 1.2));
     setBaseAutoFitScale(safeScale);
     setZoom(safeScale);
-    setPan({ x: 0, y: 10 }); // Centered
+    setPan({ x: 0, y: 8 }); // Centered base
   }, []);
 
   useEffect(() => {
@@ -122,27 +121,30 @@ export default function IsometricVillageMap({ worldData }: IsometricVillageMapPr
 
   const resetToAutoFit = () => {
     setZoom(baseAutoFitScale);
-    setPan({ x: 0, y: 10 });
+    setPan({ x: 0, y: 8 });
   };
 
-  const { buildings, zones } = worldData;
+  const { buildings, zones, mentor } = worldData;
 
   // Resolve 7 Core Strategy Locations
-  const commandCenter = buildings.knowledgeCore || zones.learningCamp;
-  const courseAcademy = buildings.courseAcademy || zones.skillDistrict;
-  const skillLab = buildings.skillLab || zones.skillDistrict;
+  const learningCamp = buildings.knowledgeCore || zones.learningCamp;
+  const skillDistrict = buildings.courseAcademy || zones.skillDistrict;
+  const projectValley = buildings.practiceGrounds || zones.projectValley;
   const challengeArena = buildings.challengeArena || zones.challengeArena;
   const rewardVault = buildings.rewardVault || zones.learningCamp;
-  const practiceForge = buildings.practiceGrounds || zones.projectValley;
-  const careerHub = buildings.careerHub || zones.careerCity;
+  const skillLab = buildings.skillLab || zones.skillDistrict;
+  const careerCity = buildings.careerHub || zones.careerCity;
+
+  // Identify Recommended Next Best Action Target
+  const recommendedId = mentor?.recommendedConceptId || skillDistrict.id;
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[100dvh] overflow-hidden select-none bg-[#0D1F12] font-sans touch-none"
+      className="relative w-full h-[100dvh] overflow-hidden select-none bg-[#09180E] font-sans touch-none"
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseDown}
+      onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -152,7 +154,7 @@ export default function IsometricVillageMap({ worldData }: IsometricVillageMapPr
       {/* 1. TOP STRATEGY GAME HUD */}
       <GameTopHud
         worldData={worldData}
-        onOpenHQ={() => setSelectedBuilding(commandCenter)}
+        onOpenHQ={() => setSelectedBuilding(learningCamp)}
       />
 
       {/* 2. AUTO-FRAMED CONTINUOUS ISOMETRIC VILLAGE CANVAS */}
@@ -167,289 +169,314 @@ export default function IsometricVillageMap({ worldData }: IsometricVillageMapPr
           }}
         >
           {/* =================================================================== */}
-          {/* A. ISOMETRIC CHECKERBOARD TERRAIN WITH SHORELINE & DEFENSIVE WALLS */}
+          {/* A. LUSH ORGANIC TERRAIN WITH ELEVATIONS, HILLS & RIVER */}
           {/* =================================================================== */}
-          <div className="relative w-full h-full rounded-[48px] shadow-[0_25px_90px_rgba(0,0,0,0.9)] overflow-hidden border-4 border-[#1B4332] bg-[#2D6A4F]">
-            {/* Dual-Tone Isometric Grass Tiles */}
-            <div
-              className="absolute inset-0 opacity-40"
-              style={{
-                backgroundImage: `
-                  linear-gradient(45deg, #1B4332 25%, transparent 25%), 
-                  linear-gradient(-45deg, #1B4332 25%, transparent 25%), 
-                  linear-gradient(45deg, transparent 75%, #1B4332 75%), 
-                  linear-gradient(-45deg, transparent 75%, #1B4332 75%)
-                `,
-                backgroundSize: '44px 44px',
-                backgroundPosition: '0 0, 0 22px, 22px -22px, -22px 0px',
-              }}
-            />
+          <div className="relative w-full h-full rounded-[56px] shadow-[0_30px_100px_rgba(0,0,0,0.95)] overflow-hidden border-4 border-[#1B4332] bg-gradient-to-br from-[#2D6A4F] via-[#20523B] to-[#143621]">
+            
+            {/* Multi-layered Organic Meadow Gradient Blends */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,_#40916C_0%,_#2D6A4F_45%,_#1B4332_100%)] opacity-90" />
 
-            {/* Left Flowing River & Shoreline */}
-            <div className="absolute top-0 bottom-0 left-0 w-20 bg-gradient-to-r from-[#0284C7] via-[#0369A1] to-[#0F766E] border-r-4 border-[#CA8A04] shadow-inner flex flex-col justify-around items-center">
-              <div className="w-full h-6 bg-white/20 blur-[1px] animate-pulse" />
-              <div className="w-full h-6 bg-white/10 blur-[1px] animate-pulse" />
-              <div className="w-full h-6 bg-white/20 blur-[1px] animate-pulse" />
+            {/* Elevated Hillock Contours */}
+            <div className="absolute top-[18%] left-[22%] w-60 h-44 rounded-[40px] bg-[#52B788]/20 blur-[12px] pointer-events-none" />
+            <div className="absolute bottom-[20%] right-[22%] w-64 h-48 rounded-[50px] bg-[#52B788]/15 blur-[14px] pointer-events-none" />
+
+            {/* West Flowing River Stream with Stone Embankments & Animated Water */}
+            <div className="absolute top-0 bottom-0 left-0 w-22 bg-gradient-to-r from-[#0369A1] via-[#0284C7] to-[#0D9488] border-r-4 border-[#CA8A04] shadow-2xl flex flex-col justify-around items-center overflow-hidden">
+              <div className="w-full h-8 bg-white/25 blur-[1px] -rotate-6 animate-pulse" />
+              <div className="w-full h-8 bg-white/15 blur-[1px] -rotate-6 animate-pulse" />
+              <div className="w-full h-8 bg-white/20 blur-[1px] -rotate-6 animate-pulse" />
+              <div className="w-full h-8 bg-white/15 blur-[1px] -rotate-6 animate-pulse" />
             </div>
 
-            {/* Perimeter Jungle Trees */}
-            {/* North Border Trees */}
-            <div className="absolute top-0 inset-x-0 h-12 bg-[#143621] flex justify-around items-center px-4 border-b-2 border-[#0D2416]">
-              {Array.from({ length: 14 }).map((_, i) => (
-                <span key={i} className="text-xl drop-shadow-md">
-                  {i % 3 === 0 ? '🌲' : i % 2 === 0 ? '🌳' : '🌴'}
+            {/* =================================================================== */}
+            {/* B. ORGANIC WINDING COBBLESTONE & DIRT TRAILS */}
+            {/* =================================================================== */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              viewBox="0 0 760 760"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* Soft Earth Under-Path Shadow */}
+              <path
+                d="M 120 370 Q 220 360 380 370 T 640 370 M 380 130 Q 370 240 380 370 T 380 630 M 230 250 Q 300 310 380 370 T 540 490 M 540 250 Q 460 310 380 370 T 230 490"
+                stroke="#451A03"
+                strokeWidth="32"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.45"
+              />
+
+              {/* Main Cobblestone Trail */}
+              <path
+                d="M 120 370 Q 220 360 380 370 T 640 370 M 380 130 Q 370 240 380 370 T 380 630 M 230 250 Q 300 310 380 370 T 540 490 M 540 250 Q 460 310 380 370 T 230 490"
+                stroke="#B45309"
+                strokeWidth="24"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.8"
+              />
+
+              {/* Inner Cobble Pattern Texture */}
+              <path
+                d="M 120 370 Q 220 360 380 370 T 640 370 M 380 130 Q 370 240 380 370 T 380 630 M 230 250 Q 300 310 380 370 T 540 490 M 540 250 Q 460 310 380 370 T 230 490"
+                stroke="#D97706"
+                strokeWidth="16"
+                strokeDasharray="6 8"
+                strokeLinecap="round"
+                opacity="0.75"
+              />
+
+              {/* Central Village Plaza Circle */}
+              <circle
+                cx="380"
+                cy="370"
+                r="70"
+                fill="#B45309"
+                fillOpacity="0.5"
+                stroke="#D97706"
+                strokeWidth="4"
+                strokeDasharray="8 6"
+              />
+            </svg>
+
+            {/* =================================================================== */}
+            {/* C. PERIMETER DENSE PINE & OAK FOREST BORDER */}
+            {/* =================================================================== */}
+            {/* North Border Tree Canopy */}
+            <div className="absolute top-0 inset-x-0 h-14 bg-[#143621] flex justify-around items-center px-4 border-b-2 border-[#0D2416] z-10">
+              {['🌲', '🌳', '🌲', '🌴', '🌳', '🌲', '🌳', '🌲', '🌴', '🌲', '🌳', '🌲', '🌴'].map((t, i) => (
+                <span key={`nt-${i}`} className="text-2xl drop-shadow-md transform hover:scale-110 transition-transform">
+                  {t}
                 </span>
               ))}
             </div>
 
-            {/* South Border Trees */}
-            <div className="absolute bottom-0 inset-x-0 h-12 bg-[#143621] flex justify-around items-center px-4 border-t-2 border-[#0D2416]">
-              {Array.from({ length: 14 }).map((_, i) => (
-                <span key={i} className="text-xl drop-shadow-md">
-                  {i % 3 === 0 ? '🌳' : i % 2 === 0 ? '🌲' : '🌴'}
+            {/* South Border Tree Canopy */}
+            <div className="absolute bottom-0 inset-x-0 h-14 bg-[#143621] flex justify-around items-center px-4 border-t-2 border-[#0D2416] z-10">
+              {['🌳', '🌲', '🌴', '🌲', '🌳', '🌲', '🌳', '🌴', '🌲', '🌳', '🌲', '🌳', '🌲'].map((t, i) => (
+                <span key={`st-${i}`} className="text-2xl drop-shadow-md transform hover:scale-110 transition-transform">
+                  {t}
                 </span>
               ))}
             </div>
 
-            {/* East Border Trees */}
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-[#143621] flex flex-col justify-around items-center py-4 border-l-2 border-[#0D2416]">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <span key={i} className="text-xl drop-shadow-md">
-                  {i % 2 === 0 ? '🌳' : '🌲'}
+            {/* East Border Tree Canopy */}
+            <div className="absolute right-0 top-0 bottom-0 w-14 bg-[#143621] flex flex-col justify-around items-center py-4 border-l-2 border-[#0D2416] z-10">
+              {['🌲', '🌳', '🌲', '🌴', '🌳', '🌲', '🌳', '🌲'].map((t, i) => (
+                <span key={`et-${i}`} className="text-2xl drop-shadow-md transform hover:scale-110 transition-transform">
+                  {t}
                 </span>
               ))}
             </div>
 
             {/* =================================================================== */}
-            {/* B. COBBLESTONE PATHWAYS LINKING ALL LOCATIONS */}
+            {/* D. DEFENSIVE STONE WALLS & WOODEN PALISADES */}
             {/* =================================================================== */}
-            {/* Central Round Plaza */}
-            <div className="absolute left-1/2 top-[48%] -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border-4 border-dashed border-[#A16207]/40 pointer-events-none" />
-
-            {/* Vertical Road */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-12 bottom-12 w-10 bg-[#854D0E]/45 border-x border-[#713F12]/60 pointer-events-none" />
-
-            {/* Horizontal Cross Road */}
-            <div className="absolute top-[48%] -translate-y-1/2 left-20 right-12 h-10 bg-[#854D0E]/45 border-y border-[#713F12]/60 pointer-events-none" />
-
-            {/* =================================================================== */}
-            {/* C. CLASH-STYLE DEFENSIVE STONE WALLS & WOODEN PALISADES */}
-            {/* =================================================================== */}
-            {/* North Stone Wall Section with Corner Pillars */}
-            <div className="absolute top-[38%] left-[34%] right-[34%] h-3.5 bg-gradient-to-r from-slate-400 via-slate-200 to-slate-400 rounded-sm border border-slate-600 shadow-sm flex justify-between px-1 pointer-events-none">
+            {/* North Stone Wall Section with Corner Bastions */}
+            <div className="absolute top-[36%] left-[34%] right-[34%] h-3.5 bg-gradient-to-r from-slate-400 via-slate-200 to-slate-400 rounded-sm border border-slate-600 shadow-sm flex justify-between px-1 pointer-events-none z-10">
               <span className="w-2 h-full bg-slate-700 shadow-sm" />
               <span className="w-2 h-full bg-slate-700 shadow-sm" />
             </div>
 
             {/* West Stone Wall Section */}
-            <div className="absolute top-[28%] bottom-[40%] left-[16%] w-3.5 bg-gradient-to-b from-slate-400 via-slate-200 to-slate-400 rounded-sm border border-slate-600 shadow-sm pointer-events-none" />
+            <div className="absolute top-[26%] bottom-[42%] left-[17%] w-3.5 bg-gradient-to-b from-slate-400 via-slate-200 to-slate-400 rounded-sm border border-slate-600 shadow-sm pointer-events-none z-10" />
 
             {/* East Stone Wall Section */}
-            <div className="absolute top-[28%] bottom-[40%] right-[16%] w-3.5 bg-gradient-to-b from-slate-400 via-slate-200 to-slate-400 rounded-sm border border-slate-600 shadow-sm pointer-events-none" />
+            <div className="absolute top-[26%] bottom-[42%] right-[17%] w-3.5 bg-gradient-to-b from-slate-400 via-slate-200 to-slate-400 rounded-sm border border-slate-600 shadow-sm pointer-events-none z-10" />
 
-            {/* Wooden Palisade Fence (Quarry Yard) */}
-            <div className="absolute top-[22%] right-[28%] flex gap-0.5 pointer-events-none">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="w-1.5 h-4 bg-[#78350F] rounded-t-sm border-t border-amber-400 shadow-xs" />
+            {/* Wooden Palisade Fences */}
+            <div className="absolute top-[21%] right-[28%] flex gap-0.5 pointer-events-none z-10">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="w-1.5 h-4.5 bg-[#78350F] rounded-t-sm border-t border-amber-400 shadow-xs" />
               ))}
             </div>
 
-            {/* Wooden Palisade Fence (Lumber Yard) */}
-            <div className="absolute top-[22%] left-[28%] flex gap-0.5 pointer-events-none">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="w-1.5 h-4 bg-[#78350F] rounded-t-sm border-t border-amber-400 shadow-xs" />
+            <div className="absolute top-[21%] left-[28%] flex gap-0.5 pointer-events-none z-10">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="w-1.5 h-4.5 bg-[#78350F] rounded-t-sm border-t border-amber-400 shadow-xs" />
               ))}
             </div>
 
             {/* =================================================================== */}
-            {/* D. NATURAL PROPS: CAMPFIRE, LUMBER, QUARRY, FLOWERS */}
+            {/* E. NATURAL PROPS: CAMPFIRE, LUMBER, QUARRY, FLOWERS */}
             {/* =================================================================== */}
             {/* Center Campfire */}
-            <div className="absolute left-[50%] top-[59%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-              <div className="w-7 h-7 rounded-full bg-amber-950 border border-amber-700 flex items-center justify-center shadow-md">
-                <span className="text-sm animate-bounce">🔥</span>
+            <div className="absolute left-[50%] top-[58%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-15">
+              <div className="w-8 h-8 rounded-full bg-amber-950 border-2 border-amber-700 flex items-center justify-center shadow-lg">
+                <span className="text-base animate-bounce">🔥</span>
               </div>
-              <span className="text-[9px] font-mono text-amber-200 font-bold">Campfire</span>
+              <span className="text-[9px] font-mono text-amber-200 font-black tracking-wider">CAMPFIRE</span>
             </div>
 
-            {/* Lumber Yard */}
-            <div className="absolute left-[34%] top-[24%] flex items-center gap-1 p-1 bg-amber-950/50 rounded-lg border border-amber-800 pointer-events-none">
-              <span className="text-base">🪵</span>
-              <span className="text-[9px] font-mono font-bold text-amber-300">Lumber</span>
+            {/* Lumber Processing Yard */}
+            <div className="absolute left-[33%] top-[23%] flex items-center gap-1.5 p-1 px-2 bg-amber-950/70 rounded-xl border border-amber-700/80 shadow-md pointer-events-none z-15">
+              <span className="text-lg">🪵</span>
+              <span className="text-[9px] font-mono font-black text-amber-300">LUMBER</span>
             </div>
 
             {/* Gold Quarry Vein */}
-            <div className="absolute right-[32%] top-[24%] flex items-center gap-1 p-1 bg-slate-900/60 rounded-lg border border-amber-500/40 pointer-events-none">
-              <span className="text-base">⛏️</span>
-              <span className="text-[9px] font-mono font-bold text-yellow-300">Quarry</span>
+            <div className="absolute right-[31%] top-[23%] flex items-center gap-1.5 p-1 px-2 bg-slate-900/80 rounded-xl border border-amber-500/60 shadow-md pointer-events-none z-15">
+              <span className="text-lg">⛏️</span>
+              <span className="text-[9px] font-mono font-black text-yellow-300">QUARRY</span>
             </div>
 
-            {/* Flowers */}
-            <div className="absolute top-[27%] left-[46%] text-xs">🌸🌼</div>
-            <div className="absolute top-[67%] left-[34%] text-xs">🌺🌷</div>
-            <div className="absolute top-[67%] right-[34%] text-xs">🌻🌹</div>
+            {/* Flowerbeds & Environmental Props */}
+            <div className="absolute top-[28%] left-[45%] text-sm z-10">🌸🌼🌸</div>
+            <div className="absolute top-[68%] left-[32%] text-sm z-10">🌺🌷🌺</div>
+            <div className="absolute top-[68%] right-[32%] text-sm z-10">🌻🌹🌻</div>
+            <div className="absolute top-[48%] left-[24%] text-xs z-10">🍄🪨</div>
+            <div className="absolute top-[48%] right-[24%] text-xs z-10">🪨🍄</div>
 
             {/* =================================================================== */}
-            {/* E. 7 DATA-DRIVEN ARCHITECTURAL LEARNING BUILDINGS */}
+            {/* F. ANIMATED LIVING WORLD CHARACTERS */}
+            {/* =================================================================== */}
+            {/* Learner Hero Avatar on Trail */}
+            <div className="absolute left-[44%] top-[50%] z-25 flex flex-col items-center pointer-events-none animate-pulse">
+              <div className="w-6 h-6 rounded-full bg-indigo-600 border-2 border-white flex items-center justify-center text-xs shadow-md">
+                🧙
+              </div>
+              <span className="text-[8px] font-mono font-black text-white bg-indigo-950/80 px-1 rounded">
+                YOU
+              </span>
+            </div>
+
+            {/* Builder Apprentice in Project Valley */}
+            <div className="absolute left-[34%] top-[60%] z-25 flex flex-col items-center pointer-events-none">
+              <span className="text-base animate-bounce">🔨</span>
+              <span className="text-[7px] font-mono text-amber-200 bg-black/60 px-1 rounded">
+                BUILDER
+              </span>
+            </div>
+
+            {/* Scholar in Skill District */}
+            <div className="absolute left-[36%] top-[34%] z-25 flex flex-col items-center pointer-events-none">
+              <span className="text-base">📜</span>
+              <span className="text-[7px] font-mono text-cyan-200 bg-black/60 px-1 rounded">
+                SCHOLAR
+              </span>
+            </div>
+
+            {/* Miner in Quarry */}
+            <div className="absolute right-[33%] top-[30%] z-25 flex flex-col items-center pointer-events-none">
+              <span className="text-base animate-pulse">⛏️</span>
+              <span className="text-[7px] font-mono text-yellow-200 bg-black/60 px-1 rounded">
+                MINER
+              </span>
+            </div>
+
+            {/* =================================================================== */}
+            {/* G. 7 HANDCRAFTED 2.5D ORIGINAL LEARNING DESTINATIONS */}
             {/* =================================================================== */}
 
-            {/* 1. COMMAND CENTER (Main Base Keep - Center) */}
+            {/* 1. LEARNING CAMP (Center Base Pioneer Keep) */}
             <IsometricGameBuilding
               building={{
-                ...commandCenter,
-                name: 'Command Center',
+                ...learningCamp,
+                name: 'Learning Camp',
                 gridX: 50,
                 gridY: 48,
               }}
-              isSelected={selectedBuilding?.id === commandCenter.id}
-              onClick={() => setSelectedBuilding(commandCenter)}
+              isSelected={selectedBuilding?.id === learningCamp.id}
+              isRecommended={recommendedId === learningCamp.id}
+              onClick={() => setSelectedBuilding(learningCamp)}
             />
 
-            {/* 2. COURSE ACADEMY (Library - North-West) */}
+            {/* 2. SKILL DISTRICT (Academy Library - North-West) */}
             <IsometricGameBuilding
               building={{
-                ...courseAcademy,
-                name: 'Courses',
+                ...skillDistrict,
+                name: 'Skill District',
                 gridX: 28,
-                gridY: 32,
+                gridY: 30,
               }}
-              isSelected={selectedBuilding?.id === courseAcademy.id}
-              onClick={() => setSelectedBuilding(courseAcademy)}
+              isSelected={selectedBuilding?.id === skillDistrict.id}
+              isRecommended={recommendedId === skillDistrict.id}
+              onClick={() => setSelectedBuilding(skillDistrict)}
             />
 
-            {/* 3. SKILL LAB (Alchemical Cauldron - West) */}
+            {/* 3. PROJECT VALLEY (Forge & Workshop - South-West) */}
+            <IsometricGameBuilding
+              building={{
+                ...projectValley,
+                name: 'Project Valley',
+                gridX: 27,
+                gridY: 65,
+              }}
+              isSelected={selectedBuilding?.id === projectValley.id}
+              isRecommended={recommendedId === projectValley.id}
+              onClick={() => setSelectedBuilding(projectValley)}
+            />
+
+            {/* 4. CHALLENGE ARENA (Colosseum Duel Pit - North-East) */}
+            <IsometricGameBuilding
+              building={{
+                ...challengeArena,
+                name: 'Challenge Arena',
+                gridX: 73,
+                gridY: 30,
+              }}
+              isSelected={selectedBuilding?.id === challengeArena.id}
+              isRecommended={recommendedId === challengeArena.id}
+              onClick={() => setSelectedBuilding(challengeArena)}
+            />
+
+            {/* 5. REWARD VAULT (Gold & Gem Reserves - South-East) */}
+            <IsometricGameBuilding
+              building={{
+                ...rewardVault,
+                name: 'Reward Vault',
+                gridX: 74,
+                gridY: 65,
+              }}
+              isSelected={selectedBuilding?.id === rewardVault.id}
+              isRecommended={recommendedId === rewardVault.id}
+              onClick={() => setSelectedBuilding(rewardVault)}
+            />
+
+            {/* 6. CAREER CITY (Summit Spire - South Peak) */}
+            <IsometricGameBuilding
+              building={{
+                ...careerCity,
+                name: 'Career City',
+                gridX: 50,
+                gridY: 74,
+              }}
+              isSelected={selectedBuilding?.id === careerCity.id}
+              isRecommended={recommendedId === careerCity.id}
+              onClick={() => setSelectedBuilding(careerCity)}
+            />
+
+            {/* 7. SKILL LAB (Alchemical Cauldron - North Peak) */}
             <IsometricGameBuilding
               building={{
                 ...skillLab,
                 name: 'Skill Lab',
-                gridX: 26,
-                gridY: 64,
+                gridX: 50,
+                gridY: 20,
               }}
               isSelected={selectedBuilding?.id === skillLab.id}
+              isRecommended={recommendedId === skillLab.id}
               onClick={() => setSelectedBuilding(skillLab)}
             />
 
-            {/* 4. ARENA (Challenge Colosseum - North-East) */}
-            <IsometricGameBuilding
-              building={{
-                ...challengeArena,
-                name: 'Arena',
-                gridX: 72,
-                gridY: 32,
-              }}
-              isSelected={selectedBuilding?.id === challengeArena.id}
-              onClick={() => setSelectedBuilding(challengeArena)}
-            />
-
-            {/* 5. VAULT (Gold Reserves - East) */}
-            <IsometricGameBuilding
-              building={{
-                ...rewardVault,
-                name: 'Vault',
-                gridX: 74,
-                gridY: 64,
-              }}
-              isSelected={selectedBuilding?.id === rewardVault.id}
-              onClick={() => setSelectedBuilding(rewardVault)}
-            />
-
-            {/* 6. PRACTICE FORGE (Workshop Chimney - North) */}
-            <IsometricGameBuilding
-              building={{
-                ...practiceForge,
-                name: 'Quest Forge',
-                gridX: 50,
-                gridY: 22,
-              }}
-              isSelected={selectedBuilding?.id === practiceForge.id}
-              onClick={() => setSelectedBuilding(practiceForge)}
-            />
-
-            {/* 7. CAREER HUB (Advanced Spire - South) */}
-            <IsometricGameBuilding
-              building={{
-                ...careerHub,
-                name: 'Career Hub',
-                gridX: 50,
-                gridY: 78,
-              }}
-              isSelected={selectedBuilding?.id === careerHub.id}
-              onClick={() => setSelectedBuilding(careerHub)}
-            />
-
-            {/* =================================================================== */}
-            {/* F. AUTONOMOUS ANIMATED WORKERS */}
-            {/* =================================================================== */}
-            <WorkerCharacter
-              startPos={{ x: 50, y: 48 }}
-              endPos={{ x: 28, y: 32 }}
-              speed={7}
-              resource="wood"
-              color="#38BDF8"
-              name="Builder 1"
-            />
-            <WorkerCharacter
-              startPos={{ x: 50, y: 48 }}
-              endPos={{ x: 72, y: 32 }}
-              speed={8}
-              resource="gold"
-              color="#F59E0B"
-              name="Builder 2"
-            />
-            <WorkerCharacter
-              startPos={{ x: 50, y: 48 }}
-              endPos={{ x: 26, y: 64 }}
-              speed={6}
-              resource="crystal"
-              color="#A855F7"
-              name="Builder 3"
-            />
-            <WorkerCharacter
-              startPos={{ x: 50, y: 48 }}
-              endPos={{ x: 50, y: 22 }}
-              speed={5}
-              resource="hammer"
-              color="#EF4444"
-              name="Smith"
-            />
           </div>
         </div>
       </div>
 
-      {/* 3. BOTTOM QUICK ACTION CONTROLS */}
-      <div className="fixed bottom-3 inset-x-3 z-30 pointer-events-none flex justify-between items-end max-w-lg mx-auto">
-        {/* Left: Quest Attack Battle Button */}
-        <Link
-          href="/quest"
-          className="pointer-events-auto h-11 px-3.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-mono font-bold text-xs flex items-center gap-1.5 border border-amber-300 shadow-[0_6px_20px_rgba(220,38,38,0.6)] active:scale-95 transition-all cursor-pointer"
-        >
-          <Swords className="w-4 h-4 fill-white" />
-          <span>ATTACK / QUEST</span>
-        </Link>
-
-        {/* Center: Quick Auto-Fit View Button */}
+      {/* 3. FLOATING VIEW CONTROLS & NEXT BEST ACTION CHIP */}
+      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2 pointer-events-auto">
         <button
           type="button"
           onClick={resetToAutoFit}
-          className="pointer-events-auto h-9 px-2.5 rounded-lg bg-[#0F172A]/90 hover:bg-slate-800 text-emerald-300 font-mono text-[11px] font-bold flex items-center gap-1 border border-emerald-500/40 backdrop-blur-md shadow-md active:scale-95 transition-all cursor-pointer"
-          title="Reset Camera Framing"
+          className="h-10 px-3.5 rounded-full bg-slate-900/90 border border-amber-400/60 text-amber-300 font-mono text-xs font-bold flex items-center gap-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.8)] backdrop-blur-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
         >
           <Maximize2 className="w-3.5 h-3.5" />
           <span>Fit View</span>
         </button>
-
-        {/* Right: Village HQ */}
-        <button
-          type="button"
-          onClick={() => setSelectedBuilding(commandCenter)}
-          className="pointer-events-auto h-11 px-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs flex items-center gap-1.5 border border-cyan-300 shadow-[0_6px_20px_rgba(2,132,199,0.6)] active:scale-95 transition-all cursor-pointer"
-        >
-          <Compass className="w-4 h-4 fill-white" />
-          <span>VILLAGE HQ</span>
-        </button>
       </div>
 
-      {/* 4. COMPACT IN-GAME ACTION POPUP */}
+      {/* 4. BUILDING INSPECTION MODAL / SHEET */}
       <BuildingActionPopup
         building={selectedBuilding}
         onClose={() => setSelectedBuilding(null)}
