@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useMemo } from 'react';
 import { useWorldState } from '@/lib/hooks/world';
@@ -26,6 +26,10 @@ export default function WorldPage() {
 
   return (
     <div className="w-full h-full min-h-[100dvh] relative select-none overflow-hidden bg-[#09110B]">
+      {/* DEVELOPMENT ONLY BANNER */}
+      <div className="fixed top-14 inset-x-0 z-50 bg-red-600 text-white font-mono font-black text-xs text-center py-1 tracking-wider shadow-lg pointer-events-none">
+        WORLD SOURCE CHECK — DESKTOP XPEDITION NEW
+      </div>
       <LivingStrategyWorld worldData={gameWorldData} />
     </div>
   );
