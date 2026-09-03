@@ -480,10 +480,13 @@ export default function WorldStage() {
     totalConceptsCount: number;
   }>({ overallMasteryPercent: 0, masteredConceptsCount: 0, totalConceptsCount: 0 });
   const [isManualOverride, setIsManualOverride] = useState<boolean>(false);
+  const [avatarId, setAvatarId] = useState<string>('learner');
 
   useEffect(() => {
     try {
       const store = getStoreData();
+      const userAvatar = store?.learnerProfile?.avatar_id || 'learner';
+      setAvatarId(userAvatar);
       const { stage: computedStage, overallMasteryPercent, masteredConceptsCount, totalConceptsCount } =
         calculateWorldMasteryStage(store);
 
@@ -541,6 +544,24 @@ export default function WorldStage() {
   };
 
   const { buildings, characters, animals } = WORLD_LAYOUT;
+
+  const activeAvatarId = avatarId || 'learner';
+  const learnerEntity: WorldEntityLayout = useMemo(() => {
+    const base = buildings ? characters.learner : WORLD_LAYOUT.characters.learner;
+    const avatarMap: Record<string, string> = {
+      learner: '/world/characters/learner.png',
+      builder: '/world/characters/builder.png',
+      miner: '/world/characters/miner.png',
+      trainer: '/world/characters/trainer.png',
+      mentor: '/world/characters/mentor.png',
+    };
+    const resolvedSrc = avatarMap[activeAvatarId] || `/world/characters/${activeAvatarId}.png`;
+    return {
+      ...base,
+      src: resolvedSrc,
+    };
+  }, [activeAvatarId, characters]);
+
 
   return (
     <div className="relative w-full min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-2 sm:p-4 bg-slate-950 overflow-x-hidden selection:bg-amber-500/30">
@@ -620,7 +641,7 @@ export default function WorldStage() {
             {stage >= 1 && (
               <>
                 <BuildingEntity entity={buildings.learningCamp} onClick={() => setSelectedEntity(buildings.learningCamp)} />
-                <CharacterEntity entity={characters.learner} delay="0s" onClick={() => setSelectedEntity(characters.learner)} />
+                <CharacterEntity entity={learnerEntity} delay="0s" onClick={() => setSelectedEntity(learnerEntity)} />
               </>
             )}
 

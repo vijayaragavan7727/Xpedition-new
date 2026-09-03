@@ -60,6 +60,7 @@ export type FlowState = 'flow' | 'bored' | 'frustrated' | 'drifting' | 'unknown'
 
 export interface LearnerProfileData {
   name?: string;
+  avatar_id?: string;
   voiceMuted?: boolean;
   pathType: 'goal' | 'syllabus';
   topic: string;

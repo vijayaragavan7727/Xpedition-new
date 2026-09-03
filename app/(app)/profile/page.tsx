@@ -1,217 +1,126 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   getStoreData,
+  saveStoreData,
+  saveLearnerProfile,
   clearStoreData,
   switchActiveGraph,
-  saveLearnerProfile,
-  saveStoreData,
   UserStoreData,
 } from '@/lib/store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { WORLD_THEMES, WorldThemeId, getThemeConfig } from '@/lib/themes';
+import { WorldThemeId } from '@/lib/themes';
 import { Card, Button, Badge } from '@/components/ui';
 import {
   User,
-  Globe,
-  Clock,
-  Sparkles,
-  Check,
-  CheckCircle2,
+  Settings,
   Shield,
-  AlertCircle,
-  Save,
-  LogOut,
-  RefreshCw,
-  HelpCircle,
-  X,
-  Trash2,
   BookOpen,
-  ArrowRight,
+  Trash2,
+  LogOut,
+  Save,
+  RotateCcw,
+  Sparkles,
+  AlertCircle,
+  FileText,
 } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
-  const [showRecalibrateConfirm, setShowRecalibrateConfirm] = useState<boolean>(false);
-  const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
-
-  // Editable Form Fields
-  const [handle, setHandle] = useState<string>('Learner');
+  const [handle, setHandle] = useState<string>('');
   const [language, setLanguage] = useState<'english' | 'tanglish' | 'tamil'>('english');
   const [dailyMinutes, setDailyMinutes] = useState<number>(60);
   const [learningMode, setLearningMode] = useState<'tutor' | 'read' | 'quest'>('tutor');
+  const [avatarId, setAvatarId] = useState<string>('learner');
   const [startingLevel, setStartingLevel] = useState<string>('Complete beginner');
   const [currentWorldTheme, setCurrentWorldTheme] = useState<WorldThemeId>('cosmos');
-
-  // UI state
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadProfileData = async () => {
-      const store = getStoreData();
-      setStoreData(store);
+    const data = getStoreData();
+    setStoreData(data);
+    setHandle(data.handle || '');
 
-      if (store.handle) setHandle(store.handle);
-      if (store.learnerProfile?.language) setLanguage(store.learnerProfile.language as any);
-      if (store.learnerProfile?.dailyMinutes) setDailyMinutes(store.learnerProfile.dailyMinutes);
-      if (store.learnerProfile?.learningMode) setLearningMode(store.learnerProfile.learningMode as any);
-      if (store.learnerProfile?.startingLevel) setStartingLevel(store.learnerProfile.startingLevel);
-      if (store.learnerProfile?.worldTheme) setCurrentWorldTheme(store.learnerProfile.worldTheme);
-
-      if (isSupabaseConfigured && supabase) {
-        try {
-          const { data: userData } = await supabase.auth.getUser();
-          const userId = userData?.user?.id;
-
-          if (userId) {
-            const { data: profileRow } = await supabase
-              .from('profiles')
-              .select('handle')
-              .eq('id', userId)
-              .single();
-
-            if (profileRow?.handle) {
-              setHandle(profileRow.handle);
-            }
-
-            const { data: learnerRow } = await supabase
-              .from('learner_profile')
-              .select('language, daily_minutes, learning_mode, starting_level, world_theme')
-              .eq('user_id', userId)
-              .maybeSingle();
-
-            if (learnerRow) {
-              if (learnerRow.language) setLanguage(learnerRow.language as any);
-              if (learnerRow.daily_minutes) setDailyMinutes(learnerRow.daily_minutes);
-              if (learnerRow.learning_mode) setLearningMode(learnerRow.learning_mode as any);
-              if (learnerRow.starting_level) setStartingLevel(learnerRow.starting_level);
-              if (learnerRow.world_theme && learnerRow.world_theme in WORLD_THEMES) {
-                setCurrentWorldTheme(learnerRow.world_theme as WorldThemeId);
-              }
-            }
-          }
-        } catch (err) {
-          console.warn('Supabase profile load notice:', err);
-        }
+    const activeGraph = data.graphs?.find((g) => g.id === data.activeGraphId);
+    if (activeGraph?.learnerProfile) {
+      setLanguage(activeGraph.learnerProfile.language || 'english');
+      setDailyMinutes(activeGraph.learnerProfile.dailyMinutes || 60);
+      setStartingLevel(activeGraph.learnerProfile.startingLevel || 'Complete beginner');
+      setCurrentWorldTheme(activeGraph.learnerProfile.worldTheme || 'cosmos');
+      setLearningMode(activeGraph.learnerProfile.learningMode || 'tutor');
+      if (activeGraph.learnerProfile.avatar_id) {
+        setAvatarId(activeGraph.learnerProfile.avatar_id);
       }
-    };
-
-    loadProfileData();
+    } else if (data.learnerProfile) {
+      setLanguage(data.learnerProfile.language || 'english');
+      setDailyMinutes(data.learnerProfile.dailyMinutes || 60);
+      setStartingLevel(data.learnerProfile.startingLevel || 'Complete beginner');
+      setCurrentWorldTheme(data.learnerProfile.worldTheme || 'cosmos');
+      setLearningMode(data.learnerProfile.learningMode || 'tutor');
+      if (data.learnerProfile.avatar_id) {
+        setAvatarId(data.learnerProfile.avatar_id);
+      }
+    }
   }, []);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
 
     try {
-      const trimmedHandle = handle.trim() || 'Learner';
-      const current = getStoreData();
-      current.handle = trimmedHandle;
-
-      const updatedProfile = {
-        name: trimmedHandle,
+      saveLearnerProfile({
+        name: handle,
         language,
         dailyMinutes,
-        learningMode,
         startingLevel,
         worldTheme: currentWorldTheme,
-      };
-
-      const updatedStore = saveLearnerProfile(updatedProfile);
-      updatedStore.handle = trimmedHandle;
-      saveStoreData(updatedStore);
-      setStoreData(updatedStore);
-
-      if (isSupabaseConfigured && supabase) {
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData?.user?.id;
-
-        if (userId) {
-          await supabase.from('profiles').upsert({
-            id: userId,
-            handle: trimmedHandle,
-            updated_at: new Date().toISOString(),
-          });
-
-          await supabase.from('learner_profile').upsert({
-            user_id: userId,
-            language,
-            daily_minutes: dailyMinutes,
-            learning_mode: learningMode,
-            starting_level: startingLevel,
-            world_theme: currentWorldTheme,
-            updated_at: new Date().toISOString(),
-          });
-        }
-      }
+        learningMode,
+        avatar_id: avatarId,
+      });
 
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
-      setSaveError(err.message || 'Failed to update profile.');
+      setSaveError(err.message || 'Failed to save preferences');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSelectTheme = async (themeId: WorldThemeId) => {
-    setCurrentWorldTheme(themeId);
-    const updatedStore = saveLearnerProfile({ worldTheme: themeId });
-    setStoreData(updatedStore);
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user?.id) {
-          await supabase.from('learner_profile').upsert({
-            user_id: userData.user.id,
-            world_theme: themeId,
-            updated_at: new Date().toISOString(),
-          });
-        }
-      } catch (e) {}
-    }
-
-    setShowThemeModal(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2500);
-  };
-
   const handleSwitchGoal = (graphId: string) => {
-    const updated = switchActiveGraph(graphId);
-    setStoreData(updated);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
+    switchActiveGraph(graphId);
+    setStoreData(getStoreData());
+    router.refresh();
   };
 
   const handleDeleteGoal = (graphId: string) => {
-    if (!storeData) return;
-    const remaining = (storeData.graphs || []).filter((g) => g.id !== graphId);
-    if (remaining.length === 0) return;
-
-    const current = { ...storeData };
-    current.graphs = remaining;
-    if (current.activeGraphId === graphId) {
-      current.activeGraphId = remaining[0].id;
-      current.goalText = remaining[0].goalText;
-      current.concepts = remaining[0].concepts || [];
-      current.quests = remaining[0].quests || [];
-      current.attempts = remaining[0].attempts || [];
+    if (confirm('Are you sure you want to remove this learning pathway?')) {
+      const current = getStoreData();
+      const remaining = (current.graphs || []).filter((g) => g.id !== graphId);
+      const newActive = current.activeGraphId === graphId ? remaining[0]?.id || '' : current.activeGraphId;
+      saveStoreData({
+        ...current,
+        graphs: remaining,
+        activeGraphId: newActive,
+      });
+      setStoreData(getStoreData());
     }
-    saveStoreData(current);
-    setStoreData(current);
   };
 
   const handleResetData = () => {
-    if (window.confirm('Reset all local data to fresh starting state?')) {
+    if (
+      confirm(
+        'WARNING: This will reset all your concept masteries, attempts, and streaks. Are you sure?'
+      )
+    ) {
       clearStoreData();
       router.push('/onboarding');
     }
@@ -221,40 +130,31 @@ export default function ProfilePage() {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.clear();
+    }
     router.push('/login');
   };
 
-  const activeThemeConfig = getThemeConfig(currentWorldTheme);
-  const themeList = Object.values(WORLD_THEMES);
-
   return (
-    <div className="space-y-6 select-none pt-2 max-w-2xl mx-auto pb-24 font-sans">
+    <div className="space-y-6 max-w-3xl mx-auto pb-12">
       {/* Header */}
       <div>
-        <h1 className="font-sans font-black text-2xl text-white tracking-tight">
-          Profile & Settings
-        </h1>
-        <p className="font-sans text-xs text-slate-400 mt-0.5">
-          Manage your account identity, learning style, and active goals.
+        <h1 className="font-sans font-bold text-2xl text-white">Learner Profile & Settings</h1>
+        <p className="font-sans text-xs text-slate-400 mt-1">
+          Customize your cognitive model preferences, instruction dialect, and in-world character.
         </p>
       </div>
 
-      {/* Success Notification */}
       {saveSuccess && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-sans flex items-center justify-between shadow-lg animate-in fade-in">
-          <div className="flex items-center gap-2 font-semibold">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>Profile settings saved successfully!</span>
-          </div>
-          <span className="font-mono text-[10px] uppercase font-bold text-emerald-400">
-            Synced
-          </span>
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-sans text-xs flex items-center gap-2 animate-in fade-in">
+          <Sparkles className="w-4 h-4 text-emerald-400" />
+          <span>Preferences updated successfully!</span>
         </div>
       )}
 
-      {/* Error Notification */}
       {saveError && (
-        <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-sans flex items-center gap-2 shadow-lg animate-in fade-in">
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-sans text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-rose-400" />
           <span>{saveError}</span>
         </div>
@@ -339,6 +239,37 @@ export default function ProfilePage() {
                   }`}
                 >
                   {mode.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Avatar Character Selection */}
+          <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+            <label className="font-mono text-[11px] uppercase font-bold text-slate-400">
+              World Character Avatar
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              {[
+                { id: 'learner', name: 'Explorer', role: 'Curious Pioneer', src: '/world/characters/learner.png' },
+                { id: 'builder', name: 'Artisan', role: 'Master Builder', src: '/world/characters/builder.png' },
+                { id: 'miner', name: 'Miner', role: 'Resource Pioneer', src: '/world/characters/miner.png' },
+                { id: 'trainer', name: 'Tactician', role: 'Arena Combat Coach', src: '/world/characters/trainer.png' },
+                { id: 'mentor', name: 'Scholar', role: 'Academy Guide', src: '/world/characters/mentor.png' },
+              ].map((av) => (
+                <button
+                  key={av.id}
+                  type="button"
+                  onClick={() => setAvatarId(av.id)}
+                  className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                    avatarId === av.id
+                      ? 'bg-indigo-600/30 border-indigo-400 text-white shadow-lg ring-1 ring-indigo-400'
+                      : 'bg-[#090A0F] border-white/[0.12] text-slate-400 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <img src={av.src} alt={av.name} className="w-10 h-10 object-contain drop-shadow" />
+                  <span className="font-sans font-bold text-xs">{av.name}</span>
+                  <span className="font-mono text-[9px] text-slate-400 text-center leading-tight">{av.role}</span>
                 </button>
               ))}
             </div>
