@@ -44,7 +44,7 @@ export const TabBar: React.FC = () => {
           MOBILE BOTTOM TAB BAR (< 1024px) - Clean 5-Destination Bar
           ========================================================================= */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 block lg:hidden border-t border-white/[0.08] bg-[#0D0F18]/95 backdrop-blur-2xl"
+        className="fixed bottom-0 left-0 right-0 z-40 block lg:hidden border-t border-white/[0.07] bg-[#0B0D14]/95 backdrop-blur-2xl"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
@@ -53,7 +53,7 @@ export const TabBar: React.FC = () => {
         <div className="relative h-[60px] flex items-center justify-around px-1 max-w-lg mx-auto">
           {/* Active indicator bar */}
           <div
-            className="absolute top-0 h-[2.5px] w-8 bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-b-full transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-[0_2px_8px_rgba(99,102,241,0.5)]"
+            className="absolute top-0 h-[2px] w-8 bg-indigo-500 rounded-b-full transition-all duration-300 ease-out"
             style={{
               left: `calc(${(activeIndex + 0.5) * 20}% - 16px)`,
             }}
@@ -75,7 +75,7 @@ export const TabBar: React.FC = () => {
                 <div
                   className={`p-1 rounded-xl transition-all ${
                     isActive
-                      ? 'bg-indigo-500/20 text-cyan-300 shadow-xs'
+                      ? 'bg-indigo-500/20 text-white'
                       : 'text-slate-400'
                   }`}
                 >
@@ -97,7 +97,7 @@ export const TabBar: React.FC = () => {
       {/* =========================================================================
           DESKTOP LEFT SIDEBAR (>= 1024px)
           ========================================================================= */}
-      <aside className="hidden lg:flex fixed top-[56px] left-0 bottom-0 w-[240px] z-20 border-r border-white/[0.08] bg-[#0D0F18]/90 backdrop-blur-2xl flex-col p-4 space-y-2">
+      <aside className="hidden lg:flex fixed top-[56px] left-0 bottom-0 w-[240px] z-20 border-r border-white/[0.07] bg-[#0B0D14]/90 backdrop-blur-2xl flex-col p-4 space-y-2">
         <div className="font-mono text-[10px] tracking-wider uppercase text-slate-400 px-3 py-2 font-bold">
           XPEDITION
         </div>
@@ -112,11 +112,11 @@ export const TabBar: React.FC = () => {
               aria-label={item.name}
               className={`h-11 px-3.5 rounded-xl flex items-center gap-3 font-sans text-sm transition-all ${
                 isActive
-                  ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/15 text-white font-semibold border border-indigo-500/30 shadow-[0_4px_16px_-4px_rgba(99,102,241,0.3)]'
+                  ? 'bg-indigo-600/20 text-white font-semibold border border-indigo-500/30'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
               <span>{item.name}</span>
             </Link>
           );

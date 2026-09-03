@@ -70,7 +70,7 @@ export default function LearnPage() {
   if (concepts.length === 0) {
     return (
       <div className="space-y-6 max-w-2xl mx-auto py-8 font-sans select-none text-center">
-        <Card variant="default" className="p-8 space-y-4 bg-[#0D0F18]/90 border-white/[0.08]">
+        <Card variant="default" className="p-8 space-y-4 bg-[#141826]/90 border-white/[0.07]">
           <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-cyan-300">
             <BookOpen className="w-6 h-6" />
           </div>
@@ -196,7 +196,7 @@ export default function LearnPage() {
                     ? 'bg-[#14182E] border-indigo-500/50 shadow-md shadow-indigo-500/10'
                     : isMastered
                     ? 'bg-[#0B101E] border-cyan-500/20'
-                    : 'bg-[#0D0F18]/90 border-white/[0.06] hover:border-white/[0.12]'
+                    : 'bg-[#141826]/90 border-white/[0.06] hover:border-white/[0.1]'
                 }`}
               >
                 {/* Concept Info */}
@@ -207,7 +207,7 @@ export default function LearnPage() {
                         ? 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-400'
                         : isTarget
                         ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300'
-                        : 'bg-white/[0.04] border border-white/[0.08] text-slate-400'
+                        : 'bg-white/[0.04] border border-white/[0.07] text-slate-400'
                     }`}
                   >
                     {isMastered ? <CheckCircle2 className="w-4 h-4 text-cyan-400" /> : index + 1}
@@ -269,7 +269,7 @@ export default function LearnPage() {
             Next For You
           </h3>
 
-          <Card variant="default" className="p-4 sm:p-5 border-white/[0.08] bg-[#0D0F18]/90 flex items-center justify-between flex-wrap gap-3">
+          <Card variant="default" className="p-4 sm:p-5 border-white/[0.07] bg-[#141826]/90 flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-cyan-300 shrink-0">
                 <Zap className="w-4 h-4 text-cyan-400" />
@@ -309,7 +309,7 @@ export default function LearnPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {/* Adaptive Quest */}
           <Link href="/quest" className="block group">
-            <Card variant="default" className="p-3.5 border-white/[0.08] hover:border-cyan-400/30 bg-[#0D0F18]/80 transition-all space-y-1">
+            <Card variant="default" className="p-3.5 border-white/[0.07] hover:border-cyan-400/30 bg-[#141826]/80 transition-all space-y-1">
               <div className="flex items-center justify-between">
                 <Zap className="w-4 h-4 text-cyan-400" />
                 <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-300 transition-colors" />
@@ -321,7 +321,7 @@ export default function LearnPage() {
 
           {/* Solo Challenge */}
           <Link href="/quest?mode=solo" className="block group">
-            <Card variant="default" className="p-3.5 border-white/[0.08] hover:border-indigo-400/30 bg-[#0D0F18]/80 transition-all space-y-1">
+            <Card variant="default" className="p-3.5 border-white/[0.07] hover:border-indigo-400/30 bg-[#141826]/80 transition-all space-y-1">
               <div className="flex items-center justify-between">
                 <Award className="w-4 h-4 text-indigo-400" />
                 <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-300 transition-colors" />
@@ -333,7 +333,7 @@ export default function LearnPage() {
 
           {/* XIRA AI Tutor */}
           <Link href="/xira" className="block group">
-            <Card variant="default" className="p-3.5 border-white/[0.08] hover:border-purple-400/30 bg-[#0D0F18]/80 transition-all space-y-1">
+            <Card variant="default" className="p-3.5 border-white/[0.07] hover:border-purple-400/30 bg-[#141826]/80 transition-all space-y-1">
               <div className="flex items-center justify-between">
                 <Sparkles className="w-4 h-4 text-purple-400" />
                 <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-300 transition-colors" />

@@ -22,27 +22,27 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'relative inline-flex items-center justify-center font-sans font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none rounded-xl';
+    'inline-flex items-center justify-center font-sans font-semibold rounded-xl transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:outline-none cursor-pointer';
 
   const sizeStyles = {
-    sm: 'h-8 px-3 text-xs gap-1.5',
-    md: 'h-10 px-4 text-xs sm:text-sm gap-2',
-    lg: 'h-12 px-5 text-sm sm:text-base gap-2.5',
+    sm: 'h-9 px-3.5 text-xs gap-1.5 min-w-[36px]',
+    md: 'h-11 px-4 text-xs sm:text-sm gap-2 min-w-[44px]',
+    lg: 'h-12 px-5 text-sm gap-2.5 min-w-[48px]',
   };
 
   const variantStyles = {
     primary:
-      'bg-gradient-to-r from-indigo-500 via-purple-600 to-cyan-500 hover:from-indigo-400 hover:via-purple-500 hover:to-cyan-400 text-white shadow-[0_4px_20px_-4px_rgba(99,102,241,0.5)] border border-white/15',
-    accent:
-      'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-[0_4px_16px_-4px_rgba(14,165,233,0.5)] border border-cyan-400/30',
+      'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm hover:shadow-[0_4px_16px_rgba(99,102,241,0.35)] border border-indigo-400/30',
     secondary:
-      'bg-[#181C2E] hover:bg-[#22273B] text-slate-200 border border-white/[0.08] shadow-sm',
+      'bg-[#141826] hover:bg-[#1A1F32] text-slate-200 hover:text-white border border-white/[0.1] shadow-xs',
     outline:
-      'bg-transparent hover:bg-white/[0.05] text-slate-200 border border-white/15 hover:border-white/25',
+      'bg-transparent hover:bg-white/[0.05] text-slate-300 hover:text-white border border-white/[0.12] hover:border-indigo-400/40',
     ghost:
-      'bg-transparent hover:bg-white/[0.06] text-slate-300 hover:text-white',
+      'bg-transparent hover:bg-white/[0.06] text-slate-300 hover:text-white border-transparent',
     danger:
-      'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 shadow-[0_4px_12px_-2px_rgba(244,63,94,0.3)]',
+      'bg-rose-600 hover:bg-rose-500 text-white shadow-xs border border-rose-400/30',
+    accent:
+      'bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold shadow-sm',
   };
 
   return (
@@ -52,12 +52,14 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {isLoading ? (
-        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
       ) : (
-        leftIcon && <span className="shrink-0">{leftIcon}</span>
+        <>
+          {leftIcon && <span className="shrink-0">{leftIcon}</span>}
+          <span>{children}</span>
+          {rightIcon && <span className="shrink-0">{rightIcon}</span>}
+        </>
       )}
-      <span>{children}</span>
-      {!isLoading && rightIcon && <span className="shrink-0">{rightIcon}</span>}
     </button>
   );
 };

@@ -89,7 +89,7 @@ export default function SkillPassportPage() {
       <Card variant="highlight" className="p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 border border-white/[0.12] flex items-center justify-center p-1 shadow-md">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 border border-white/[0.1] flex items-center justify-center p-1 shadow-md">
               <img
                 src={robotImgPath}
                 onError={() => {

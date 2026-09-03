@@ -3,50 +3,90 @@
 @tailwind utilities;
 
 :root {
-  /* Startup-grade Design Tokens */
-  --bg-base: #090A0F;
-  --bg-surface: #121524;
-  --bg-elevated: #181C2E;
-  --bg-overlay: #1F243B;
-  
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-muted: rgba(255, 255, 255, 0.14);
-  --border-active: rgba(99, 102, 241, 0.4);
+  /* =======================================================================
+     XPEDITION DESIGN TOKENS (Nocturne Scholar / Calm Adventure)
+     ======================================================================= */
+  --xp-bg-base: #0B0D14;
+  --xp-bg-subtle: #0F121C;
+  --xp-surface: #141826;
+  --xp-surface-elevated: #1A1F32;
+  --xp-surface-interactive: #20263E;
 
-  --text-primary: #FFFFFF;
-  --text-secondary: #94A3B8;
-  --text-tertiary: #64748B;
+  /* Primary Brand (Soft Indigo-Violet) */
+  --xp-primary: #6366F1;
+  --xp-primary-hover: #4F46E5;
+  --xp-primary-soft: rgba(99, 102, 241, 0.14);
 
-  --accent-primary: #6366F1;
-  --accent-cyan: #0EA5E9;
-  --accent-purple: #8B5CF6;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #F43F5E;
+  /* Secondary (Companion Sky/Cyan) */
+  --xp-secondary: #0EA5E9;
+  --xp-secondary-soft: rgba(14, 165, 233, 0.12);
+
+  /* Semantic Accents */
+  --xp-accent-warm: #F59E0B;
+  --xp-accent-warm-soft: rgba(245, 158, 11, 0.14);
+  --xp-accent-sage: #10B981;
+  --xp-accent-sage-soft: rgba(16, 185, 129, 0.14);
+  --xp-accent-rose: #F43F5E;
+  --xp-accent-rose-soft: rgba(244, 63, 94, 0.14);
+
+  /* Typography Hierarchy */
+  --xp-text-primary: #F8FAFC;
+  --xp-text-secondary: #94A3B8;
+  --xp-text-muted: #64748B;
+
+  /* Border System */
+  --xp-border-subtle: rgba(255, 255, 255, 0.07);
+  --xp-border-medium: rgba(255, 255, 255, 0.12);
+  --xp-border-focus: rgba(99, 102, 241, 0.45);
+
+  /* Shape & Radius Tokens */
+  --xp-radius-card: 1rem;
+  --xp-radius-control: 0.75rem;
+  --xp-radius-pill: 9999px;
+
+  /* Elevation Shadows */
+  --xp-shadow-subtle: 0 4px 20px -4px rgba(0, 0, 0, 0.35);
+  --xp-shadow-elevated: 0 12px 36px -6px rgba(0, 0, 0, 0.5);
 
   /* Legacy variable compatibility */
-  --ink: var(--bg-base);
-  --panel: var(--bg-surface);
-  --raised: var(--bg-elevated);
-  --line: var(--border-subtle);
-  --violet: var(--accent-primary);
-  --violet-hot: var(--accent-purple);
-  --cyan: var(--accent-cyan);
+  --bg-base: var(--xp-bg-base);
+  --bg-surface: var(--xp-surface);
+  --bg-elevated: var(--xp-surface-elevated);
+  --bg-overlay: var(--xp-surface-interactive);
+  --border-subtle: var(--xp-border-subtle);
+  --border-muted: var(--xp-border-medium);
+  --border-active: var(--xp-border-focus);
+  --text-primary: var(--xp-text-primary);
+  --text-secondary: var(--xp-text-secondary);
+  --text-tertiary: var(--xp-text-muted);
+  --accent-primary: var(--xp-primary);
+  --accent-cyan: var(--xp-secondary);
+  --accent-purple: #8B5CF6;
+  --success: var(--xp-accent-sage);
+  --warning: var(--xp-accent-warm);
+  --danger: var(--xp-accent-rose);
+  --ink: var(--xp-bg-base);
+  --panel: var(--xp-surface);
+  --raised: var(--xp-surface-elevated);
+  --line: var(--xp-border-subtle);
+  --violet: var(--xp-primary);
+  --violet-hot: #8B5CF6;
+  --cyan: var(--xp-secondary);
   --magenta: #EC4899;
-  --text: var(--text-primary);
-  --muted: var(--text-secondary);
+  --text: var(--xp-text-primary);
+  --muted: var(--xp-text-secondary);
 }
 
 body {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--xp-bg-base);
+  color: var(--xp-text-primary);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Linear-inspired Soft Gradient Utilities */
+/* Subtle Gradient Utilities */
 .bg-signature-gradient {
   background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #0EA5E9 100%);
 }
@@ -55,94 +95,31 @@ body {
   background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 50%, #38BDF8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
-.text-gradient-accent {
-  background: linear-gradient(135deg, #38BDF8 0%, #818CF8 50%, #C084FC 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Startup-grade Card Glass with Subtle Border */
-.card-glass-neon, .card-startup {
-  position: relative;
-  background: rgba(18, 21, 36, 0.85);
-  backdrop-filter: blur(20px) saturate(1.1);
-  -webkit-backdrop-filter: blur(20px) saturate(1.1);
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 20px 40px -15px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* Subtle background glow effect for hero cards */
-.hero-glow {
-  position: relative;
-}
-.hero-glow::before {
-  content: '';
-  position: absolute;
-  top: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 320px;
-  height: 180px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%);
-  filter: blur(40px);
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* Character & Tutor Animations */
-@keyframes xyraFloatSlow {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-5px); }
-}
-
-.xyra-state-idle, .state-idle {
-  animation: xyraFloatSlow 4s ease-in-out infinite;
-}
-
-.xyra-state-talking, .state-talking {
-  filter: drop-shadow(0 0 16px rgba(14, 165, 233, 0.6));
-  animation: xyraFloatSlow 2s ease-in-out infinite;
-}
-
-/* Custom Scrollbar for sleek UI */
+/* Scrollbar Customization */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #090A0F;
+  background: var(--xp-bg-base);
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #1F243B;
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: rgba(255, 255, 255, 0.2);
 }
 
-/* World Subtle Game Animations */
-@keyframes worldIdleAnim {
-  0%, 100% { transform: translateY(0px) scale(1); }
-  50% { transform: translateY(-2px) scale(1.01); }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-
-@keyframes floatSlowAnim {
-  0%, 100% { transform: translate(0px, 0px); }
-  50% { transform: translate(-3px, -4px); }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-
-.animate-world-idle {
-  animation: worldIdleAnim 3.6s ease-in-out infinite;
-}
-
-.animate-float-slow {
-  animation: floatSlowAnim 5s ease-in-out infinite;
-}
-

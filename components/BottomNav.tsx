@@ -18,7 +18,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 block lg:hidden border-t border-white/[0.08] bg-[#0D0F18]/95 backdrop-blur-2xl select-none"
+      className="fixed bottom-0 left-0 right-0 z-40 block lg:hidden border-t border-white/[0.07] bg-[#0B0D14]/95 backdrop-blur-2xl select-none"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
@@ -43,7 +43,7 @@ export default function BottomNav() {
             >
               <div
                 className={`p-1 rounded-xl transition-all ${
-                  isActive ? 'bg-indigo-500/20 text-cyan-300 shadow-xs' : 'text-slate-400'
+                  isActive ? 'bg-indigo-500/20 text-white' : 'text-slate-400'
                 }`}
               >
                 <Icon className="w-5 h-5" />

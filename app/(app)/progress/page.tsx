@@ -111,7 +111,7 @@ export default function ProgressPage() {
       <section className="space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {/* Level & XP Card */}
-          <Card variant="default" className="p-4 border-white/[0.08] bg-[#0D0F18]/90 space-y-2 col-span-2 sm:col-span-1">
+          <Card variant="default" className="p-4 border-white/[0.07] bg-[#141826]/90 space-y-2 col-span-2 sm:col-span-1">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
                 Current Level
@@ -135,7 +135,7 @@ export default function ProgressPage() {
           </Card>
 
           {/* Learning Streak */}
-          <Card variant="default" className="p-4 border-white/[0.08] bg-[#0D0F18]/90 space-y-2">
+          <Card variant="default" className="p-4 border-white/[0.07] bg-[#141826]/90 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold text-amber-400 uppercase tracking-wider">
                 Learning Streak
@@ -153,7 +153,7 @@ export default function ProgressPage() {
           </Card>
 
           {/* Journey Mastery */}
-          <Card variant="default" className="p-4 border-white/[0.08] bg-[#0D0F18]/90 space-y-2">
+          <Card variant="default" className="p-4 border-white/[0.07] bg-[#141826]/90 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
                 Total Mastery
@@ -190,7 +190,7 @@ export default function ProgressPage() {
           </Badge>
         </div>
 
-        <Card variant="default" className="p-4 sm:p-5 border-white/[0.08] bg-[#0D0F18]/90 space-y-4">
+        <Card variant="default" className="p-4 sm:p-5 border-white/[0.07] bg-[#141826]/90 space-y-4">
           {/* Overall Goal Progress Bar */}
           <div className="space-y-1.5 pb-2 border-b border-white/[0.06]">
             <div className="flex items-center justify-between text-xs">
@@ -238,7 +238,7 @@ export default function ProgressPage() {
                         className={
                           isMastered
                             ? 'w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 bg-cyan-500/15 border border-cyan-500/30 text-cyan-400'
-                            : 'w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 bg-white/[0.04] border border-white/[0.08] text-slate-400'
+                            : 'w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 bg-white/[0.04] border border-white/[0.07] text-slate-400'
                         }
                       >
                         {isMastered ? (
@@ -293,7 +293,7 @@ export default function ProgressPage() {
           Credential & Verification
         </h2>
 
-        <Card variant="default" className="p-4 sm:p-5 border-white/[0.08] bg-[#0D0F18]/90 flex items-center justify-between flex-wrap gap-4">
+        <Card variant="default" className="p-4 sm:p-5 border-white/[0.07] bg-[#141826]/90 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
               <ShieldCheck className="w-5 h-5" />
@@ -327,7 +327,7 @@ export default function ProgressPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Achievements Preview */}
           <Link href="/passport" className="block group">
-            <Card variant="default" className="p-4 border-white/[0.08] hover:border-amber-400/30 bg-[#0D0F18]/80 transition-all space-y-2">
+            <Card variant="default" className="p-4 border-white/[0.07] hover:border-amber-400/30 bg-[#141826]/80 transition-all space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Star className="w-4 h-4 text-amber-400" />
@@ -343,7 +343,7 @@ export default function ProgressPage() {
 
           {/* Activity History */}
           <Link href="/history" className="block group">
-            <Card variant="default" className="p-4 border-white/[0.08] hover:border-indigo-400/30 bg-[#0D0F18]/80 transition-all space-y-2">
+            <Card variant="default" className="p-4 border-white/[0.07] hover:border-indigo-400/30 bg-[#141826]/80 transition-all space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <History className="w-4 h-4 text-indigo-400" />

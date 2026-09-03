@@ -206,7 +206,7 @@ export default function HomePage() {
           3. JOURNEY PROGRESS (Compact Single Strip)
           ========================================================================= */}
       <section>
-        <Card variant="default" className="p-4 sm:p-5 space-y-2.5 bg-[#0D0F18]/90 border-white/[0.08]">
+        <Card variant="default" className="p-4 sm:p-5 space-y-2.5 bg-[#141826]/90 border-white/[0.07]">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2 font-sans font-bold text-white">
               <span className="text-cyan-300">Level {level}</span>
@@ -246,7 +246,7 @@ export default function HomePage() {
 
         <Card
           variant="default"
-          className="p-5 space-y-4 bg-[#0D0F18]/90 border-white/[0.08] hover:border-white/[0.14] transition-all"
+          className="p-5 space-y-4 bg-[#141826]/90 border-white/[0.07] hover:border-white/[0.14] transition-all"
         >
           <div className="space-y-2">
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -309,7 +309,7 @@ export default function HomePage() {
           5. XIRA CONTEXTUAL ENTRY (Secondary Helper)
           ========================================================================= */}
       <section>
-        <Card variant="default" className="p-4 sm:p-5 border-white/[0.08] bg-[#0D0F18]/80 flex items-center justify-between gap-3">
+        <Card variant="default" className="p-4 sm:p-5 border-white/[0.07] bg-[#141826]/80 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-cyan-300 shrink-0">
               <Sparkles className="w-4 h-4" />

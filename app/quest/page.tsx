@@ -440,7 +440,7 @@ function QuestContent() {
   if (showSoloPreScreen && isSoloRequested) {
     return (
       <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-6 select-none font-sans">
-        <div className="max-w-md w-full bg-[#1A1430] border border-violet/40 rounded-[20px] p-8 text-center space-y-6 shadow-2xl">
+        <div className="max-w-md w-full bg-[#141826] border border-violet/40 rounded-[20px] p-8 text-center space-y-6 shadow-2xl">
           <div className="w-12 h-12 rounded-full bg-violet/20 border border-violet flex items-center justify-center text-violet-400 font-mono text-xl mx-auto">
             🛡️
           </div>
@@ -487,9 +487,9 @@ function QuestContent() {
 
   if (isArenaMode) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-to-b from-[#0A071B] via-[#0F0B24] to-[#0A071B] text-text flex flex-col justify-between select-none relative font-sans">
+      <div className="min-h-[100dvh] bg-gradient-to-b from-[#0B0D14] via-[#0B0D14] to-[#0B0D14] text-text flex flex-col justify-between select-none relative font-sans">
         {/* Arena Top Navigation Header */}
-        <header className="h-14 px-4 sm:px-6 bg-[#120E22]/90 backdrop-blur-xl border-b border-white/10 flex items-center justify-between shrink-0">
+        <header className="h-14 px-4 sm:px-6 bg-[#141826]/90 backdrop-blur-xl border-b border-white/10 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <Link href="/world" className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-white">
               <span>&larr;</span>
@@ -539,7 +539,7 @@ function QuestContent() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsArenaMode(true)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] text-[11px] font-mono font-bold hover:bg-[#00F0FF]/20 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#38BDF8]/10 border border-[#38BDF8]/30 text-[#38BDF8] text-[11px] font-mono font-bold hover:bg-[#38BDF8]/20 transition-all"
           >
             <Zap className="w-3 h-3" />
             <span>Arena Mode</span>
@@ -622,20 +622,20 @@ function QuestContent() {
                 const isSelected = selectedOption === idx;
                 const isCorrect = idx === (currentItem.correctIndex ?? currentItem.answerIndex ?? 0);
 
-                let optionStyle = 'bg-[#1A1430]/85 border-white/[0.09] hover:border-cyan text-text';
+                let optionStyle = 'bg-[#141826]/85 border-white/[0.09] hover:border-cyan text-text';
 
                 if (isSubmitted) {
                   if (session.isSolo) {
                     optionStyle = isSelected
                       ? 'bg-violet-600/30 border-violet text-text font-semibold'
-                      : 'bg-[#1A1430]/40 border-transparent text-muted/50';
+                      : 'bg-[#141826]/40 border-transparent text-muted/50';
                   } else {
                     if (isCorrect) {
                       optionStyle = 'bg-success/15 border-success text-success font-semibold';
                     } else if (isSelected) {
                       optionStyle = 'bg-danger/15 border-danger text-danger font-semibold';
                     } else {
-                      optionStyle = 'bg-[#1A1430]/40 border-transparent text-muted/50';
+                      optionStyle = 'bg-[#141826]/40 border-transparent text-muted/50';
                     }
                   }
                 } else if (isSelected) {
@@ -738,13 +738,13 @@ function QuestContent() {
           <button
             type="button"
             onClick={() => setIsAskXyraOpen(true)}
-            className="h-11 px-4 rounded-full bg-[#0D0D1A] border border-[#00F0FF]/50 hover:border-[#00F0FF] text-[#00F0FF] font-mono font-bold text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.35)] hover:scale-105 transition-all cursor-pointer group backdrop-blur-md"
+            className="h-11 px-4 rounded-full bg-[#141826] border border-[#38BDF8]/50 hover:border-[#38BDF8] text-[#38BDF8] font-mono font-bold text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.35)] hover:scale-105 transition-all cursor-pointer group backdrop-blur-md"
           >
-            <div className="w-6 h-6 rounded-full bg-[#00F0FF]/20 border border-[#00F0FF] flex items-center justify-center text-[10px] font-bold text-[#00F0FF] shadow-[0_0_8px_rgba(0,240,255,0.5)]">
+            <div className="w-6 h-6 rounded-full bg-[#38BDF8]/20 border border-[#38BDF8] flex items-center justify-center text-[10px] font-bold text-[#38BDF8] shadow-[0_0_8px_rgba(0,240,255,0.5)]">
               X
             </div>
             <span>Ask XYRA</span>
-            <span className="w-2 h-2 rounded-full bg-[#00FF87] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
           </button>
         </div>
       )}
@@ -752,10 +752,10 @@ function QuestContent() {
       {/* ASK XYRA MODAL */}
       {isAskXyraOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#0D0D1A] border border-[#00F0FF]/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
+          <div className="bg-[#141826] border border-[#38BDF8]/40 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#00F0FF]">
-                <div className="w-5 h-5 rounded-full border border-[#00F0FF] bg-[#00F0FF]/20 text-[#00F0FF] font-mono font-bold text-[9px] flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-2 font-mono text-xs font-bold text-[#38BDF8]">
+                <div className="w-5 h-5 rounded-full border border-[#38BDF8] bg-[#38BDF8]/20 text-[#38BDF8] font-mono font-bold text-[9px] flex items-center justify-center shrink-0">
                   X
                 </div>
                 <span>Ask XYRA</span>
@@ -778,7 +778,7 @@ function QuestContent() {
                   type="button"
                   disabled={xyraLoading}
                   onClick={() => handleAskXyra('explain')}
-                  className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+                  className="w-full p-3 rounded-2xl bg-[#38BDF8]/10 border border-[#38BDF8]/30 text-[#38BDF8] hover:bg-[#38BDF8]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
                 >
                   <span>&ldquo;Explain this&rdquo;</span>
                   <span className="font-mono text-xs">&rarr;</span>
@@ -788,7 +788,7 @@ function QuestContent() {
                   type="button"
                   disabled={xyraLoading}
                   onClick={() => handleAskXyra('hint')}
-                  className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+                  className="w-full p-3 rounded-2xl bg-[#38BDF8]/10 border border-[#38BDF8]/30 text-[#38BDF8] hover:bg-[#38BDF8]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
                 >
                   <span>&ldquo;Give a hint&rdquo;</span>
                   <span className="font-mono text-xs">&rarr;</span>
@@ -798,7 +798,7 @@ function QuestContent() {
                   type="button"
                   disabled={xyraLoading}
                   onClick={() => handleAskXyra('lost')}
-                  className="w-full p-3 rounded-2xl bg-[#00F0FF]/10 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
+                  className="w-full p-3 rounded-2xl bg-[#38BDF8]/10 border border-[#38BDF8]/30 text-[#38BDF8] hover:bg-[#38BDF8]/20 font-semibold text-left transition-all cursor-pointer flex items-center justify-between"
                 >
                   <span>&ldquo;I&apos;m lost&rdquo;</span>
                   <span className="font-mono text-xs">&rarr;</span>
@@ -806,15 +806,15 @@ function QuestContent() {
               </div>
             ) : (
               <div className="space-y-3 animate-fadeIn">
-                <div className="p-3.5 rounded-2xl bg-[#00F0FF]/15 border border-[#00F0FF]/40 text-slate-100 text-xs font-sans space-y-2">
-                  <div className="flex items-center justify-between border-b border-[#00F0FF]/20 pb-1.5">
-                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#00F0FF] font-bold">
+                <div className="p-3.5 rounded-2xl bg-[#38BDF8]/15 border border-[#38BDF8]/40 text-slate-100 text-xs font-sans space-y-2">
+                  <div className="flex items-center justify-between border-b border-[#38BDF8]/20 pb-1.5">
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#38BDF8] font-bold">
                       <span>XYRA says:</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleSpeakXyra(xyraResponse)}
-                      className="text-[10px] font-mono text-[#00F0FF] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-[10px] font-mono text-[#38BDF8] hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Volume2 className="w-3.5 h-3.5" />
                       <span>{isSpeaking ? 'Speaking...' : 'Read Aloud'}</span>
@@ -837,7 +837,7 @@ function QuestContent() {
                       setIsAskXyraOpen(false);
                       setXyraResponse(null);
                     }}
-                    className="px-4 py-1.5 rounded-xl bg-[#00F0FF] text-black font-bold hover:brightness-110 cursor-pointer transition-all"
+                    className="px-4 py-1.5 rounded-xl bg-[#38BDF8] text-black font-bold hover:brightness-110 cursor-pointer transition-all"
                   >
                     Got it
                   </button>

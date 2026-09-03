@@ -267,7 +267,7 @@ export default function XiraPage() {
       {/* =========================================================================
           2. CONTEXT CARD (Reliable Existing Data)
           ========================================================================= */}
-      <Card variant="default" className="p-3.5 sm:p-4 border-white/[0.08] bg-[#0D0F18]/90 shrink-0">
+      <Card variant="default" className="p-3.5 sm:p-4 border-white/[0.07] bg-[#141826]/90 shrink-0">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="min-w-0 space-y-0.5">
             <div className="font-mono text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -309,7 +309,7 @@ export default function XiraPage() {
             type="button"
             onClick={() => handleSendMessage(action.prompt)}
             disabled={isLoading}
-            className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:border-cyan-400/40 hover:bg-white/[0.08] text-slate-300 hover:text-white whitespace-nowrap transition-all text-xs font-sans disabled:opacity-50 disabled:pointer-events-none"
+            className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.07] hover:border-cyan-400/40 hover:bg-white/[0.08] text-slate-300 hover:text-white whitespace-nowrap transition-all text-xs font-sans disabled:opacity-50 disabled:pointer-events-none"
           >
             {action.label}
           </button>
@@ -321,7 +321,7 @@ export default function XiraPage() {
           ========================================================================= */}
       <Card
         variant="default"
-        className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-3 min-h-[320px] max-h-[520px] bg-[#090A0F]/90 border-white/[0.08] flex flex-col justify-between"
+        className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-3 min-h-[320px] max-h-[520px] bg-[#0F121C]/90 border-white/[0.07] flex flex-col justify-between"
       >
         {messages.length === 0 ? (
           /* =====================================================================
@@ -385,7 +385,7 @@ export default function XiraPage() {
                   <div
                     className={`p-3 sm:p-3.5 rounded-2xl max-w-[88%] sm:max-w-[78%] space-y-2 text-xs sm:text-sm leading-relaxed ${
                       isXira
-                        ? 'bg-[#151928] border border-white/[0.08] text-slate-200'
+                        ? 'bg-[#1A1F32] border border-white/[0.07] text-slate-200'
                         : 'bg-indigo-600 text-white rounded-br-xs'
                     }`}
                   >
@@ -458,7 +458,7 @@ export default function XiraPage() {
               ? `Ask about ${activeConceptName}...`
               : `Ask XIRA about ${goalTitle}...`
           }
-          className="flex-1 h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl bg-[#0D0F18] border border-white/[0.12] text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans"
+          className="flex-1 h-11 sm:h-12 px-3.5 sm:px-4 rounded-xl bg-[#141826] border border-white/[0.1] text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans"
         />
         <Button
           type="submit"

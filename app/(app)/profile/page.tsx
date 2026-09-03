@@ -169,7 +169,7 @@ export default function ProfilePage() {
       {/* =========================================================================
           1. PROFILE HEADER (Identity & Active Learning Goal)
           ========================================================================= */}
-      <div className="flex items-center gap-4 p-5 rounded-2xl bg-[#0D0F18]/90 border border-white/[0.08]">
+      <div className="flex items-center gap-4 p-5 rounded-2xl bg-[#141826]/90 border border-white/[0.07]">
         <div className="w-16 h-16 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center p-1.5 shrink-0">
           <img
             src={activeAvatar.src}
@@ -210,7 +210,7 @@ export default function ProfilePage() {
       {/* =========================================================================
           2. LEARNING PREFERENCES (Form)
           ========================================================================= */}
-      <Card variant="default" className="p-5 sm:p-6 border-white/[0.08] bg-[#0D0F18]/90 space-y-5">
+      <Card variant="default" className="p-5 sm:p-6 border-white/[0.07] bg-[#141826]/90 space-y-5">
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2">
             <Settings className="w-4 h-4 text-indigo-400" />
@@ -230,7 +230,7 @@ export default function ProfilePage() {
                 value={handle}
                 onChange={(e) => setHandle(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full h-11 px-3.5 rounded-xl bg-[#090A0F] border border-white/[0.12] text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-sans"
+                className="w-full h-11 px-3.5 rounded-xl bg-[#0F121C] border border-white/[0.1] text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-sans"
               />
             </div>
 
@@ -242,7 +242,7 @@ export default function ProfilePage() {
                 id="learning-language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as any)}
-                className="w-full h-11 px-3.5 rounded-xl bg-[#090A0F] border border-white/[0.12] text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-sans cursor-pointer"
+                className="w-full h-11 px-3.5 rounded-xl bg-[#0F121C] border border-white/[0.1] text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-sans cursor-pointer"
               >
                 <option value="english">English (Global)</option>
                 <option value="tanglish">Tanglish (Conversational)</option>
@@ -258,7 +258,7 @@ export default function ProfilePage() {
                 id="daily-study-target"
                 value={dailyMinutes}
                 onChange={(e) => setDailyMinutes(Number(e.target.value))}
-                className="w-full h-11 px-3.5 rounded-xl bg-[#090A0F] border border-white/[0.12] text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-sans cursor-pointer"
+                className="w-full h-11 px-3.5 rounded-xl bg-[#0F121C] border border-white/[0.1] text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-sans cursor-pointer"
               >
                 <option value={15}>15 Minutes / Day</option>
                 <option value={30}>30 Minutes / Day</option>
@@ -284,7 +284,7 @@ export default function ProfilePage() {
                     className={
                       learningMode === mode.id
                         ? 'h-11 rounded-xl border font-sans text-xs font-semibold transition-all cursor-pointer bg-indigo-600 text-white border-indigo-400 shadow-sm'
-                        : 'h-11 rounded-xl border font-sans text-xs font-semibold transition-all cursor-pointer bg-[#090A0F] border-white/[0.12] text-slate-400 hover:text-white'
+                        : 'h-11 rounded-xl border font-sans text-xs font-semibold transition-all cursor-pointer bg-[#0F121C] border-white/[0.1] text-slate-400 hover:text-white'
                     }
                   >
                     {mode.label}
@@ -308,7 +308,7 @@ export default function ProfilePage() {
                   className={
                     avatarId === av.id
                       ? 'p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all cursor-pointer bg-indigo-600/30 border-indigo-400 text-white shadow-lg ring-1 ring-indigo-400'
-                      : 'p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all cursor-pointer bg-[#090A0F] border-white/[0.12] text-slate-400 hover:text-white hover:border-white/20'
+                      : 'p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all cursor-pointer bg-[#0F121C] border-white/[0.1] text-slate-400 hover:text-white hover:border-white/20'
                   }
                 >
                   <img src={av.src} alt={av.name} className="w-10 h-10 object-contain drop-shadow" />
@@ -336,7 +336,7 @@ export default function ProfilePage() {
       {/* =========================================================================
           3. LEARNING PATHWAYS (Path Management)
           ========================================================================= */}
-      <Card variant="default" className="p-5 sm:p-6 border-white/[0.08] bg-[#0D0F18]/90 space-y-4">
+      <Card variant="default" className="p-5 sm:p-6 border-white/[0.07] bg-[#141826]/90 space-y-4">
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-cyan-400" />
@@ -358,7 +358,7 @@ export default function ProfilePage() {
                 className={
                   isActive
                     ? 'p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all bg-[#181C2E] border-indigo-500/40 text-white'
-                    : 'p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all bg-[#090A0F] border-white/[0.06] text-slate-400'
+                    : 'p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all bg-[#0F121C] border-white/[0.06] text-slate-400'
                 }
               >
                 <div className="min-w-0 flex-1">
@@ -408,7 +408,7 @@ export default function ProfilePage() {
       {/* =========================================================================
           4. APP SETTINGS & LEGAL
           ========================================================================= */}
-      <Card variant="default" className="p-5 sm:p-6 border-white/[0.08] bg-[#0D0F18]/90 space-y-3">
+      <Card variant="default" className="p-5 sm:p-6 border-white/[0.07] bg-[#141826]/90 space-y-3">
         <h2 className="font-sans font-bold text-sm text-white">App & Legal</h2>
         <div className="divide-y divide-white/[0.06]">
           <Link href="/terms" className="py-2.5 flex items-center justify-between group">
@@ -424,7 +424,7 @@ export default function ProfilePage() {
       {/* =========================================================================
           5. ACCOUNT ACTIONS & SIGN OUT
           ========================================================================= */}
-      <Card variant="default" className="p-5 sm:p-6 border-rose-500/20 bg-[#0D0F18]/90 space-y-4">
+      <Card variant="default" className="p-5 sm:p-6 border-rose-500/20 bg-[#141826]/90 space-y-4">
         <h2 className="font-sans font-bold text-sm text-rose-400">Account Actions</h2>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <Button type="button" variant="danger" size="sm" onClick={handleResetData}>

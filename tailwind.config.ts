@@ -9,6 +9,48 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        xp: {
+          bg: {
+            DEFAULT: 'var(--xp-bg-base)',
+            subtle: 'var(--xp-bg-subtle)',
+          },
+          surface: {
+            DEFAULT: 'var(--xp-surface)',
+            elevated: 'var(--xp-surface-elevated)',
+            interactive: 'var(--xp-surface-interactive)',
+          },
+          primary: {
+            DEFAULT: 'var(--xp-primary)',
+            hover: 'var(--xp-primary-hover)',
+            soft: 'var(--xp-primary-soft)',
+          },
+          secondary: {
+            DEFAULT: 'var(--xp-secondary)',
+            soft: 'var(--xp-secondary-soft)',
+          },
+          warm: {
+            DEFAULT: 'var(--xp-accent-warm)',
+            soft: 'var(--xp-accent-warm-soft)',
+          },
+          sage: {
+            DEFAULT: 'var(--xp-accent-sage)',
+            soft: 'var(--xp-accent-sage-soft)',
+          },
+          rose: {
+            DEFAULT: 'var(--xp-accent-rose)',
+            soft: 'var(--xp-accent-rose-soft)',
+          },
+          text: {
+            primary: 'var(--xp-text-primary)',
+            secondary: 'var(--xp-text-secondary)',
+            muted: 'var(--xp-text-muted)',
+          },
+          border: {
+            subtle: 'var(--xp-border-subtle)',
+            medium: 'var(--xp-border-medium)',
+            focus: 'var(--xp-border-focus)',
+          },
+        },
         ink: 'var(--ink)',
         panel: 'var(--panel)',
         raised: 'var(--raised)',
