@@ -1,72 +1,38 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getStoreData, calculateStreak, selectNextTarget, UserStoreData } from '@/lib/store';
 import { thetaToPercent } from '@/lib/engine/mastery';
-import XyraGreetingWidget from '@/components/XyraGreetingWidget';
 import { Card, Button, Badge, ProgressBar } from '@/components/ui';
 import {
-  Send,
-  Volume2,
-  VolumeX,
   Sparkles,
-  RefreshCw,
+  Zap,
+  Flame,
   ArrowRight,
   BookOpen,
-  Target,
-  Flame,
+  HelpCircle,
+  Clock,
+  TrendingUp,
+  RotateCcw,
   CheckCircle2,
-  AlertTriangle,
-  Zap,
 } from 'lucide-react';
-
-interface ChatExchange {
-  id: string;
-  query: string;
-  reply: string;
-  timestamp: number;
-}
 
 export default function HomePage() {
   const router = useRouter();
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
-    const [robotImgPath, setRobotImgPath] = useState<string>('/robot.png');
-
-  // Inline Ask XYRA State
-  const [inlineInput, setInlineInput] = useState<string>('');
-  const [chatExchanges, setChatExchanges] = useState<ChatExchange[]>([]);
-  const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
-  const [homeChatCount, setHomeChatCount] = useState<number>(0);
-  const [speakingExchangeId, setSpeakingExchangeId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setStoreData(getStoreData());
-
-    if (typeof window !== "undefined") {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const savedDate = localStorage.getItem("xyra_home_chat_date");
-      const savedCount = parseInt(localStorage.getItem("xyra_home_chat_count") || "0", 10);
-
-      if (savedDate === todayStr) {
-        setHomeChatCount(savedCount);
-      } else {
-        localStorage.setItem("xyra_home_chat_date", todayStr);
-        localStorage.setItem("xyra_home_chat_count", "0");
-        setHomeChatCount(0);
-      }
-    }
   }, []);
 
-  const streak = storeData ? calculateStreak(storeData.attempts) : 0;
-  const fadingConcepts = storeData ? storeData.concepts.filter((c) => c.retentionRisk > 0.35) : [];
-  const hasSkillGraph = storeData ? storeData.concepts.length > 0 : false;
-  const target = storeData ? selectNextTarget(storeData) : null;
+  const streak = useMemo(() => (storeData ? calculateStreak(storeData.attempts) : 0), [storeData]);
+  const target = useMemo(() => (storeData ? selectNextTarget(storeData) : null), [storeData]);
 
+  // Background lesson pre-fetch for the target concept to eliminate cold LLM latency
   useEffect(() => {
-    if (storeData && target?.conceptId) {
+    if (storeData && target?.conceptId && target.conceptId !== 'default') {
       const cacheKey = `xyra_lesson_${target.conceptId}`;
       if (typeof window !== 'undefined' && !sessionStorage.getItem(cacheKey)) {
         fetch('/api/lesson', {
@@ -93,446 +59,261 @@ export default function HomePage() {
     }
   }, [storeData?.activeGraphId, target?.conceptId]);
 
-  if (!storeData || !target) {
+  // Time-based greeting
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
+
+  // Compute clean Level & XP metrics
+  const { level, xp, progressToNextLevel, levelProgressPercent } = useMemo(() => {
+    if (!storeData) return { level: 1, xp: 0, progressToNextLevel: 300, levelProgressPercent: 0 };
+    const correctCount = (storeData.attempts || []).filter((a) => a.isCorrect && !a.isVoid).length;
+    const totalAttempts = (storeData.attempts || []).filter((a) => !a.isVoid).length;
+    const masteredCount = (storeData.concepts || []).filter(
+      (c) => (c.thetaSolo !== undefined ? thetaToPercent(c.thetaSolo) : c.masteryPercentage || 0) >= 80
+    ).length;
+
+    const totalXp = correctCount * 25 + totalAttempts * 10 + masteredCount * 100;
+    const lvl = Math.floor(totalXp / 300) + 1;
+    const xpInLevel = totalXp % 300;
+    const pct = Math.min(100, Math.round((xpInLevel / 300) * 100));
+
+    return {
+      level: lvl,
+      xp: totalXp,
+      progressToNextLevel: 300 - xpInLevel,
+      levelProgressPercent: pct,
+    };
+  }, [storeData]);
+
+  // Most relevant 1-3 active learning concepts (excluding full curriculum which lives in /learn)
+  const continueItems = useMemo(() => {
+    if (!storeData || !storeData.concepts) return [];
+    // Prioritize concepts in progress, then fading concepts, then unstarted
+    const sorted = [...storeData.concepts].sort((a, b) => {
+      const aMastery = a.thetaSolo !== undefined ? thetaToPercent(a.thetaSolo) : a.masteryPercentage || 0;
+      const bMastery = b.thetaSolo !== undefined ? thetaToPercent(b.thetaSolo) : b.masteryPercentage || 0;
+
+      // Fading priority
+      if (a.retentionRisk > 0.35 && b.retentionRisk <= 0.35) return -1;
+      if (b.retentionRisk > 0.35 && a.retentionRisk <= 0.35) return 1;
+
+      // In-progress (1-79%) priority
+      const aInProgress = aMastery > 0 && aMastery < 80;
+      const bInProgress = bMastery > 0 && bMastery < 80;
+      if (aInProgress && !bInProgress) return -1;
+      if (bInProgress && !aInProgress) return 1;
+
+      return aMastery - bMastery;
+    });
+
+    return sorted.slice(0, 3);
+  }, [storeData]);
+
+  if (!storeData) {
     return (
       <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400 font-mono text-xs animate-pulse">
         <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <span>Loading Xpedition Dashboard...</span>
+        <span>Loading your learning path...</span>
       </div>
     );
   }
 
-  const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = '';
-      audioRef.current = null;
-    }
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    setSpeakingExchangeId(null);
-  };
+  // Friendly contextual reason for recommendation
+  const recommendationReason = target?.inProgress
+    ? 'Resume your adaptive quest in progress'
+    : target?.hasAttempts && (target?.masteryPercentage || 0) < 50
+    ? 'Reinforce fundamentals to build confidence'
+    : target?.hasAttempts
+    ? 'Solidify and level up your mastery'
+    : 'Next foundational milestone in your learning path';
 
-  const handleSpeakInlineText = async (exchangeId: string, text: string) => {
-    if (speakingExchangeId === exchangeId) {
-      stopAudio();
-      return;
-    }
+  const goalTitle = storeData.goalText || 'Your Personalized Learning Path';
+  const learnerName = storeData.handle || 'Explorer';
 
-    stopAudio();
-    setSpeakingExchangeId(exchangeId);
-
-    try {
-      const res = await fetch('/api/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text,
-          language: storeData?.learnerProfile?.language || 'english',
-          speaker: 'ratan',
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.audioBase64) {
-          const audio = new Audio(`data:audio/wav;base64,${data.audioBase64}`);
-          audioRef.current = audio;
-          audio.onended = () => setSpeakingExchangeId(null);
-          audio.onerror = () => playBrowserFallback(text);
-          audio.play().catch(() => playBrowserFallback(text));
-          return;
-        }
-      }
-    } catch (e) {}
-
-    playBrowserFallback(text);
-  };
-
-  const playBrowserFallback = (text: string) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-      utterance.onend = () => setSpeakingExchangeId(null);
-      utterance.onerror = () => setSpeakingExchangeId(null);
-      window.speechSynthesis.speak(utterance);
-    } else {
-      setSpeakingExchangeId(null);
-    }
-  };
-
-  const handleSendHomeChat = async (queryText: string) => {
-    const trimmed = queryText.trim();
-    if (!trimmed || isChatLoading || homeChatCount >= 5) return;
-
-    setIsChatLoading(true);
-    setInlineInput('');
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: trimmed,
-          context: {
-            scope: 'home',
-            name: storeData.handle,
-            goal: storeData.goalText,
-            concepts: storeData.concepts,
-            fadingConcepts: fadingConcepts,
-            language: storeData?.learnerProfile?.language || 'english',
-          },
-        }),
-      });
-
-      let reply = `Keep moving forward on ${storeData.goalText}! Would you like to practice your next topic?`;
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.reply) reply = data.reply;
-      }
-
-      const newExchange: ChatExchange = {
-        id: `exch_${Date.now()}`,
-        query: trimmed,
-        reply,
-        timestamp: Date.now(),
-      };
-
-      setChatExchanges((prev) => [...prev, newExchange]);
-
-      const nextCount = homeChatCount + 1;
-      setHomeChatCount(nextCount);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('xyra_home_chat_count', String(nextCount));
-      }
-
-      handleSpeakInlineText(newExchange.id, reply);
-    } catch (err) {
-      const fallbackExchange: ChatExchange = {
-        id: `exch_${Date.now()}`,
-        query: trimmed,
-        reply: `You are making steady progress toward ${storeData.goalText}. Let's continue with ${target.conceptName}!`,
-        timestamp: Date.now(),
-      };
-      setChatExchanges((prev) => [...prev, fallbackExchange]);
-    } finally {
-      setIsChatLoading(false);
-    }
-  };
-
-  const attemptConceptIds = new Set((storeData.attempts || []).map((a) => a.conceptId));
-
-  const learningMode = storeData.learnerProfile?.learningMode || 'tutor';
-  const showLessonFirst = !target.hasAttempts && !target.inProgress;
-  const lessonPath = learningMode === 'read' ? '/learn' : '/tutor';
-
-  const continueHref = showLessonFirst
-    ? `${lessonPath}/${encodeURIComponent(target.conceptId)}`
-    : `/quest?concept=${encodeURIComponent(target.conceptId)}`;
-
-  const realConceptName =
-    target.conceptName && target.conceptName !== 'Core Concept'
-      ? target.conceptName
-      : storeData.concepts?.[0]?.name || storeData.goalText || 'Active Topic';
-
-  
   return (
-    <div className="space-y-6 select-none relative pb-16 font-sans">
-      {/* 1. XYRA AI COACH & GREETING */}
-      <section className="pt-1">
-        <XyraGreetingWidget
-          storeData={storeData}
-          continueHref={continueHref}
-          continueLabel={`Continue: ${realConceptName}`}
-          fadingConcepts={fadingConcepts}
-          streak={streak}
-        />
+    <div className="space-y-6 max-w-2xl mx-auto pb-16 font-sans select-none">
+      {/* =========================================================================
+          1. HEADER / GREETING
+          ========================================================================= */}
+      <section className="space-y-1 pt-1">
+        <h1 className="font-sans font-bold text-xl sm:text-2xl text-white flex items-center gap-2">
+          <span>{greeting}, {learnerName}</span>
+          <span className="text-xl">👋</span>
+        </h1>
+        <p className="font-sans text-xs sm:text-sm text-slate-400">
+          Your journey toward mastering <span className="text-cyan-300 font-medium">{goalTitle}</span>
+        </p>
       </section>
 
-      {/* 2. INLINE AI TUTOR CHAT */}
-      <Card variant="default" className="p-4 sm:p-5 space-y-3.5">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center p-0.5 shadow-xs">
-              <img
-                src={robotImgPath}
-                onError={() => {
-                  if (robotImgPath === '/robot.png') setRobotImgPath('/images/robot.png');
-                }}
-                alt="XYRA"
-                className="w-5 h-5 object-contain"
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 font-sans font-bold text-xs text-white">
-                <span>XYRA AI Coach</span>
-                <Badge variant="cyan" size="sm">
-                  Active
-                </Badge>
-              </div>
-              <span className="font-sans text-[11px] text-slate-400">
-                Ask anything about your curriculum or study plan
-              </span>
-            </div>
-          </div>
-
-          <span className="font-mono text-[10px] text-slate-400 bg-white/[0.05] border border-white/[0.08] px-2 py-0.5 rounded-full">
-            {homeChatCount}/5 Today
-          </span>
-        </div>
-
-        {/* Quick Suggestion Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
-          {[
-            { label: 'My weakest concept?', query: 'Which concept am I weakest at?' },
-            { label: 'What to study next?', query: 'What should I study next?' },
-            { label: 'How is my pace?', query: 'How is my overall learning progress and pace?' },
-          ].map((item, idx) => (
-            <button
-              key={idx}
-              type="button"
-              disabled={homeChatCount >= 5 || isChatLoading}
-              onClick={() => handleSendHomeChat(item.query)}
-              className="px-3 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-cyan-300 text-xs font-sans font-medium whitespace-nowrap transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-            >
-              ✨ {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Chat Exchanges */}
-        {chatExchanges.length > 0 && (
-          <div className="space-y-2.5 pt-2 border-t border-white/[0.06]">
-            {chatExchanges.slice(-2).map((item) => (
-              <div key={item.id} className="space-y-2 animate-in fade-in duration-200">
-                <div className="flex justify-end">
-                  <div className="max-w-[85%] px-3.5 py-2 rounded-2xl bg-indigo-600 text-white font-medium text-xs leading-snug rounded-tr-none shadow-md">
-                    {item.query}
-                  </div>
-                </div>
-
-                <div className="flex justify-start items-start gap-2">
-                  <div className="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-[10px] font-bold text-cyan-300 shrink-0 mt-0.5">
-                    X
-                  </div>
-                  <div className="max-w-[85%] p-3 rounded-2xl bg-[#181C2E] border border-white/[0.08] text-slate-200 text-xs leading-relaxed rounded-tl-none space-y-2 shadow-sm">
-                    <p>{item.reply}</p>
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1.5 border-t border-white/[0.06]">
-                      <button
-                        type="button"
-                        onClick={() => handleSpeakInlineText(item.id, item.reply)}
-                        className="text-cyan-400 hover:underline flex items-center gap-1 font-bold cursor-pointer"
-                      >
-                        {speakingExchangeId === item.id ? (
-                          <VolumeX className="w-3 h-3 text-rose-400" />
-                        ) : (
-                          <Volume2 className="w-3 h-3" />
-                        )}
-                        <span>{speakingExchangeId === item.id ? 'Stop' : 'Read Aloud'}</span>
-                      </button>
-                      <span>XYRA</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {isChatLoading && (
-          <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono py-1">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            <span>XYRA is analyzing your syllabus...</span>
-          </div>
-        )}
-
-        {/* Input form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendHomeChat(inlineInput);
-          }}
-          className="flex items-center gap-2 pt-1"
+      {/* =========================================================================
+          2. YOUR NEXT BEST MOVE (The Dominant Primary Action)
+          ========================================================================= */}
+      <section>
+        <Card
+          variant="highlight"
+          className="p-5 sm:p-6 space-y-4 border-indigo-500/40 bg-gradient-to-br from-[#121528] to-[#0A0D18] shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
         >
-          <input
-            type="text"
-            disabled={homeChatCount >= 5 || isChatLoading}
-            value={inlineInput}
-            onChange={(e) => setInlineInput(e.target.value)}
-            placeholder={
-              homeChatCount >= 5
-                ? 'Daily message limit reached (5/5).'
-                : 'Ask XYRA anything about your goal or topics...'
-            }
-            className="flex-1 h-10 px-3.5 rounded-xl bg-[#090A0F] border border-white/[0.12] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all disabled:opacity-40"
-          />
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            disabled={!inlineInput.trim() || homeChatCount >= 5 || isChatLoading}
-            rightIcon={<Send className="w-3.5 h-3.5" />}
-          >
-            Send
-          </Button>
-        </form>
-      </Card>
+          {/* Top Meta Line */}
+          <div className="flex items-center justify-between">
+            <Badge variant="cyan" size="sm" className="font-mono tracking-wider">
+              YOUR NEXT BEST MOVE
+            </Badge>
+            <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <span>~10 min</span>
+            </div>
+          </div>
 
-      {/* 3. HERO ADAPTIVE CONTINUE CARD */}
-      <section className="sticky top-0 z-20 pt-1 -mt-1 bg-[#090A0F]/90 backdrop-blur-md rounded-2xl">
-        <Card variant="highlight" className="p-5 sm:p-6 space-y-4">
-          {hasSkillGraph ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="indigo" size="sm">
-                    Recommended Next
-                  </Badge>
-                  <span className="font-mono text-xs text-slate-400">
-                    {target.inProgress ? 'In Progress' : 'Ready to Start'}
-                  </span>
-                </div>
-                <Badge variant="cyan" size="sm">
-                  {target.masteryPercentage}% Mastery
-                </Badge>
+          {/* Activity Identity */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-cyan-300 shrink-0 shadow-sm">
+                <Zap className="w-5 h-5 text-cyan-400" />
               </div>
-
-              <div>
-                <h2 className="font-sans font-black text-xl sm:text-2xl text-white tracking-tight">
-                  {realConceptName}
+              <div className="min-w-0 flex-1">
+                <h2 className="font-sans font-bold text-lg sm:text-xl text-white truncate">
+                  {target?.conceptName || 'Foundational Principles'}
                 </h2>
-                <p className="font-sans text-xs text-slate-300 mt-1">
-                  Goal: {storeData.goalText}
-                </p>
-              </div>
-
-              <ProgressBar
-                value={
-                  target.inProgress
-                    ? Math.round((target.currentIndex / target.totalLength) * 100)
-                    : target.masteryPercentage
-                }
-                variant="indigo"
-                size="md"
-                label="Module Progress"
-              />
-
-              <div className="pt-1">
-                <Link href={continueHref} className="block">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    className="w-full shadow-[0_8px_25px_-6px_rgba(99,102,241,0.5)]"
-                    rightIcon={<ArrowRight className="w-4 h-4" />}
-                  >
-                    Continue Learning
-                  </Button>
-                </Link>
+                <span className="font-mono text-xs text-indigo-300 font-medium">
+                  Adaptive Quest
+                </span>
               </div>
             </div>
-          ) : (
-            <div className="py-6 text-center space-y-3">
-              <h2 className="font-sans font-bold text-lg text-white">No active learning graph</h2>
-              <p className="font-sans text-xs text-slate-400">
-                Set up your target topic or syllabus to build your personal curriculum.
-              </p>
-              <Link href="/onboarding" className="inline-block">
-                <Button variant="primary" size="md" rightIcon={<ArrowRight className="w-4 h-4" />}>
-                  Start Onboarding
-                </Button>
-              </Link>
-            </div>
-          )}
+
+            {/* Contextual Reason */}
+            <p className="font-sans text-xs sm:text-sm text-slate-300 leading-relaxed pt-1">
+              {recommendationReason}
+            </p>
+          </div>
+
+          {/* Primary Action Button */}
+          <div className="pt-1">
+            <Link href="/quest" className="block w-full">
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full text-sm font-bold shadow-lg shadow-indigo-600/30"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Start Quest
+              </Button>
+            </Link>
+          </div>
         </Card>
       </section>
 
-      {/* 4. CURRICULUM ROADMAP BREAKDOWN */}
-      <Card variant="default" className="p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-          <div>
-            <h3 className="font-sans font-bold text-sm text-white">Curriculum Roadmap</h3>
-            <p className="font-mono text-[11px] text-slate-400">
-              {storeData.concepts.length} Structured Concepts • {storeData.goalText}
-            </p>
+      {/* =========================================================================
+          3. JOURNEY PROGRESS (Compact Single Strip)
+          ========================================================================= */}
+      <section>
+        <Card variant="default" className="p-4 sm:p-5 space-y-2.5 bg-[#0D0F18]/90 border-white/[0.08]">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 font-sans font-bold text-white">
+              <span className="text-cyan-300">Level {level}</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-slate-300 font-mono text-[11px]">{xp.toLocaleString()} XP</span>
+            </div>
+
+            {streak > 0 ? (
+              <div className="flex items-center gap-1 font-mono text-[11px] font-bold text-amber-300">
+                <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <span>{streak} day streak</span>
+              </div>
+            ) : (
+              <span className="font-mono text-[10px] text-slate-400">
+                {progressToNextLevel} XP to Level {level + 1}
+              </span>
+            )}
           </div>
-          <Badge variant="default" size="sm">
-            {storeData.attempts?.length || 0} Solved
-          </Badge>
-        </div>
 
-        <div className="space-y-2.5">
-          {storeData.concepts.map((concept, index) => {
-            const hasAtt = attemptConceptIds.has(concept.id);
-            const isFading = concept.retentionRisk > 0.35;
+          <ProgressBar value={levelProgressPercent} max={100} variant="cyan" size="sm" />
+        </Card>
+      </section>
 
-            const conceptHref = !hasAtt
-              ? `${lessonPath}/${encodeURIComponent(concept.id)}`
-              : `/quest?concept=${encodeURIComponent(concept.id)}`;
+      {/* =========================================================================
+          4. CONTINUE LEARNING (1-3 Active Items)
+          ========================================================================= */}
+      {continueItems.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="font-mono text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Continue Learning
+            </h3>
+            <Link href="/learn" className="font-mono text-[11px] text-cyan-400 hover:underline flex items-center gap-1">
+              <span>View All</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
 
-            const assistedPct =
-              concept.thetaAssisted !== undefined
-                ? thetaToPercent(concept.thetaAssisted)
-                : concept.masteryPercentage;
+          <div className="space-y-2">
+            {continueItems.map((item) => {
+              const mastery = item.thetaSolo !== undefined ? thetaToPercent(item.thetaSolo) : item.masteryPercentage || 0;
+              const isFading = item.retentionRisk > 0.35;
 
-            return (
-              <Link
-                key={concept.id}
-                href={conceptHref}
-                className="p-3.5 rounded-xl bg-[#181C2E]/80 border border-white/[0.06] hover:border-indigo-500/40 hover:bg-[#181C2E] flex items-center justify-between gap-3 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center font-mono text-xs font-bold text-slate-400 group-hover:text-cyan-300 transition-colors shrink-0">
-                    {index + 1}
-                  </div>
-
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-sans text-sm text-white font-semibold group-hover:text-cyan-300 transition-colors truncate">
-                        {concept.name}
+              return (
+                <div
+                  key={item.id}
+                  className="p-3 sm:p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.12] transition-all flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-sans font-semibold text-xs sm:text-sm text-white truncate">
+                        {item.name}
                       </span>
-                      {!hasAtt && (
-                        <Badge variant="indigo" size="sm">
-                          New
-                        </Badge>
-                      )}
                       {isFading && (
-                        <Badge variant="danger" size="sm">
+                        <Badge variant="warning" size="sm" className="text-[9px] py-0 px-1.5">
                           Fading
                         </Badge>
                       )}
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="h-1.5 w-24 bg-[#090A0F] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full"
-                          style={{ width: `${assistedPct}%` }}
-                        />
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 max-w-[140px]">
+                        <ProgressBar value={mastery} max={100} variant={mastery >= 80 ? 'cyan' : 'indigo'} size="sm" />
                       </div>
-                      <span className="font-mono text-[10px] text-slate-400">
-                        {assistedPct}% Mastery
-                      </span>
+                      <span className="font-mono text-[10px] text-slate-400">{mastery}% mastery</span>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-1.5 shrink-0 font-mono text-xs text-slate-400 group-hover:text-cyan-400 transition-colors">
-                  <span className="text-[11px] font-semibold hidden sm:inline">
-                    {!hasAtt ? 'Learn' : isFading ? 'Drill' : 'Practice'}
-                  </span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  <Link href={`/tutor/${item.id}`}>
+                    <Button variant="ghost" size="sm" className="shrink-0 text-slate-300 hover:text-white">
+                      Continue
+                    </Button>
+                  </Link>
                 </div>
-              </Link>
-            );
-          })}
-        </div>
-      </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      
+      {/* =========================================================================
+          5. XIRA CONTEXTUAL ENTRY (Secondary Helper)
+          ========================================================================= */}
+      <section>
+        <Card variant="default" className="p-4 sm:p-5 border-white/[0.08] bg-[#0D0F18]/80 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-cyan-300 shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-sans font-bold text-xs sm:text-sm text-white">Need help?</h4>
+              <p className="font-sans text-[11px] text-slate-400 truncate">
+                Ask XIRA anything about what you&apos;re learning.
+              </p>
+            </div>
+          </div>
+
+          <Link href="/xira" className="shrink-0">
+            <Button variant="secondary" size="sm">
+              Ask XIRA
+            </Button>
+          </Link>
+        </Card>
+      </section>
     </div>
   );
 }
