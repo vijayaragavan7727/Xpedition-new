@@ -1,4 +1,4 @@
-export const WORLD_ASSETS = {
+﻿export const WORLD_ASSETS = {
   buildings: {
     learningCamp: '/world/buildings/learning-camp.png',
     projectWorkshop: '/world/buildings/project-workshop.png',
@@ -29,6 +29,7 @@ export const WORLD_ASSETS = {
 
   terrain: {
     flowers: '/world/terrain/flowers.png',
+    worldMap: '/world/terrain/world-map-bg.png',
   },
 } as const;
 

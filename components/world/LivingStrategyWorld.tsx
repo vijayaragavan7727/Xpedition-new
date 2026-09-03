@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PlayableGameWorldData, LearningZone } from '@/lib/engine/gameWorldAdapter';
@@ -65,7 +65,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
   // Identify Recommended Target from Adaptive Engine
   const recommendedId = mentor?.recommendedConceptId || learningCampZone.id;
 
-  // 8 Individual Controlled Building Entities (Fixed Positions in 1000x1000 world)
+  // 8 Individual Controlled Building Entities (Aligned to 1000x1000 terrain pads)
   const buildingEntities: BuildingEntity[] = [
     {
       id: learningCampZone.id,
@@ -73,7 +73,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       level: learningCampZone.level || 2,
       type: 'learning_camp',
       x: 500,
-      y: 450,
+      y: 475,
       width: 170,
       height: 150,
       imageSrc: WORLD_ASSETS.buildings.learningCamp,
@@ -88,8 +88,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       name: 'Skill Lab',
       level: skillLabZone.level || 3,
       type: 'skill_lab',
-      x: 500,
-      y: 200,
+      x: 505,
+      y: 173,
       width: 155,
       height: 135,
       imageSrc: WORLD_ASSETS.buildings.skillLab,
@@ -104,8 +104,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       name: 'Challenge Arena',
       level: challengeArenaZone.level || 3,
       type: 'challenge_arena',
-      x: 740,
-      y: 240,
+      x: 661,
+      y: 292,
       width: 160,
       height: 140,
       imageSrc: WORLD_ASSETS.buildings.challengeArena,
@@ -120,8 +120,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       name: 'Lumber Yard',
       level: 2,
       type: 'lumber_yard',
-      x: 820,
-      y: 440,
+      x: 833,
+      y: 462,
       width: 150,
       height: 130,
       imageSrc: WORLD_ASSETS.buildings.lumberYard,
@@ -136,8 +136,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       name: 'Reward Vault',
       level: rewardVaultZone.level || 2,
       type: 'reward_vault',
-      x: 740,
-      y: 660,
+      x: 692,
+      y: 704,
       width: 145,
       height: 130,
       imageSrc: WORLD_ASSETS.buildings.rewardVault,
@@ -152,8 +152,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       name: 'Career Academy',
       level: careerCityZone.level || 3,
       type: 'career_academy',
-      x: 500,
-      y: 720,
+      x: 507,
+      y: 799,
       width: 165,
       height: 145,
       imageSrc: WORLD_ASSETS.buildings.careerAcademy,
@@ -168,8 +168,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       name: 'Project Workshop',
       level: projectValleyZone.level || 3,
       type: 'project_workshop',
-      x: 260,
-      y: 650,
+      x: 321,
+      y: 730,
       width: 155,
       height: 135,
       imageSrc: WORLD_ASSETS.buildings.projectWorkshop,
@@ -184,8 +184,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
       name: 'Quarry Mine',
       level: 2,
       type: 'quarry',
-      x: 180,
-      y: 420,
+      x: 167,
+      y: 475,
       width: 150,
       height: 130,
       imageSrc: WORLD_ASSETS.buildings.quarry,
@@ -197,13 +197,13 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
     },
   ];
 
-  // 5 Individual Characters Standing on Terrain / Paths
+  // 5 Individual Characters Standing on Terrain
   const characterEntities = [
     {
       id: 'hero_learner',
       name: 'Learner',
       x: 450,
-      y: 490,
+      y: 505,
       width: 42,
       height: 54,
       imageSrc: WORLD_ASSETS.characters.learner,
@@ -211,8 +211,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
     {
       id: 'builder_npc',
       name: 'Builder',
-      x: 310,
-      y: 680,
+      x: 360,
+      y: 755,
       width: 40,
       height: 52,
       imageSrc: WORLD_ASSETS.characters.builder,
@@ -220,8 +220,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
     {
       id: 'miner_npc',
       name: 'Miner',
-      x: 230,
-      y: 450,
+      x: 215,
+      y: 495,
       width: 40,
       height: 52,
       imageSrc: WORLD_ASSETS.characters.miner,
@@ -229,8 +229,8 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
     {
       id: 'scholar_mentor',
       name: 'Mentor',
-      x: 550,
-      y: 240,
+      x: 545,
+      y: 215,
       width: 40,
       height: 52,
       imageSrc: WORLD_ASSETS.characters.mentor,
@@ -238,37 +238,12 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
     {
       id: 'trainer_npc',
       name: 'Trainer',
-      x: 690,
-      y: 280,
+      x: 625,
+      y: 315,
       width: 40,
       height: 52,
       imageSrc: WORLD_ASSETS.characters.trainer,
     },
-  ];
-
-  // Sparse, Intentional Perimeter & Grove Trees (20 Trees)
-  const treePositions = [
-    { x: 130, y: 190, src: WORLD_ASSETS.props.treePine },
-    { x: 180, y: 140, src: WORLD_ASSETS.props.treeOak },
-    { x: 340, y: 120, src: WORLD_ASSETS.props.treePine },
-    { x: 640, y: 125, src: WORLD_ASSETS.props.treeOak },
-    { x: 860, y: 160, src: WORLD_ASSETS.props.treePine },
-    { x: 920, y: 260, src: WORLD_ASSETS.props.treeOak },
-    { x: 930, y: 380, src: WORLD_ASSETS.props.treePine },
-    { x: 920, y: 550, src: WORLD_ASSETS.props.treeOak },
-    { x: 880, y: 720, src: WORLD_ASSETS.props.treePine },
-    { x: 700, y: 830, src: WORLD_ASSETS.props.treeOak },
-    { x: 500, y: 860, src: WORLD_ASSETS.props.treePine },
-    { x: 330, y: 840, src: WORLD_ASSETS.props.treeOak },
-    { x: 160, y: 780, src: WORLD_ASSETS.props.treePine },
-    { x: 95, y: 590, src: WORLD_ASSETS.props.treeOak },
-    { x: 90, y: 310, src: WORLD_ASSETS.props.treePine },
-    // Interior natural groves
-    { x: 370, y: 330, src: WORLD_ASSETS.props.treePine },
-    { x: 620, y: 330, src: WORLD_ASSETS.props.treeOak },
-    { x: 370, y: 550, src: WORLD_ASSETS.props.treeOak },
-    { x: 640, y: 540, src: WORLD_ASSETS.props.treePine },
-    { x: 740, y: 440, src: WORLD_ASSETS.props.treeOak },
   ];
 
   // Apply GPU Transform Directly (60fps without React re-render overhead)
@@ -440,123 +415,20 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           {/* ========================================================================= */}
           {/* LAYER 1: BASE TERRAIN & NATURAL MEADOW (z-index 1) */}
           {/* ========================================================================= */}
-          <div className="absolute inset-0 rounded-[56px] overflow-hidden bg-[#2D6A4F] shadow-2xl z-1">
-            {/* Rich Radial Elevation Grass Texture with Darker Vignette Edges */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#459A72] via-[#2A664B] to-[#123122]" />
-
-            {/* Subtle Meadow Variation Patches */}
-            <div className="absolute top-[180px] left-[350px] w-[300px] h-[200px] rounded-full bg-[#3B8863]/30 blur-2xl pointer-events-none" />
-            <div className="absolute top-[480px] left-[450px] w-[320px] h-[220px] rounded-full bg-[#3B8863]/30 blur-2xl pointer-events-none" />
-            <div className="absolute top-[350px] left-[150px] w-[220px] h-[200px] rounded-full bg-[#1F523A]/40 blur-xl pointer-events-none" />
+          <div className="absolute inset-0 rounded-[56px] overflow-hidden shadow-2xl z-1 pointer-events-none select-none">
+            <img
+              src="/world/terrain/world-map-bg.png"
+              alt="Illustrated forest world map"
+              className="h-full w-full object-fill"
+              draggable={false}
+            />
           </div>
 
           {/* ========================================================================= */}
-          {/* LAYER 2: WATER RIVER CANAL ALONG SOUTH-EAST (z-index 2) */}
+          {/* LAYER 4: SPARSE, INTENTIONAL PROPS (Campfire, Stones, Logs, Crates) (z-index 4) */}
           {/* ========================================================================= */}
-          <div className="absolute inset-0 rounded-[56px] overflow-hidden pointer-events-none z-2">
-            <svg className="w-full h-full" viewBox="0 0 1000 1000">
-              {/* South-Eastern Curved River Canal with Shoreline */}
-              <path
-                d="M720,1000 Q800,850 880,760 Q940,700 1000,680 L1000,1000 Z"
-                fill="#B45309"
-                opacity="0.35"
-              />
-              <path
-                d="M735,1000 Q810,855 890,770 Q950,710 1000,695 L1000,1000 Z"
-                fill="url(#riverWaterGrad)"
-              />
-              <defs>
-                <linearGradient id="riverWaterGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#0284C7" />
-                  <stop offset="50%" stopColor="#0369A1" />
-                  <stop offset="100%" stopColor="#0F766E" />
-                </linearGradient>
-              </defs>
-            </svg>
-
-            {/* Wooden Footbridge Over River */}
-            <div className="absolute left-[830px] top-[790px] w-20 h-10 bg-[#78350F] rounded border-2 border-[#451A03] shadow-xl rotate-40 flex items-center justify-between px-2 pointer-events-none z-3">
-              <div className="w-1.5 h-full bg-[#451A03]/60" />
-              <div className="w-1.5 h-full bg-[#451A03]/60" />
-              <div className="w-1.5 h-full bg-[#451A03]/60" />
-            </div>
-          </div>
-
-          {/* ========================================================================= */}
-          {/* LAYER 3: DIRT PATHS CONNECTING CENTRAL HUB TO DISTRICTS (z-index 3) */}
-          {/* ========================================================================= */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-3" viewBox="0 0 1000 1000">
-            {/* Path Under-Shadow */}
-            <g stroke="rgba(25,10,3,0.45)" strokeLinecap="round" strokeLinejoin="round" fill="none">
-              {/* Center to Skill Lab (North) */}
-              <path d="M500,450 Q500,320 500,200" strokeWidth="38" />
-              {/* Center to Challenge Arena (North-East) */}
-              <path d="M500,450 Q630,340 740,240" strokeWidth="38" />
-              {/* Center to Lumber Yard (East) */}
-              <path d="M500,450 Q670,445 820,440" strokeWidth="38" />
-              {/* Center to Reward Vault (South-East) */}
-              <path d="M500,450 Q630,560 740,660" strokeWidth="38" />
-              {/* Center to Career Academy (South) */}
-              <path d="M500,450 Q500,590 500,720" strokeWidth="38" />
-              {/* Center to Project Workshop (South-West) */}
-              <path d="M500,450 Q370,560 260,650" strokeWidth="38" />
-              {/* Center to Quarry (West) */}
-              <path d="M500,450 Q330,430 180,420" strokeWidth="38" />
-              {/* Reward Vault to Bridge */}
-              <path d="M740,660 Q790,720 830,790" strokeWidth="38" />
-            </g>
-
-            {/* Main Sand & Earth Road */}
-            <g stroke="#B45309" strokeLinecap="round" strokeLinejoin="round" fill="none">
-              <path d="M500,450 Q500,320 500,200" strokeWidth="28" />
-              <path d="M500,450 Q630,340 740,240" strokeWidth="28" />
-              <path d="M500,450 Q670,445 820,440" strokeWidth="28" />
-              <path d="M500,450 Q630,560 740,660" strokeWidth="28" />
-              <path d="M500,450 Q500,590 500,720" strokeWidth="28" />
-              <path d="M500,450 Q370,560 260,650" strokeWidth="28" />
-              <path d="M500,450 Q330,430 180,420" strokeWidth="28" />
-              <path d="M740,660 Q790,720 830,790" strokeWidth="28" />
-            </g>
-
-            {/* Cobblestone Texture Overlay */}
-            <g stroke="#D97706" strokeLinecap="round" strokeDasharray="6 9" strokeWidth="18" fill="none">
-              <path d="M500,450 Q500,320 500,200" />
-              <path d="M500,450 Q630,340 740,240" />
-              <path d="M500,450 Q670,445 820,440" />
-              <path d="M500,450 Q630,560 740,660" />
-              <path d="M500,450 Q500,590 500,720" />
-              <path d="M500,450 Q370,560 260,650" />
-              <path d="M500,450 Q330,430 180,420" />
-              <path d="M740,660 Q790,720 830,790" />
-            </g>
-
-            {/* Central Village Plaza Ring */}
-            <circle cx="500" cy="450" r="82" fill="#B45309" />
-            <circle cx="500" cy="450" r="74" stroke="#D97706" strokeWidth="3" strokeDasharray="6 6" fill="none" />
-          </svg>
-
-          {/* ========================================================================= */}
-          {/* LAYER 4: SPARSE, INTENTIONAL PROPS (Trees, Stones, Logs, Campfire) (z-index 4) */}
-          {/* ========================================================================= */}
-          {/* Individual Trees (20 Trees) */}
-          {treePositions.map((tp, idx) => (
-            <div
-              key={`tree_${idx}`}
-              className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 z-4"
-              style={{ left: `${tp.x}px`, top: `${tp.y}px` }}
-            >
-              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-9 h-3.5 rounded-full bg-black/40 blur-[1.5px]" />
-              <img
-                src={tp.src}
-                alt="Tree"
-                style={{ width: '56px', height: '72px', objectFit: 'contain' }}
-                draggable={false}
-              />
-            </div>
-          ))}
-
           {/* Campfire at Central Settlement Hub */}
-          <div className="absolute left-[545px] top-[475px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none flex flex-col items-center">
+          <div className="absolute left-[545px] top-[495px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none flex flex-col items-center">
             <div className="absolute bottom-0 w-10 h-3.5 rounded-full bg-black/45 blur-[1px]" />
             <img
               src={WORLD_ASSETS.props.campfire}
@@ -569,7 +441,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           </div>
 
           {/* Stone Pile near Quarry */}
-          <div className="absolute left-[240px] top-[400px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
+          <div className="absolute left-[210px] top-[440px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
             <div className="absolute bottom-0 w-10 h-3.5 rounded-full bg-black/40 blur-[1px]" />
             <img
               src={WORLD_ASSETS.props.stonePile}
@@ -580,7 +452,7 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           </div>
 
           {/* Timber Logs near Lumber Yard */}
-          <div className="absolute left-[760px] top-[470px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
+          <div className="absolute left-[785px] top-[485px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
             <div className="absolute bottom-0 w-10 h-3.5 rounded-full bg-black/40 blur-[1px]" />
             <img
               src={WORLD_ASSETS.props.logs}
@@ -591,30 +463,12 @@ export default function LivingStrategyWorld({ worldData }: LivingStrategyWorldPr
           </div>
 
           {/* Cargo Crates near Project Workshop */}
-          <div className="absolute left-[330px] top-[630px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
+          <div className="absolute left-[365px] top-[705px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
             <div className="absolute bottom-0 w-9 h-3 rounded-full bg-black/40 blur-[1px]" />
             <img
               src={WORLD_ASSETS.props.crates}
               alt="Crates"
               style={{ width: '42px', height: '34px', objectFit: 'contain' }}
-              draggable={false}
-            />
-          </div>
-
-          {/* Wildflowers */}
-          <div className="absolute left-[500px] top-[340px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
-            <img
-              src={WORLD_ASSETS.terrain.flowers}
-              alt="Flowers"
-              style={{ width: '38px', height: '28px', objectFit: 'contain', opacity: 0.9 }}
-              draggable={false}
-            />
-          </div>
-          <div className="absolute left-[500px] top-[570px] -translate-x-1/2 -translate-y-1/2 z-4 pointer-events-none">
-            <img
-              src={WORLD_ASSETS.terrain.flowers}
-              alt="Flowers"
-              style={{ width: '38px', height: '28px', objectFit: 'contain', opacity: 0.9 }}
               draggable={false}
             />
           </div>
