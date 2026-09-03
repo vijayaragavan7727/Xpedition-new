@@ -120,7 +120,7 @@ export default function AppLayout({
         </main>
       ) : (
         <main className="flex-1 overflow-y-auto min-h-0 relative z-10 lg:pl-[240px]">
-          <div className="w-full max-w-[640px] lg:max-w-[1080px] mx-auto px-4 sm:px-6 pt-4 pb-6">
+          <div className="w-full max-w-[640px] lg:max-w-[1080px] mx-auto px-4 sm:px-6 pt-4 pb-24 lg:pb-8">
             {children}
           </div>
         </main>

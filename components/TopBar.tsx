@@ -42,6 +42,9 @@ export const TopBar: React.FC = () => {
           <span className="font-sans font-black text-base tracking-tight text-white group-hover:text-cyan-300 transition-colors">
             XPEDITION
           </span>
+          <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-400 border border-white/[0.08] tracking-wider select-none">
+            UX V1
+          </span>
         </Link>
 
         {/* Goal Switcher Dropdown */}
@@ -174,11 +177,26 @@ export const TopBar: React.FC = () => {
         <Link
           href="/profile"
           className="w-8 h-8 rounded-full p-0.5 bg-gradient-to-r from-indigo-500 to-cyan-400 flex items-center justify-center hover:opacity-90 transition-opacity"
-          aria-label="Profile"
+          aria-label="Learner Profile & Settings"
+          title="Profile & Settings"
         >
-          <div className="w-full h-full rounded-full bg-[#090A0F] flex items-center justify-center font-mono text-[11px] font-bold text-white uppercase">
-            {storeData?.handle ? storeData.handle.slice(0, 2).toUpperCase() : 'ME'}
-          </div>
+          {storeData?.learnerProfile?.avatar_id ? (
+            <div className="w-full h-full rounded-full bg-[#090A0F] overflow-hidden flex items-center justify-center">
+              <img
+                src={`/world/characters/${storeData.learnerProfile.avatar_id}.png`}
+                alt="Profile Avatar"
+                className="w-6 h-6 object-contain"
+                onError={(e) => {
+                  // Fallback to initials if image fails
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-full h-full rounded-full bg-[#090A0F] flex items-center justify-center font-mono text-[11px] font-bold text-white uppercase">
+              {storeData?.handle ? storeData.handle.slice(0, 2).toUpperCase() : 'ME'}
+            </div>
+          )}
         </Link>
       </div>
     </header>
