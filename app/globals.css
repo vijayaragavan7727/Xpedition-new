@@ -126,3 +126,23 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+/* World Subtle Game Animations */
+@keyframes worldIdleAnim {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-2px) scale(1.01); }
+}
+
+@keyframes floatSlowAnim {
+  0%, 100% { transform: translate(0px, 0px); }
+  50% { transform: translate(-3px, -4px); }
+}
+
+.animate-world-idle {
+  animation: worldIdleAnim 3.6s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: floatSlowAnim 5s ease-in-out infinite;
+}
+

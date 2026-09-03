@@ -5,11 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getStoreData, calculateStreak, selectNextTarget, UserStoreData } from '@/lib/store';
 import { thetaToPercent } from '@/lib/engine/mastery';
-import { useWorldState } from '@/lib/hooks/world';
-import { WorldBuilding, detectBuildingStateTransitions } from '@/lib/worldEngine';
-import { WorldThemeId } from '@/lib/themes';
 import XyraGreetingWidget from '@/components/XyraGreetingWidget';
-import WorldUnlockCelebration from '@/components/WorldUnlockCelebration';
 import { Card, Button, Badge, ProgressBar } from '@/components/ui';
 import {
   Send,
@@ -35,9 +31,8 @@ interface ChatExchange {
 
 export default function HomePage() {
   const router = useRouter();
-  const { storeData, worldState } = useWorldState();
-  const [unlockedBuilding, setUnlockedBuilding] = useState<WorldBuilding | null>(null);
-  const [robotImgPath, setRobotImgPath] = useState<string>('/robot.png');
+  const [storeData, setStoreData] = useState<UserStoreData | null>(null);
+    const [robotImgPath, setRobotImgPath] = useState<string>('/robot.png');
 
   // Inline Ask XYRA State
   const [inlineInput, setInlineInput] = useState<string>('');
@@ -48,39 +43,22 @@ export default function HomePage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!worldState) return;
+    setStoreData(getStoreData());
 
-    if (typeof window !== 'undefined') {
-      try {
-        const savedBuildingsStr = localStorage.getItem(`xpedition_prev_buildings_${worldState.skillGraphId}`);
-        if (savedBuildingsStr) {
-          const prevBuildings: WorldBuilding[] = JSON.parse(savedBuildingsStr);
-          const newUnlocks = detectBuildingStateTransitions(prevBuildings, worldState.buildings);
-          if (newUnlocks.length > 0) {
-            setUnlockedBuilding(newUnlocks[0]);
-          }
-        }
-        localStorage.setItem(
-          `xpedition_prev_buildings_${worldState.skillGraphId}`,
-          JSON.stringify(worldState.buildings)
-        );
-      } catch (e) {}
-    }
-
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const todayStr = new Date().toISOString().slice(0, 10);
-      const savedDate = localStorage.getItem('xyra_home_chat_date');
-      const savedCount = parseInt(localStorage.getItem('xyra_home_chat_count') || '0', 10);
+      const savedDate = localStorage.getItem("xyra_home_chat_date");
+      const savedCount = parseInt(localStorage.getItem("xyra_home_chat_count") || "0", 10);
 
       if (savedDate === todayStr) {
         setHomeChatCount(savedCount);
       } else {
-        localStorage.setItem('xyra_home_chat_date', todayStr);
-        localStorage.setItem('xyra_home_chat_count', '0');
+        localStorage.setItem("xyra_home_chat_date", todayStr);
+        localStorage.setItem("xyra_home_chat_count", "0");
         setHomeChatCount(0);
       }
     }
-  }, [worldState]);
+  }, []);
 
   const streak = storeData ? calculateStreak(storeData.attempts) : 0;
   const fadingConcepts = storeData ? storeData.concepts.filter((c) => c.retentionRisk > 0.35) : [];
@@ -260,8 +238,7 @@ export default function HomePage() {
       ? target.conceptName
       : storeData.concepts?.[0]?.name || storeData.goalText || 'Active Topic';
 
-  const activeThemeId = (storeData.learnerProfile?.worldTheme as WorldThemeId) || 'cosmos';
-
+  
   return (
     <div className="space-y-6 select-none relative pb-16 font-sans">
       {/* 1. XYRA AI COACH & GREETING */}
@@ -555,13 +532,7 @@ export default function HomePage() {
         </div>
       </Card>
 
-      {/* World Unlock Celebration Modal */}
-      <WorldUnlockCelebration
-        unlockedBuilding={unlockedBuilding}
-        allBuildings={worldState?.buildings || []}
-        theme={activeThemeId}
-        onDismiss={() => setUnlockedBuilding(null)}
-      />
+      
     </div>
   );
 }

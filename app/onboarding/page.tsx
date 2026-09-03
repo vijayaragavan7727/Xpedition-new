@@ -7,8 +7,7 @@ import { getStoreData, saveLearnerProfile, LearnerProfileData, applySeededCourse
 import { SEEDED_PYTHON_COURSE } from '@/lib/seed';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { WORLD_THEMES, WorldThemeId } from '@/lib/themes';
-import WorldRenderer from '@/components/WorldRenderer';
-import { Sparkles, Check, Globe, Play } from 'lucide-react';
+import { Sparkles, Check, Globe, Play, Compass, BookOpen } from 'lucide-react';
 
 type PathType = 'goal' | 'syllabus';
 type LanguageType = 'english' | 'tanglish' | 'tamil';
@@ -858,32 +857,35 @@ export default function OnboardingPage() {
         )}
 
         {/* =================================================================== */}
-        {/* STEP 9: WORLD INTRODUCTION (YOUR WORLD BEGINS HERE) */}
+        {/* STEP 9: READY TO BEGIN (YOUR JOURNEY BEGINS HERE) */}
         {/* =================================================================== */}
         {currentStep === 9 && (
           <div className="space-y-5 animate-fadeIn text-center">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00FF87]/15 border border-[#00FF87]/40 text-[#00FF87] font-mono text-[10px] font-bold">
                 <Sparkles className="w-3 h-3" />
-                <span>EMPTY DOMAIN READY</span>
+                <span>ADAPTIVE CURRICULUM GENERATED</span>
               </div>
               <h1 className="font-sans font-black text-2xl sm:text-3xl text-white tracking-tight">
-                Your world begins here.
+                Your journey begins here.
               </h1>
             </div>
 
-            {/* Empty WorldRenderer Preview */}
-            <div className="rounded-2xl overflow-hidden border border-white/15 shadow-xl">
-              <WorldRenderer
-                theme={selectedTheme}
-                buildings={[]}
-                height={180}
-                isMiniPreview
-              />
+            {/* Ready Card Preview */}
+            <div className="rounded-2xl p-6 bg-[#150F2A]/90 border border-white/15 shadow-xl space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-400 p-0.5 shadow-lg flex items-center justify-center">
+                <Compass className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-sans font-bold text-base text-white">
+                {topic || 'Personalized Mastery Path'}
+              </h3>
+              <p className="font-sans text-xs text-slate-400 max-w-sm mx-auto">
+                Dynamic BKT cognitive models, personalized spaced-repetition drills, and real-time concept tracking configured for your pace.
+              </p>
             </div>
 
             <p className="font-sans text-xs sm:text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
-              Every lesson you complete builds something new. This empty land is yours. Let&apos;s start filling it.
+              Every concept you practice builds verified mastery. Let&apos;s begin your first milestone.
             </p>
 
             {/* Begin Learning CTA */}
@@ -895,7 +897,7 @@ export default function OnboardingPage() {
                 className="w-full h-13 rounded-2xl bg-signature-gradient text-white font-sans font-bold text-sm flex items-center justify-center gap-2 hover:brightness-110 transition-all cursor-pointer shadow-[0_8px_30px_-6px_rgba(168,85,247,0.6)] disabled:opacity-50"
               >
                 <Play className="w-4 h-4 fill-current" />
-                <span>{isSubmitting ? 'Terraforming World...' : 'Begin Learning →'}</span>
+                <span>{isSubmitting ? 'Preparing Course...' : 'Begin Learning →'}</span>
               </button>
             </div>
           </div>
