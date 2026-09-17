@@ -1,6 +1,6 @@
 'use client';
 
-import { updateTheta, thetaToPercent } from '@/lib/engine/mastery';
+import { updateTheta, thetaToPercent } from './engine/mastery';
 
 export function computeItemHash(prompt: string, options: string[]): string {
   const normPrompt = (prompt || '').trim().toLowerCase();
@@ -236,10 +236,56 @@ function syncActiveGraph(data: UserStoreData): UserStoreData {
   return data;
 }
 
-export function getStoreData(): UserStoreData {
+// User-scoped store context & sync listener
+let activeStoreUserId: string | null = null;
+type StoreSyncListener = (data: UserStoreData, userId?: string) => void;
+let storeSyncListener: StoreSyncListener | null = null;
+
+export function registerStoreSyncListener(listener: StoreSyncListener): void {
+  storeSyncListener = listener;
+}
+
+export function setActiveStoreUser(userId: string | null): void {
+  activeStoreUserId = userId;
+  if (typeof window !== 'undefined') {
+    try {
+      if (userId) {
+        sessionStorage.setItem('xpedition_active_user_id', userId);
+      } else {
+        sessionStorage.removeItem('xpedition_active_user_id');
+      }
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export function getActiveStoreUser(): string | null {
+  if (activeStoreUserId) return activeStoreUserId;
+  if (typeof window !== 'undefined') {
+    try {
+      return sessionStorage.getItem('xpedition_active_user_id');
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+export function getStoreData(scopedUserId?: string): UserStoreData {
   if (typeof window === 'undefined') return INITIAL_ZERO_STATE;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('xpedition_user_store_v2');
+    const targetUserId = scopedUserId || getActiveStoreUser();
+    let raw: string | null = null;
+
+    if (targetUserId) {
+      raw = localStorage.getItem(`xpedition_user_${targetUserId}`);
+    }
+
+    if (!raw) {
+      raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('xpedition_user_store_v2');
+    }
+
     if (!raw) return INITIAL_ZERO_STATE;
     const data = JSON.parse(raw);
     if (data.handle === 'Operator') {
@@ -251,20 +297,38 @@ export function getStoreData(): UserStoreData {
   }
 }
 
-export function saveStoreData(data: UserStoreData): void {
+export function saveStoreData(data: UserStoreData, scopedUserId?: string): void {
   if (typeof window === 'undefined') return;
   try {
     const synced = syncActiveGraph(data);
+    const targetUserId = scopedUserId || getActiveStoreUser();
+
+    if (targetUserId) {
+      localStorage.setItem(`xpedition_user_${targetUserId}`, JSON.stringify(synced));
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
+
+    // Notify registered persistence manager
+    if (storeSyncListener) {
+      storeSyncListener(synced, targetUserId || undefined);
+    }
   } catch (e) {
     console.error('Failed to save store data:', e);
   }
 }
 
-export function clearStoreData(): void {
+export function clearStoreData(scopedUserId?: string): void {
+  const targetUserId = scopedUserId || getActiveStoreUser();
+  setActiveStoreUser(null);
+
   if (typeof window === 'undefined') return;
+
+  if (targetUserId) {
+    localStorage.removeItem(`xpedition_user_${targetUserId}`);
+  }
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem('xpedition_user_store_v2');
+
   if (typeof sessionStorage !== 'undefined') {
     sessionStorage.clear();
   }

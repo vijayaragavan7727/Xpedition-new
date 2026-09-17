@@ -25,10 +25,14 @@ import {
   RotateCcw,
   Sparkles,
   AlertCircle,
+  AlertTriangle,
   FileText,
   Compass,
   ArrowRight,
   CheckCircle2,
+  Download,
+  Cpu,
+  Lock,
 } from 'lucide-react';
 
 const AVATARS = [
@@ -52,6 +56,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Phase E: User Data Controls (Export & Deletion)
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState<string>('');
 
   useEffect(() => {
     const data = getStoreData();
@@ -140,12 +150,115 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     if (isSupabaseConfigured && supabase) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('SignOut error:', err);
+      }
     }
+    clearStoreData();
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.clear();
     }
     router.push('/login');
+  };
+
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+      // 1. Try server-side export endpoint
+      const res = await fetch('/api/user/export');
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `xpedition-learning-data-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        return;
+      }
+
+      // 2. Client-side state fallback for local offline mode
+      const current = getStoreData();
+      const exportBlob = new Blob(
+        [
+          JSON.stringify(
+            {
+              format: 'Xpedition Learner Data Archive (Client Export)',
+              version: '1.0.0',
+              exportedAt: new Date().toISOString(),
+              storeData: current,
+            },
+            null,
+            2
+          ),
+        ],
+        { type: 'application/json' }
+      );
+      const url = window.URL.createObjectURL(exportBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `xpedition-learning-data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      console.error('[Profile] Export error:', err);
+      alert('Could not export learning data. Please check network connection.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmationText !== 'DELETE') {
+      alert('Please type DELETE exactly to confirm account deletion.');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // 1. Call server-side deletion endpoint
+      await fetch('/api/user/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE_MY_ACCOUNT_AND_DATA' }),
+      });
+    } catch (err) {
+      console.warn('[Profile] Server deletion notice:', err);
+    }
+
+    // 2. Clean all local and session persistence
+    try {
+      const { persistenceManager } = await import('@/lib/persistence');
+      await persistenceManager.clearUserState();
+    } catch {
+      // ignore
+    }
+
+    clearStoreData();
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.clear();
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+    }
+
+    setDeleteModalOpen(false);
+    setIsDeleting(false);
+    router.push('/');
   };
 
   if (!storeData) {
@@ -406,29 +519,132 @@ export default function ProfilePage() {
       </Card>
 
       {/* =========================================================================
-          4. APP SETTINGS & LEGAL
+          4. PRIVACY & USER DATA CONTROLS
+          ========================================================================= */}
+      <Card variant="default" className="p-5 sm:p-6 border-white/[0.07] bg-[#141826]/90 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-cyan-400" />
+            <h2 className="font-sans font-bold text-sm text-white">Privacy & Data Controls</h2>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            Self-Sovereign Data
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-300 leading-relaxed">
+          You own your learning journey. Export all your Bayesian Knowledge Tracing mastery records,
+          attempt histories, and progression as JSON, or permanently purge your account.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleExportData}
+            disabled={isExporting}
+            leftIcon={<Download className="w-4 h-4 text-cyan-400" />}
+          >
+            {isExporting ? 'Exporting...' : 'Export Learning Data (JSON)'}
+          </Button>
+
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            onClick={() => {
+              setDeleteConfirmationText('');
+              setDeleteModalOpen(true);
+            }}
+            leftIcon={<Trash2 className="w-4 h-4" />}
+          >
+            Delete Account & Data
+          </Button>
+        </div>
+      </Card>
+
+      {/* =========================================================================
+          5. LEGAL TRANSPARENCY & TRUST CENTER
           ========================================================================= */}
       <Card variant="default" className="p-5 sm:p-6 border-white/[0.07] bg-[#141826]/90 space-y-3">
-        <h2 className="font-sans font-bold text-sm text-white">App & Legal</h2>
-        <div className="divide-y divide-white/[0.06]">
-          <Link href="/terms" className="py-2.5 flex items-center justify-between group">
-            <div className="flex items-center gap-2 text-xs text-slate-300 group-hover:text-white">
-              <FileText className="w-4 h-4 text-slate-400" />
-              <span>Terms of Service & Privacy</span>
+        <div className="flex items-center justify-between">
+          <h2 className="font-sans font-bold text-sm text-white">Legal Transparency & Governance</h2>
+          <Link
+            href="/trust"
+            className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1"
+          >
+            <span>Visit Trust Center</span>
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
+          <Link
+            href="/privacy"
+            className="p-2.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 flex items-center justify-between group transition-colors"
+          >
+            <div className="flex items-center gap-2 text-slate-300 group-hover:text-white">
+              <Shield className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Privacy Policy</span>
             </div>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors" />
+            <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-white" />
+          </Link>
+
+          <Link
+            href="/terms"
+            className="p-2.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 flex items-center justify-between group transition-colors"
+          >
+            <div className="flex items-center gap-2 text-slate-300 group-hover:text-white">
+              <FileText className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Terms of Service</span>
+            </div>
+            <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-white" />
+          </Link>
+
+          <Link
+            href="/ai-transparency"
+            className="p-2.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 flex items-center justify-between group transition-colors"
+          >
+            <div className="flex items-center gap-2 text-slate-300 group-hover:text-white">
+              <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AI Transparency</span>
+            </div>
+            <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-white" />
+          </Link>
+
+          <Link
+            href="/sources"
+            className="p-2.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 flex items-center justify-between group transition-colors"
+          >
+            <div className="flex items-center gap-2 text-slate-300 group-hover:text-white">
+              <BookOpen className="w-3.5 h-3.5 text-sky-400" />
+              <span>Learning Sources</span>
+            </div>
+            <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-white" />
+          </Link>
+
+          <Link
+            href="/disclaimer"
+            className="p-2.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 flex items-center justify-between group transition-colors sm:col-span-2"
+          >
+            <div className="flex items-center gap-2 text-slate-300 group-hover:text-white">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              <span>Educational Disclaimer</span>
+            </div>
+            <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-white" />
           </Link>
         </div>
       </Card>
 
       {/* =========================================================================
-          5. ACCOUNT ACTIONS & SIGN OUT
+          6. ACCOUNT ACTIONS & SIGN OUT
           ========================================================================= */}
-      <Card variant="default" className="p-5 sm:p-6 border-rose-500/20 bg-[#141826]/90 space-y-4">
-        <h2 className="font-sans font-bold text-sm text-rose-400">Account Actions</h2>
+      <Card variant="default" className="p-5 sm:p-6 border-white/[0.07] bg-[#141826]/90 space-y-4">
+        <h2 className="font-sans font-bold text-sm text-slate-300">Session Actions</h2>
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <Button type="button" variant="danger" size="sm" onClick={handleResetData}>
-            Reset Progress
+          <Button type="button" variant="outline" size="sm" onClick={handleResetData}>
+            Reset Journey Progress
           </Button>
 
           <Button
@@ -442,6 +658,62 @@ export default function ProfilePage() {
           </Button>
         </div>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#111422] border border-rose-500/30 rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Permanently Delete Account?</h3>
+                <p className="text-xs text-rose-400 font-mono">Irreversible Action</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              This will permanently wipe your profile, all concept mastery records, attempt histories,
+              and educational memories from both our cloud database and local device storage.
+            </p>
+
+            <div className="space-y-1.5 pt-1">
+              <label className="text-[11px] font-mono text-slate-400 block">
+                Type <strong className="text-rose-400">DELETE</strong> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmationText}
+                onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                placeholder="Type DELETE"
+                className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmationText !== 'DELETE' || isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Confirm Permanent Deletion'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

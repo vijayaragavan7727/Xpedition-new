@@ -4,6 +4,17 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getStoreData, completeCalibration } from '@/lib/store';
+import {
+  Compass,
+  ArrowRight,
+  Check,
+  Sparkles,
+  ShieldCheck,
+  HelpCircle,
+  Clock,
+  Layers,
+  CheckCircle2,
+} from 'lucide-react';
 
 export interface CalibrationItem {
   id: string;
@@ -19,15 +30,24 @@ export interface CalibrationItem {
 export default function CalibratePage() {
   const router = useRouter();
 
+  // Calibration stage: 'welcome' | 'active' | 'completed'
+  const [stage, setStage] = useState<'welcome' | 'active' | 'completed'>('welcome');
+
+  // Item pool and active item
   const [calibrationItems, setCalibrationItems] = useState<CalibrationItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [goalTitle, setGoalTitle] = useState<string>('Your Learning Goal');
+
+  // Adaptive IRT estimation state
   const [theta, setTheta] = useState<number>(-0.4);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState<boolean>(false);
-  const [isFinished, setIsFinished] = useState<boolean>(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string>('');
 
   useEffect(() => {
     const store = getStoreData();
+    setGoalTitle(store.goalText || 'Learning Foundations');
+
     const activeQuests = store.quests || [];
     const conceptsMap = new Map((store.concepts || []).map((c) => [c.id, c.name]));
 
@@ -52,7 +72,7 @@ export default function CalibratePage() {
         options: ['Correct application', 'Incorrect approach A', 'Incorrect approach B', 'Incorrect approach C'],
         correctIndex: 0,
         explanation: `Evaluates fundamental understanding of ${c.name}.`,
-        difficulty: -1.5 + (idx * 0.8),
+        difficulty: -1.5 + idx * 0.8,
       }));
     }
 
@@ -77,19 +97,11 @@ export default function CalibratePage() {
     setCalibrationItems(selected);
   }, []);
 
-  if (calibrationItems.length === 0) {
-    return (
-      <div className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-4 font-mono text-sm text-muted animate-pulse">
-        Initializing Calibration for Active Goal...
-      </div>
-    );
-  }
-
-  const currentItem = calibrationItems[currentIndex];
   const totalItems = calibrationItems.length;
+  const currentItem = calibrationItems[currentIndex];
 
   const handleOptionSelect = (idx: number) => {
-    if (isAnswered) return;
+    if (isAnswered || !currentItem) return;
 
     setSelectedOption(idx);
     setIsAnswered(true);
@@ -97,27 +109,35 @@ export default function CalibratePage() {
     const isCorrect = idx === currentItem.correctIndex;
     const itemDiff = currentItem.difficulty ?? 0;
 
-    // Coarse Elo update equation:
+    // Coarse Elo / IRT update equation:
     // p = 1 / (1 + exp(-(theta - itemDifficulty)))
     // theta = theta + 0.9 * ((correct ? 1 : 0) - p)
     const p = 1 / (1 + Math.exp(-(theta - itemDiff)));
     const newTheta = theta + 0.9 * ((isCorrect ? 1 : 0) - p);
     setTheta(newTheta);
 
-    // Auto-advance after brief feedback delay
+    // Encouraging non-judgmental companion feedback
+    const feedbacks = [
+      'Xira is learning from this...',
+      'Good signal. Adjusting your path...',
+      'Calibrating your starting baseline...',
+      'Refining your learning profile...',
+    ];
+    setFeedbackMessage(feedbacks[currentIndex % feedbacks.length]);
+
+    // Auto-advance after brief respectful transition
     setTimeout(() => {
       if (currentIndex + 1 < totalItems) {
         setCurrentIndex((prev) => prev + 1);
         setSelectedOption(null);
         setIsAnswered(false);
+        setFeedbackMessage('');
       } else {
-        setIsFinished(true);
+        // Complete calibration and save to store
         completeCalibration(Number(newTheta.toFixed(2)));
-        setTimeout(() => {
-          router.push('/home');
-        }, 1000);
+        setStage('completed');
       }
-    }, 1200);
+    }, 950);
   };
 
   const handleExit = () => {
@@ -127,110 +147,297 @@ export default function CalibratePage() {
     router.push('/home');
   };
 
+  const handleEnterExpedition = () => {
+    router.push('/home');
+  };
+
+  if (calibrationItems.length === 0) {
+    return (
+      <div className="min-h-[100dvh] w-full bg-[#0B0D14] text-[#F8FAFC] flex items-center justify-center p-4 font-sans text-sm text-slate-400">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+          <span>Xira is preparing your challenges...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-[100dvh] w-full bg-ink text-text flex items-center justify-center p-3 sm:p-6 select-none relative overflow-hidden">
-      {/* Background Ambient Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-violet/15 rounded-full blur-[120px] pointer-events-none" />
+    <div className="relative min-h-[100dvh] w-full bg-[#0B0D14] text-[#F8FAFC] flex flex-col justify-between overflow-x-hidden selection:bg-indigo-600 selection:text-white font-sans">
+      {/* =========================================================================
+          ATMOSPHERIC AMBIENT BACKDROP (Nocturne Scholar)
+          ========================================================================= */}
+      <div className="fixed inset-0 pointer-events-none select-none z-0 overflow-hidden" aria-hidden="true">
+        <div
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[360px] rounded-full blur-[140px]"
+          style={{ background: 'radial-gradient(circle, rgba(99, 102, 241, 0.10) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 w-[520px] h-[320px] rounded-full blur-[130px]"
+          style={{
+            background:
+              'radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, rgba(245, 158, 11, 0.03) 50%, transparent 75%)',
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }}
+        />
+      </div>
 
-      <div className="w-full max-w-xl h-full max-h-[96dvh] bg-[#120E22]/90 border border-line rounded-[20px] p-4 sm:p-8 backdrop-blur-xl relative z-10 flex flex-col justify-between">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-line/60 pb-3 sm:pb-4">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] tracking-eyebrow text-cyan uppercase font-bold">
-              SKILL GRAPH CALIBRATION
-            </span>
-            <span className="font-mono text-xs font-semibold text-muted">
-              {currentIndex + 1} / {totalItems}
-            </span>
+      {/* =========================================================================
+          TOP NAVIGATION BAR
+          ========================================================================= */}
+      <header className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <Compass className="w-4 h-4 text-indigo-400" aria-hidden="true" />
           </div>
-
-          <button type="button" onClick={handleExit} className="font-mono text-xs text-muted hover:text-text transition-colors cursor-pointer">
-            ✕ Exit
-          </button>
+          <span className="font-orbitron font-bold text-sm tracking-wordmark text-white leading-none">
+            XPEDITION
+          </span>
         </div>
 
-        {/* Informational Guidance Banner */}
-        <div className="bg-raised/70 p-3 rounded-[12px] border border-line/40 text-[11px] sm:text-xs font-sans text-muted leading-relaxed">
-          Five questions, spread from easy to hard. Guessing is fine — this only sets the starting line your progress gets measured against.
-        </div>
-
-        {!isFinished ? (
-          <div className="space-y-3.5 sm:space-y-5">
-            {/* Concept Tag & Difficulty Metric */}
-            <div className="flex items-center justify-between font-mono text-[10px]">
-              <span className="text-muted uppercase tracking-eyebrow font-bold">
-                {currentItem.conceptName}
-              </span>
-              <span className="text-cyan">
-                Item Diff (b): {currentItem.difficulty > 0 ? `+${currentItem.difficulty}` : currentItem.difficulty}
-              </span>
-            </div>
-
-            {/* Prompt */}
-            <h1 className="font-sans font-semibold text-base sm:text-lg text-text leading-snug">
-              {currentItem.prompt}
-            </h1>
-
-            {/* Options List */}
-            <div className="space-y-2">
-              {currentItem.options.map((optionText, idx) => {
-                const isSelected = selectedOption === idx;
-                const isCorrect = idx === currentItem.correctIndex;
-
-                let optionStyle = 'bg-[#1A1430]/85 border-white/[0.09] hover:border-cyan text-text';
-
-                if (isAnswered) {
-                  if (isCorrect) {
-                    optionStyle = 'bg-success/15 border-success text-success font-semibold';
-                  } else if (isSelected) {
-                    optionStyle = 'bg-danger/15 border-danger text-danger font-semibold';
-                  } else {
-                    optionStyle = 'bg-[#1A1430]/40 border-transparent text-muted/50';
-                  }
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    disabled={isAnswered}
-                    onClick={() => handleOptionSelect(idx)}
-                    className={`w-full min-h-[46px] p-3 rounded-[12px] border text-left font-sans text-xs sm:text-[14px] flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
-                  >
-                    <div className="flex items-center gap-3 pr-2">
-                      <span className="font-mono text-xs font-bold text-muted min-w-[20px]">
-                        {String.fromCharCode(65 + idx)}.
-                      </span>
-                      <span className="leading-snug">{optionText}</span>
-                    </div>
-
-                    {isAnswered && isCorrect && (
-                      <span className="w-5 h-5 rounded-full bg-success text-ink flex items-center justify-center font-bold text-xs shrink-0">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="py-8 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-signature-gradient p-0.5 mx-auto">
-              <div className="w-full h-full rounded-full bg-panel flex items-center justify-center text-cyan font-mono text-xl font-bold">
-                ✓
-              </div>
-            </div>
-            <h2 className="font-sans font-semibold text-lg text-text">Baseline Calibrated</h2>
-            <p className="font-mono text-xs text-cyan font-bold">
-              Baseline Ability (θ): {theta >= 0 ? `+${theta.toFixed(2)}` : theta.toFixed(2)}
-            </p>
-            <p className="font-sans text-xs text-muted">Routing to your home dashboard...</p>
+        {stage === 'active' && (
+          <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Challenge {currentIndex + 1} of {totalItems}</span>
           </div>
         )}
 
-      </div>
+        <button
+          type="button"
+          onClick={handleExit}
+          className="text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-300 transition-colors py-1.5 px-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 cursor-pointer"
+        >
+          Exit
+        </button>
+      </header>
+
+      {/* =========================================================================
+          MAIN CONTAINER: CALIBRATION WORKSPACE
+          ========================================================================= */}
+      <main className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 my-auto flex flex-col items-center">
+        {/* =====================================================================
+            STAGE 1: OPENING STATE ("Let's find your starting point")
+            ===================================================================== */}
+        {stage === 'welcome' && (
+          <div className="w-full space-y-6 transition-all duration-200">
+            <div className="text-center space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-[11px] uppercase tracking-wider font-semibold mb-1">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+                <span>Initial Calibration</span>
+              </div>
+              <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F8FAFC] tracking-tight">
+                Let&apos;s find your starting point.
+              </h1>
+              <p className="font-sans text-sm sm:text-base text-slate-400 max-w-lg mx-auto leading-relaxed">
+                Xira will use a few challenges to understand what you already know — and where your journey should begin.
+              </p>
+            </div>
+
+            {/* Reassurance Card */}
+            <div className="p-5 sm:p-6 bg-[#141826]/90 border border-white/[0.08] rounded-2xl space-y-3.5 shadow-xl shadow-black/40">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" aria-hidden="true" />
+                </div>
+                <div className="space-y-1 text-left">
+                  <h2 className="font-sans font-semibold text-base text-[#F8FAFC]">
+                    This isn&apos;t a test you can fail.
+                  </h2>
+                  <p className="font-sans text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    There are no grades or penalties here. Your answers simply help Xira establish an honest baseline so your quests are never too easy or too overwhelming.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-indigo-400" aria-hidden="true" />
+                  <span>Expedition: <strong className="text-white font-medium">{goalTitle}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5 text-slate-500">
+                  <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>~3 minutes</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setStage('active')}
+                className="w-full h-[52px] rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-sans font-semibold text-base flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 hover:shadow-indigo-500/35 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0D14] cursor-pointer"
+              >
+                <span>Begin Calibration</span>
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* =====================================================================
+            STAGE 2: ACTIVE CALIBRATION CHALLENGE
+            ===================================================================== */}
+        {stage === 'active' && currentItem && (
+          <div className="w-full space-y-6 transition-all duration-200">
+            {/* Context & Progress Header */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full font-semibold">
+                  {currentItem.conceptName}
+                </span>
+                <span className="font-sans text-xs text-slate-400">
+                  Xira is adapting your journey
+                </span>
+              </div>
+
+              {/* Progress Track */}
+              <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-300"
+                  style={{ width: `${((currentIndex + 1) / totalItems) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Challenge Card */}
+            <div className="p-6 sm:p-7 bg-[#141826]/95 border border-white/[0.08] rounded-2xl space-y-6 shadow-2xl shadow-black/50">
+              <h1 className="font-sans font-semibold text-lg sm:text-xl text-[#F8FAFC] leading-relaxed text-left">
+                {currentItem.prompt}
+              </h1>
+
+              {/* Options */}
+              <div className="space-y-3">
+                {currentItem.options.map((optionText, idx) => {
+                  const isSelected = selectedOption === idx;
+
+                  let cardStyle =
+                    'bg-[#0F121C] border-white/[0.08] hover:border-white/[0.2] hover:bg-[#161B2E] text-slate-300 hover:text-white';
+
+                  if (isAnswered) {
+                    if (isSelected) {
+                      cardStyle = 'bg-indigo-600/15 border-indigo-500 text-white shadow-sm shadow-indigo-500/15';
+                    } else {
+                      cardStyle = 'bg-[#0F121C]/50 border-white/[0.04] text-slate-500 opacity-60';
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      disabled={isAnswered}
+                      onClick={() => handleOptionSelect(idx)}
+                      aria-pressed={isSelected}
+                      className={`w-full min-h-[50px] p-4 rounded-xl border text-left font-sans text-sm sm:text-[15px] flex items-center justify-between gap-3 transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${cardStyle}`}
+                    >
+                      <div className="flex items-center gap-3.5 pr-2">
+                        <span className="font-mono text-xs font-semibold text-slate-500 min-w-[20px]">
+                          {String.fromCharCode(65 + idx)}.
+                        </span>
+                        <span className="leading-snug">{optionText}</span>
+                      </div>
+
+                      <div
+                        className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected
+                            ? 'border-indigo-500 bg-indigo-500 text-white'
+                            : 'border-white/[0.2] bg-transparent'
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Adaptive Status Notice during auto-advance */}
+              {isAnswered && feedbackMessage && (
+                <div className="p-3 bg-indigo-500/10 border border-indigo-500/25 rounded-xl text-center text-xs font-mono text-indigo-300 animate-pulse">
+                  {feedbackMessage}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* =====================================================================
+            STAGE 3: COMPLETION STATE ("Your expedition is ready")
+            ===================================================================== */}
+        {stage === 'completed' && (
+          <div className="w-full space-y-6 transition-all duration-200">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-emerald-500/10">
+                <CheckCircle2 className="w-7 h-7 text-emerald-400" aria-hidden="true" />
+              </div>
+              <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F8FAFC] tracking-tight">
+                Your expedition is ready.
+              </h1>
+              <p className="font-sans text-sm sm:text-base text-slate-400 max-w-md mx-auto leading-relaxed">
+                Xira has a starting picture of how you learn. Your first learning quest is ready.
+              </p>
+            </div>
+
+            {/* Calibration Summary Card */}
+            <div className="p-5 sm:p-6 bg-[#141826]/95 border border-white/[0.08] rounded-2xl space-y-3.5 shadow-2xl shadow-black/40 text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+                <span className="font-sans text-sm text-[#F8FAFC]">
+                  Starting point established from baseline challenges
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+                <span className="font-sans text-sm text-[#F8FAFC]">
+                  Learning path tailored to: <strong className="text-indigo-400 font-semibold">{goalTitle}</strong>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+                <span className="font-sans text-sm text-[#F8FAFC]">
+                  First quest and adaptive skill nodes prepared
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleEnterExpedition}
+                className="w-full h-[52px] rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-sans font-semibold text-base flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/25 hover:shadow-indigo-500/35 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0D14] cursor-pointer"
+              >
+                <span>Enter Xpedition</span>
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* =========================================================================
+          MINIMALIST FOOTER
+          ========================================================================= */}
+      <footer className="relative z-10 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between text-[12px] font-sans text-slate-500 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <span>© {new Date().getFullYear()} XPedition</span>
+        <Link href="/terms" className="hover:text-slate-400 transition-colors underline-offset-4 hover:underline">
+          Terms & Privacy
+        </Link>
+      </footer>
     </div>
   );
 }

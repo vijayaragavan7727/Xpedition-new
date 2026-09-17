@@ -14,7 +14,7 @@ export interface TabItem {
 
 const navItems: TabItem[] = [
   { name: 'Home', href: '/home', icon: Home, matchPrefixes: ['/home'] },
-  { name: 'Learn', href: '/learn', icon: BookOpen, matchPrefixes: ['/learn', '/quest'] },
+  { name: 'Learn', href: '/learn', icon: BookOpen, matchPrefixes: ['/learn', '/quest', '/teach'] },
   { name: 'XIRA', href: '/xira', icon: Sparkles, matchPrefixes: ['/xira', '/tutor'] },
   { name: 'World', href: '/world', icon: Globe, matchPrefixes: ['/world'] },
   { name: 'Progress', href: '/progress', icon: TrendingUp, matchPrefixes: ['/progress', '/passport', '/history'] },

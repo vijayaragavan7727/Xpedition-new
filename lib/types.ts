@@ -10,6 +10,10 @@ export interface Quest {
   answerIndex?: number;
   explanation?: string;
   difficulty: number;
+  experienceType?: 'PROJECTILE_SIMULATION' | string;
+  experienceId?: string;
+  objective?: string;
+  briefing?: string;
 }
 
 export interface Reward {

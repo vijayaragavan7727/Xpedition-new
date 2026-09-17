@@ -99,8 +99,7 @@ sys.stdout = io.StringIO()
         const stdout = window.pyodideInstance.runPython(`sys.stdout.getvalue()`);
         setOutput(stdout.trim() || '✓ Code executed cleanly (no stdout output).');
       } else {
-        const evalResult = String(eval(editableCode));
-        setOutput(`Result: ${evalResult}`);
+        setOutput('Python runtime (Pyodide WebAssembly) is initializing or unavailable. Please wait a moment.');
       }
     } catch (err: any) {
       setOutput(`Error: ${err?.message || String(err)}`);

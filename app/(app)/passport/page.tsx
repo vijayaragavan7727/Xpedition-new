@@ -248,6 +248,93 @@ export default function SkillPassportPage() {
         </div>
       </Card>
 
+      {/* 5. DEMONSTRATED PRACTICAL CAPABILITIES (Evidence-First Proofs) */}
+      <Card variant="default" className="p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Award className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-sans font-bold text-sm text-white">
+                Demonstrated Practical Challenges
+              </h3>
+              <p className="font-mono text-[11px] text-slate-400">
+                Verified hands-on evidence from 3D & code labs
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {(() => {
+          const demonstratedSkills: Array<{ title: string; conceptName: string; verifiedAt: number }> = [];
+          const canonicalSkills: Record<string, string> = {
+            python_debugging_basics: 'Live Code Debugging & Variable Accumulation',
+            human_heart_anatomy: '3D Hemodynamic Valve & Chamber Navigation',
+            spatial_reasoning: '3D Polyhedral Multi-Axis Spatial Alignment',
+            projectile_motion: 'Variable Kinematics & Launch Trajectory Simulation',
+            molecular_bonding: 'Covalent Octet Rule Synthesis & Molecule Construction',
+          };
+
+          const successfulAttempts = (storeData.attempts || []).filter((a) => a.isCorrect && !a.isVoid);
+          const seenConcepts = new Set<string>();
+
+          successfulAttempts.forEach((att) => {
+            if (att.conceptId && canonicalSkills[att.conceptId] && !seenConcepts.has(att.conceptId)) {
+              seenConcepts.add(att.conceptId);
+              demonstratedSkills.push({
+                title: canonicalSkills[att.conceptId],
+                conceptName: att.conceptName || att.conceptId,
+                verifiedAt: att.timestamp,
+              });
+            }
+          });
+
+          if (demonstratedSkills.length === 0) {
+            return (
+              <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] text-center space-y-2">
+                <p className="font-sans text-xs text-slate-400">
+                  No practical challenge proofs demonstrated yet. Complete an interactive 3D simulation or Code lab to record verified skill credentials.
+                </p>
+                <Link
+                  href="/learn"
+                  className="inline-flex items-center gap-1 font-sans text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+                >
+                  <span>Explore Hands-on Labs &rarr;</span>
+                </Link>
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-2.5">
+              {demonstratedSkills.map((skill) => (
+                <div
+                  key={skill.title}
+                  className="p-3.5 rounded-xl bg-white/[0.03] border border-emerald-500/20 flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="font-sans font-bold text-xs sm:text-sm text-white truncate">
+                        {skill.title}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[10px] text-slate-400 block pl-6">
+                      Verified via {skill.conceptName} • {new Date(skill.verifiedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <Badge variant="success" size="sm" className="shrink-0">
+                    Demonstrated
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </Card>
+
       {/* Share Modal */}
       <PassportShareModal
         isOpen={isShareOpen}

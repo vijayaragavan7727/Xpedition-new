@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${orbitron.variable} ${jetbrainsMono.variable} ${caveat.variable} ${kalam.variable}`}>
       <head>
-        <link rel="preload" href="/art/hero-left.jpg" as="image" />
+        <link rel="preload" href="/world/buildings/learning-camp.png" as="image" />
       </head>
       <body className="bg-ink text-text selection:bg-violet selection:text-white antialiased min-h-screen">
         {children}

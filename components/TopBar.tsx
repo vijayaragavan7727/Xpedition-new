@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getStoreData, UserStoreData, calculateStreak, switchActiveGraph } from '@/lib/store';
-import { Flame, Bell, Plus, ChevronDown, Check, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Flame, Bell, Plus, ChevronDown, Check, Sparkles, ArrowRight, ShieldCheck, Compass } from 'lucide-react';
 
 export const TopBar: React.FC = () => {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
@@ -40,20 +40,38 @@ export const TopBar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-30 h-14 border-b border-white/[0.07] bg-[#0B0D14]/90 backdrop-blur-xl flex items-center justify-between px-3 sm:px-6 transition-colors">
-      {/* Left: Active Pathway Indicator */}
-      <div className="relative">
-        <button
-          onClick={() => setShowGoalSwitcher(!showGoalSwitcher)}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-white/[0.05] border border-transparent hover:border-white/[0.08] transition-all text-left focus-visible:ring-2 focus-visible:ring-indigo-500/50 outline-none"
+      {/* Left: Brand Identity & Active Pathway Indicator */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <Link
+          href="/home"
+          className="flex items-center gap-2 group focus-visible:ring-2 focus-visible:ring-indigo-500/50 outline-none rounded-xl p-1 transition-all"
+          aria-label="Xpedition Home"
         >
-          <div className="w-2 h-2 rounded-full bg-indigo-500" />
-          <div className="flex flex-col">
-            <span className="font-sans font-bold text-xs sm:text-sm text-white truncate max-w-[140px] sm:max-w-[220px]">
-              {goalTitle}
-            </span>
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:scale-105 group-hover:bg-indigo-500/30 transition-all shadow-sm">
+            <Compass className="w-4 h-4 text-indigo-400" />
           </div>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
-        </button>
+          <span className="font-sans font-black tracking-tight text-sm text-white hidden xs:inline">
+            XPEDITION
+          </span>
+        </Link>
+
+        <span className="text-white/20 text-xs hidden sm:inline" aria-hidden="true">/</span>
+
+        <div className="relative">
+          <button
+            onClick={() => setShowGoalSwitcher(!showGoalSwitcher)}
+            className="flex items-center gap-2 px-2 sm:px-2.5 py-1.5 rounded-xl hover:bg-white/[0.05] border border-transparent hover:border-white/[0.08] transition-all text-left focus-visible:ring-2 focus-visible:ring-indigo-500/50 outline-none"
+            aria-expanded={showGoalSwitcher}
+            aria-label={`Current pathway: ${goalTitle}. Click to switch pathway`}
+          >
+            <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="font-sans font-bold text-xs sm:text-sm text-white truncate max-w-[120px] sm:max-w-[200px]">
+                {goalTitle}
+              </span>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5 shrink-0" />
+          </button>
 
         {/* Goal Switcher Modal */}
         {showGoalSwitcher && (
@@ -99,9 +117,21 @@ export const TopBar: React.FC = () => {
           </>
         )}
       </div>
+      </div>
 
       {/* Right Controls */}
       <div className="flex items-center gap-2">
+        {/* 3D Lab Direct Launcher */}
+        <Link
+          href="/teach"
+          className="hidden xs:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all shadow-xs"
+          title="Universal 3D Teaching Engine"
+          aria-label="Launch Universal 3D Teaching Engine"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+          <span>3D LAB</span>
+        </Link>
+
         {/* Streak Pill */}
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-xs font-bold shadow-xs">
           <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />

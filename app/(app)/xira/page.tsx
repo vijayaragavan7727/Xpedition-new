@@ -4,6 +4,13 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { getStoreData, selectNextTarget, UserStoreData } from '@/lib/store';
 import { thetaToPercent } from '@/lib/engine/mastery';
+import {
+  getNextAdaptiveAction,
+  getActionRoute,
+  formatActionTitle,
+  getActionCtaLabel,
+  ACTION_CATALOG,
+} from '@/lib/intelligence';
 import { Card, Button, Badge } from '@/components/ui';
 import {
   Sparkles,
@@ -44,19 +51,22 @@ export default function XiraPage() {
   }, []);
 
   const target = useMemo(() => (storeData ? selectNextTarget(storeData) : null), [storeData]);
+  const nextAction = useMemo(() => (storeData ? getNextAdaptiveAction(storeData) : null), [storeData]);
   const goalTitle =
     storeData?.goalText ||
     (storeData?.concepts && storeData.concepts.length > 0
       ? 'Your Learning Journey'
       : 'Your Learning Path');
   const activeConceptName =
-    target && target.conceptId !== 'default'
+    nextAction?.targetConceptName ||
+    (target && target.conceptId !== 'default'
       ? target.conceptName
-      : storeData?.concepts?.[0]?.name;
+      : storeData?.concepts?.[0]?.name);
   const activeConceptId =
-    target && target.conceptId !== 'default'
+    nextAction?.targetConceptId ||
+    (target && target.conceptId !== 'default'
       ? target.conceptId
-      : storeData?.concepts?.[0]?.id;
+      : storeData?.concepts?.[0]?.id);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -95,6 +105,8 @@ export default function XiraPage() {
             goal: goalTitle,
             theta,
             name: storeData.handle || 'Learner',
+            recommendedAction: nextAction?.action,
+            recommendedReason: nextAction?.reason,
             concepts: concepts.map((c) => ({
               id: c.id,
               name: c.name,
@@ -269,15 +281,27 @@ export default function XiraPage() {
           ========================================================================= */}
       <Card variant="default" className="p-3.5 sm:p-4 border-white/[0.07] bg-[#141826]/90 shrink-0">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="min-w-0 space-y-0.5">
+          <div className="min-w-0 flex-1 space-y-0.5">
             <div className="font-mono text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
               <Compass className="w-3 h-3 text-cyan-400" />
               LEARNING {goalTitle.toUpperCase()}
             </div>
             {activeConceptName ? (
-              <p className="font-sans text-xs sm:text-sm text-slate-200 truncate">
-                Current focus: <span className="font-bold text-white">{activeConceptName}</span>
-              </p>
+              <div>
+                <p className="font-sans text-xs sm:text-sm text-slate-200 truncate">
+                  Current focus: <span className="font-bold text-white">{activeConceptName}</span>
+                  {nextAction?.action && (
+                    <span className="text-cyan-300 font-mono text-[11px] ml-1.5">
+                      • {formatActionTitle(nextAction, activeConceptName)}
+                    </span>
+                  )}
+                </p>
+                {nextAction?.reason && (
+                  <p className="font-sans text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                    {nextAction.reason}
+                  </p>
+                )}
+              </div>
             ) : (
               <p className="font-sans text-xs text-slate-400">
                 Ask XIRA anything about your learning journey.
@@ -285,14 +309,14 @@ export default function XiraPage() {
             )}
           </div>
 
-          {target && target.conceptId !== 'default' && (
-            <Link href="/quest" className="shrink-0">
+          {(nextAction?.targetConceptId || (target && target.conceptId !== 'default')) && (
+            <Link href={getActionRoute(nextAction, '/quest')} className="shrink-0">
               <Badge
                 variant="indigo"
                 size="sm"
                 className="cursor-pointer hover:bg-indigo-500/30 transition-colors py-1 px-2.5"
               >
-                Start Quest →
+                {getActionCtaLabel(nextAction)} →
               </Badge>
             </Link>
           )}
@@ -333,7 +357,7 @@ export default function XiraPage() {
             </div>
             <div className="space-y-1 max-w-sm">
               <h3 className="font-sans font-bold text-sm text-white">
-                Ask XIRA anything about what you're learning
+                Ask XIRA anything about what you&apos;re learning
               </h3>
               <p className="font-sans text-xs text-slate-400 leading-relaxed">
                 {activeConceptName

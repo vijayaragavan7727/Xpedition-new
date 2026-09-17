@@ -1,0 +1,45 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./.test-dist-experience",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "test/experience.test.ts",
+    "test/experienceIntegration.test.ts",
+    "test/objectExperience.test.ts",
+    "test/moleculeExperience.test.ts",
+    "test/orchestrator.test.ts",
+    "test/heartAnatomyExperience.test.ts",
+    "test/codeDebuggingExperience.test.ts",
+    "test/adaptiveExperienceLoop.test.ts",
+    "test/adaptiveQuestRouting.test.ts",
+    "test/home.test.ts",
+    "test/productFlow.test.ts",
+    "test/universalTeaching.test.ts",
+    "test/sourceIntelligence.test.ts",
+    "test/intelligenceHardening.test.ts",
+    "test/productionPersistence.test.ts",
+    "test/threeDisposal.test.ts",
+    "test/realUserJourney.test.ts",
+    "test/visualTeaching.test.ts",
+    "test/legalTrust.test.ts",
+    "test/productionReadiness.test.ts",
+    "lib/types.ts",
+    "lib/legal/**/*.ts",
+    "lib/experience/**/*.ts",
+    "lib/home/**/*.ts",
+    "lib/persistence/**/*.ts",
+    "lib/store.ts",
+    "lib/engine/**/*.ts",
+    "lib/intelligence/**/*.ts"
+  ]
+}

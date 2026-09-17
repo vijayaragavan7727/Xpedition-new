@@ -9,6 +9,40 @@ import { selectQuest, TARGET_SUCCESS, idealDifficulty } from '@/lib/engine/diffi
 import { MotivationState, Quest as SeededItem } from '@/lib/types';
 import { HelpCircle, Sparkles, X, Volume2, Play, ArrowRight, Zap, Layers } from 'lucide-react';
 import { LearnOrLoseArena } from '@/components/game/LearnOrLoseArena';
+import {
+  processLearningOutcome,
+  formatActionTitle,
+  processAdaptiveExperienceLoop,
+  AdaptiveExperienceLoopResult,
+} from '@/lib/intelligence';
+import {
+  PROJECTILE_MOTION_QUEST,
+  PROJECTILE_MOTION_EXPERIENCE,
+  createExperienceResultFromTelemetry,
+  OBJECT_MANIPULATION_QUEST,
+  OBJECT_MANIPULATION_EXPERIENCE,
+  createSpatialExperienceResult,
+  MOLECULE_BUILDER_QUEST,
+  MOLECULE_BUILDER_EXPERIENCE,
+  createMoleculeExperienceResult,
+  HEART_ANATOMY_QUEST,
+  HEART_ANATOMY_EXPERIENCE,
+  createHeartExperienceResult,
+  CODE_DEBUGGING_QUEST,
+  CODE_DEBUGGING_EXPERIENCE,
+  createCodeExperienceResult,
+  ExperienceResult,
+  LearnerModelAdapter,
+  experienceRegistry,
+  TelemetryEmitter,
+} from '@/lib/experience';
+import { QuestBriefingCard } from '@/components/experience/QuestBriefingCard';
+import { ExperienceReflectionCard } from '@/components/experience/ExperienceReflectionCard';
+import { ExperienceContainer } from '@/components/experience/ExperienceContainer';
+import { ObjectExperienceContainer } from '@/components/experience/ObjectExperienceContainer';
+import { MoleculeExperienceContainer } from '@/components/experience/MoleculeExperienceContainer';
+import { HeartExperienceContainer } from '@/components/experience/HeartExperienceContainer';
+import { CodeExperienceContainer } from '@/components/experience/CodeExperienceContainer';
 
 const SESSION_STORAGE_KEY = 'xpedition_active_quest_session';
 
@@ -67,6 +101,12 @@ function QuestContent() {
   const [xyraLoading, setXyraLoading] = useState<boolean>(false);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
+  // Experiential Quest Lifecycle State
+  const [experienceState, setExperienceState] = useState<'briefing' | 'interactive' | 'reflection'>('briefing');
+  const [experienceResult, setExperienceResult] = useState<ExperienceResult | null>(null);
+  const [experienceNextAction, setExperienceNextAction] = useState<any>(null);
+  const [adaptiveResult, setAdaptiveResult] = useState<AdaptiveExperienceLoopResult | null>(null);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track tab switches for behavioral telemetry
@@ -118,7 +158,17 @@ function QuestContent() {
     const activeGraph = store.graphs?.find((g) => g.id === store.activeGraphId) || store.graphs?.[0];
     let pool: SeededItem[] = (activeGraph?.quests as SeededItem[]) || [];
 
-    if (targetConceptId) {
+    if (targetConceptId === 'projectile_motion') {
+      pool = [PROJECTILE_MOTION_QUEST as any];
+    } else if (targetConceptId === 'spatial_reasoning') {
+      pool = [OBJECT_MANIPULATION_QUEST as any];
+    } else if (targetConceptId === 'molecular_bonding') {
+      pool = [MOLECULE_BUILDER_QUEST as any];
+    } else if (targetConceptId === 'human_heart_anatomy') {
+      pool = [HEART_ANATOMY_QUEST as any];
+    } else if (targetConceptId === 'python_debugging_basics') {
+      pool = [CODE_DEBUGGING_QUEST as any];
+    } else if (targetConceptId) {
       const filtered = pool.filter((q) => q.conceptId === targetConceptId);
       if (filtered.length > 0) pool = filtered;
     }
@@ -139,6 +189,18 @@ function QuestContent() {
       } else {
         break;
       }
+    }
+
+    if (selectedItems.length === 0 && targetConceptId === 'projectile_motion') {
+      selectedItems.push(PROJECTILE_MOTION_QUEST as any);
+    } else if (selectedItems.length === 0 && targetConceptId === 'spatial_reasoning') {
+      selectedItems.push(OBJECT_MANIPULATION_QUEST as any);
+    } else if (selectedItems.length === 0 && targetConceptId === 'molecular_bonding') {
+      selectedItems.push(MOLECULE_BUILDER_QUEST as any);
+    } else if (selectedItems.length === 0 && targetConceptId === 'human_heart_anatomy') {
+      selectedItems.push(HEART_ANATOMY_QUEST as any);
+    } else if (selectedItems.length === 0 && targetConceptId === 'python_debugging_basics') {
+      selectedItems.push(CODE_DEBUGGING_QUEST as any);
     }
 
     if (selectedItems.length === 0) {
@@ -346,8 +408,21 @@ function QuestContent() {
     if (hintCount > 0) newSignals.push(`Scaffolding hints utilized`);
     if (newSignals.length === 0) newSignals.push('Optimal response pace & immediate recall');
     setWhySignals(newSignals);
-
-    recordAttempt(attempt);
+    const updatedStoreData = recordAttempt(attempt);
+    processLearningOutcome(
+      {
+        conceptId: attempt.conceptId,
+        itemId: attempt.id,
+        itemHash: attempt.itemHash,
+        correct: attempt.isCorrect,
+        confidence: attempt.confidence,
+        source: 'QUEST',
+        timestamp: attempt.timestamp,
+        sessionId: session.conceptId,
+        attemptId: attempt.id,
+      },
+      updatedStoreData
+    );
 
     const nextAttempts = [...session.attempts, attempt];
     const updatedSession = { ...session, attempts: nextAttempts };
@@ -400,6 +475,380 @@ function QuestContent() {
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession));
       }
     }
+  };
+
+  const handleExperienceComplete = (evidence: any) => {
+    const currentItem = session?.items[session.currentIndex];
+    if (!currentItem || !session) return;
+
+    // Handle Molecule Builder experience completion
+    if (currentItem.experienceType === 'MOLECULE_BUILDER') {
+      const isAlreadyResult = Boolean(evidence && evidence.experienceId && evidence.summaryFeedback);
+      const outcomePayload = {
+        conceptId: currentItem.conceptId || 'molecular_bonding',
+        conceptName: currentItem.conceptName || 'Molecular Bonding: Water (H₂O)',
+        isSuccess: true,
+        accuracy: 1.0,
+        trialsCount: evidence.trialsCount || 2,
+        confidence: 'known' as const,
+        timeSpentSeconds: evidence.timeSpentSeconds || 30,
+        timestamp: Date.now(),
+      };
+
+      const { attempt, nextAction } = LearnerModelAdapter.recordExperienceOutcome(outcomePayload);
+      setExperienceNextAction(nextAction);
+
+      const structuredResult: ExperienceResult = isAlreadyResult
+        ? evidence
+        : createMoleculeExperienceResult(
+            MOLECULE_BUILDER_EXPERIENCE,
+            {
+              experienceId: MOLECULE_BUILDER_EXPERIENCE.id,
+              conceptId: 'molecular_bonding',
+              conceptName: 'Molecular Bonding: Water (H₂O)',
+              totalAttempts: 1,
+              successfulAttempts: 1,
+              hasSucceeded: true,
+              totalTrials: 1,
+              successfulTrials: 1,
+              targetHits: 1,
+              totalInteractions: evidence.totalInteractions || 6,
+              predictionAccuracy: 1.0,
+              hintsRequested: 0,
+              trials: [],
+              angleHistory: [],
+              velocityHistory: [],
+              errorHistory: [],
+              patternSummary: 'Water molecule assembled',
+              detectedPrinciple: 'molecule_complete',
+              principlesIdentified: ['molecule_complete'],
+            },
+            [
+              { id: 'o1-h1', fromAtomId: 'o1', toAtomId: 'h1' },
+              { id: 'o1-h2', fromAtomId: 'o1', toAtomId: 'h2' },
+            ],
+            true,
+            0,
+            outcomePayload.timeSpentSeconds
+          );
+
+      setExperienceResult(structuredResult);
+      const adaptiveLoopResult = processAdaptiveExperienceLoop(structuredResult);
+      setAdaptiveResult(adaptiveLoopResult);
+      setExperienceNextAction(adaptiveLoopResult.decision);
+
+      const nextAttempts = [...session.attempts, attempt];
+      const updatedSession = { ...session, attempts: nextAttempts };
+      setSession(updatedSession);
+
+      if (!session.isSolo && typeof window !== 'undefined') {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      }
+
+      setExperienceState('reflection');
+      return;
+    }
+
+    // Handle Object Manipulation experience completion
+    if (currentItem.experienceType === 'OBJECT_MANIPULATION') {
+      const isAlreadyResult = Boolean(evidence && evidence.experienceId && evidence.summaryFeedback);
+      const outcomePayload = {
+        conceptId: currentItem.conceptId || 'spatial_reasoning',
+        conceptName: currentItem.conceptName || "Scholar's Prism: 3D Spatial Orientation",
+        isSuccess: true,
+        accuracy: 1.0,
+        trialsCount: evidence.trialsCount || 1,
+        confidence: 'known' as const,
+        timeSpentSeconds: evidence.timeSpentSeconds || 30,
+        timestamp: Date.now(),
+      };
+
+      const { attempt, nextAction } = LearnerModelAdapter.recordExperienceOutcome(outcomePayload);
+      setExperienceNextAction(nextAction);
+
+      const structuredResult: ExperienceResult = isAlreadyResult
+        ? evidence
+        : createSpatialExperienceResult(
+            OBJECT_MANIPULATION_EXPERIENCE,
+            {
+              experienceId: OBJECT_MANIPULATION_EXPERIENCE.id,
+              conceptId: 'spatial_reasoning',
+              conceptName: "Scholar's Prism: Harmonic Alignment",
+              totalTrials: evidence.trialsCount || 1,
+              successfulTrials: 1,
+              targetHits: 1,
+              totalInteractions: evidence.totalInteractions || 6,
+              predictionAccuracy: 1.0,
+              hintsRequested: 0,
+              trials: [],
+              principlesIdentified: ['spatial_aligned'],
+            } as any,
+            5.0,
+            outcomePayload.timeSpentSeconds
+          );
+
+      setExperienceResult(structuredResult);
+      const adaptiveLoopResult = processAdaptiveExperienceLoop(structuredResult);
+      setAdaptiveResult(adaptiveLoopResult);
+      setExperienceNextAction(adaptiveLoopResult.decision);
+
+      const nextAttempts = [...session.attempts, attempt];
+      const updatedSession = { ...session, attempts: nextAttempts };
+      setSession(updatedSession);
+
+      if (!session.isSolo && typeof window !== 'undefined') {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      }
+
+      setExperienceState('reflection');
+      return;
+    }
+
+    // Handle Heart Anatomy Explorer experience completion
+    if (currentItem.experienceType === 'HEART_ANATOMY_EXPLORER') {
+      const isAlreadyResult = Boolean(evidence && evidence.experienceId && evidence.summaryFeedback);
+      const outcomePayload = {
+        conceptId: currentItem.conceptId || 'human_heart_anatomy',
+        conceptName: currentItem.conceptName || '3D Human Heart Anatomy: Chambers, Valves & Circulation',
+        isSuccess: true,
+        accuracy: 1.0,
+        trialsCount: evidence.trialsCount || 1,
+        confidence: 'known' as const,
+        timeSpentSeconds: evidence.timeSpentSeconds || 45,
+        timestamp: Date.now(),
+      };
+
+      const { attempt, nextAction } = LearnerModelAdapter.recordExperienceOutcome(outcomePayload);
+      setExperienceNextAction(nextAction);
+
+      const structuredResult: ExperienceResult = isAlreadyResult
+        ? evidence
+        : createHeartExperienceResult(
+            HEART_ANATOMY_EXPERIENCE,
+            {
+              experienceId: HEART_ANATOMY_EXPERIENCE.id,
+              conceptId: 'human_heart_anatomy',
+              conceptName: '3D Human Heart Anatomy: Chambers, Valves & Circulation',
+              totalAttempts: 1,
+              successfulAttempts: 1,
+              hasSucceeded: true,
+              totalTrials: 1,
+              successfulTrials: 1,
+              targetHits: 1,
+              totalInteractions: evidence.totalInteractions || 8,
+              predictionAccuracy: 1.0,
+              hintsRequested: 0,
+              trials: [],
+              angleHistory: [],
+              velocityHistory: [],
+              errorHistory: [],
+              patternSummary: 'Heart anatomy explored and blood flow verified.',
+              detectedPrinciple: 'anatomy_mastered',
+              principlesIdentified: ['anatomy_mastered', 'flow_sequence_verified'],
+            },
+            {
+              currentEulerDeg: [0, 0, 0],
+              selectedStructureId: 'left_ventricle',
+              inspectedStructures: ['left_ventricle', 'right_ventricle', 'aorta', 'mitral_valve'],
+              flowStepIndex: 12,
+              isFlowActive: false,
+              flowErrors: 0,
+              flowCompleted: true,
+              currentChallengeIndex: 1,
+              challengeAnswers: {
+                ch_systemic_pump: { selectedId: 'left_ventricle', isCorrect: true },
+              },
+              isComplete: true,
+            },
+            outcomePayload.timeSpentSeconds
+          );
+
+      setExperienceResult(structuredResult);
+      const adaptiveLoopResult = processAdaptiveExperienceLoop(structuredResult);
+      setAdaptiveResult(adaptiveLoopResult);
+      setExperienceNextAction(adaptiveLoopResult.decision);
+
+      const nextAttempts = [...session.attempts, attempt];
+      const updatedSession = { ...session, attempts: nextAttempts };
+      setSession(updatedSession);
+
+      if (!session.isSolo && typeof window !== 'undefined') {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      }
+
+      setExperienceState('reflection');
+      return;
+    }
+
+    // Handle Code Debugging experience completion
+    if (currentItem.experienceType === 'CODE_DEBUGGING') {
+      const isAlreadyResult = Boolean(evidence && evidence.experienceId && evidence.summaryFeedback);
+      const outcomePayload = {
+        conceptId: currentItem.conceptId || 'python_debugging_basics',
+        conceptName: currentItem.conceptName || 'Python Debugging: Accumulation vs Reassignment',
+        isSuccess: true,
+        accuracy: 1.0,
+        trialsCount: evidence.trialsCount || 1,
+        confidence: 'known' as const,
+        timeSpentSeconds: evidence.timeSpentSeconds || 40,
+        timestamp: Date.now(),
+      };
+
+      const { attempt, nextAction } = LearnerModelAdapter.recordExperienceOutcome(outcomePayload);
+      setExperienceNextAction(nextAction);
+
+      const structuredResult: ExperienceResult = isAlreadyResult
+        ? evidence
+        : createCodeExperienceResult(
+            CODE_DEBUGGING_EXPERIENCE,
+            {
+              experienceId: CODE_DEBUGGING_EXPERIENCE.id,
+              conceptId: 'python_debugging_basics',
+              conceptName: 'Python Debugging: Accumulation vs Reassignment',
+              totalAttempts: 1,
+              successfulAttempts: 1,
+              hasSucceeded: true,
+              totalTrials: evidence.trialsCount || 1,
+              successfulTrials: 1,
+              targetHits: 1,
+              totalInteractions: evidence.totalInteractions || 5,
+              predictionAccuracy: 1.0,
+              hintsRequested: 0,
+              trials: [],
+              angleHistory: [],
+              velocityHistory: [],
+              errorHistory: [],
+              patternSummary: 'Accumulation bug resolved',
+              detectedPrinciple: 'code_debugged_successfully',
+              principlesIdentified: ['accumulation_operator_corrected'],
+            },
+            {
+              sourceCode: 'numbers = [2, 4, 6, 8]\ntotal = 0\nfor number in numbers:\n    total += number\nprint(total)',
+              lastOutput: '20',
+              runCount: 1,
+              editCount: 1,
+              hasRun: true,
+              isCompleted: true,
+              hintsUsed: 0,
+              consecutiveMismatches: 0,
+              independentCompletion: true,
+              history: [],
+            },
+            outcomePayload.timeSpentSeconds
+          );
+
+      setExperienceResult(structuredResult);
+      const adaptiveLoopResult = processAdaptiveExperienceLoop(structuredResult);
+      setAdaptiveResult(adaptiveLoopResult);
+      setExperienceNextAction(adaptiveLoopResult.decision);
+
+      const nextAttempts = [...session.attempts, attempt];
+      const updatedSession = { ...session, attempts: nextAttempts };
+      setSession(updatedSession);
+
+      if (!session.isSolo && typeof window !== 'undefined') {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      }
+
+      setExperienceState('reflection');
+      return;
+    }
+
+    // 1. Record evidence in canonical store and feedback loop
+    const { attempt, nextAction } = LearnerModelAdapter.recordExperienceOutcome(evidence);
+    setExperienceNextAction(nextAction);
+
+    // 2. Build structured ExperienceResult
+    const structuredResult = createExperienceResultFromTelemetry(
+      PROJECTILE_MOTION_EXPERIENCE,
+      {
+        experienceId: PROJECTILE_MOTION_EXPERIENCE.id,
+        conceptId: currentItem.conceptId,
+        conceptName: currentItem.conceptName || 'Projectile Motion',
+        totalAttempts: evidence.trialsCount || 1,
+        successfulAttempts: evidence.isSuccess ? 1 : 0,
+        hasSucceeded: evidence.isSuccess,
+        predictionAccuracy: evidence.accuracy || 1.0,
+        trials: [],
+        angleHistory: [25, 45],
+        velocityHistory: [18, 18],
+        errorHistory: [0],
+        hintsRequested: 0,
+        patternSummary: 'Mastered projectile motion trajectory.',
+        detectedPrinciple: 'mastered',
+      },
+      {
+        points: [],
+        flightTime: 2.0,
+        peakHeight: 3.5,
+        peakTime: 1.0,
+        landingDistance: 25.0,
+        targetDistance: 25.0,
+        targetError: 0,
+        isHit: true,
+        impactVelocity: 18.5,
+        initialVx: 16.5,
+        initialVy: 7.0,
+      },
+      evidence.timeSpentSeconds || 30
+    );
+
+    setExperienceResult(structuredResult);
+    const adaptiveLoopResult = processAdaptiveExperienceLoop(structuredResult);
+    setAdaptiveResult(adaptiveLoopResult);
+    setExperienceNextAction(adaptiveLoopResult.decision);
+
+    // 3. Update session attempts
+    const nextAttempts = [...session.attempts, attempt];
+    const updatedSession = { ...session, attempts: nextAttempts };
+    setSession(updatedSession);
+
+    if (!session.isSolo && typeof window !== 'undefined') {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+    }
+
+    // 4. Transition to reflection view
+    setExperienceState('reflection');
+  };
+
+  const handleExperienceContinue = (targetRoute?: string) => {
+    const route = targetRoute || adaptiveResult?.nextQuest?.route;
+
+    // Emit telemetry for adaptive route transition
+    if (currentItem?.conceptId && route) {
+      try {
+        const emitter = new TelemetryEmitter(
+          (currentItem as any).experienceId || 'quest',
+          currentItem.conceptId,
+          currentItem.conceptName || 'Concept'
+        );
+        emitter.emit('adaptive_route_clicked', {
+          conceptId: currentItem.conceptId,
+          targetRoute: route,
+          action: adaptiveResult?.decision?.action,
+          questId: adaptiveResult?.nextQuest?.questId,
+        });
+      } catch (e) {
+        // Telemetry safe fallback
+      }
+    }
+
+    // If a valid targetRoute is provided and differs from the current URL, route to it
+    if (route) {
+      const currentUrl = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '';
+      if (route !== currentUrl) {
+        // Clear reflection state before routing
+        setExperienceState('briefing');
+        setExperienceResult(null);
+        router.push(route);
+        return;
+      }
+    }
+
+    // Default in-place progression
+    setExperienceState('briefing');
+    setExperienceResult(null);
+    handleNextItem();
   };
 
   if (isExhausted) {
@@ -518,6 +967,111 @@ function QuestContent() {
             onExit={() => router.push('/world')}
           />
         </div>
+      </div>
+    );
+  }
+
+  // Unified Experiential Learning View (resolved via ExperienceRegistry)
+  const experienceDef = currentItem?.experienceType
+    ? experienceRegistry.getExperienceDefinition(currentItem.experienceType)
+    : undefined;
+
+  if (currentItem?.experienceType && (experienceDef || ['PROJECTILE_SIMULATION', 'OBJECT_MANIPULATION', 'MOLECULE_BUILDER', 'HEART_ANATOMY_EXPLORER', 'CODE_DEBUGGING'].includes(currentItem.experienceType))) {
+    const template = experienceDef?.template || 'custom';
+    const badgeLabel =
+      template === 'simulation' ? '3D SIMULATION' :
+      template === 'manipulation' ? (currentItem.experienceType === 'HEART_ANATOMY_EXPLORER' ? '3D ANATOMY' : '3D SPATIAL') :
+      template === 'builder' ? '3D MOLECULE' :
+      template === 'code' ? 'CODE LAB' : '3D EXPERIENCE';
+    const badgeColor =
+      template === 'simulation' ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300' :
+      template === 'manipulation' ? (currentItem.experienceType === 'HEART_ANATOMY_EXPLORER' ? 'bg-rose-500/15 border-rose-500/30 text-rose-300' : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300') :
+      template === 'builder' ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300' :
+      template === 'code' ? 'bg-sky-500/15 border-sky-500/30 text-sky-300' :
+      'bg-purple-500/15 border-purple-500/30 text-purple-300';
+
+    return (
+      <div className="min-h-[100dvh] bg-ink text-text flex flex-col justify-between select-none relative font-sans">
+        {/* Top Header Strip */}
+        <header className="h-12 px-4 bg-ink border-b border-line/40 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <Link href="/home" className="text-muted hover:text-text font-mono text-sm">
+              &larr;
+            </Link>
+            <span className="font-mono text-xs text-muted">
+              Quest {session.currentIndex + 1} of {session.totalLength}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="font-sans font-semibold text-xs text-text truncate max-w-[140px] sm:max-w-[200px]">
+              {currentItem.conceptName || experienceDef?.title || 'Interactive Experience'}
+            </span>
+            <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${badgeColor}`}>
+              {badgeLabel}
+            </span>
+          </div>
+        </header>
+
+        {/* Main Experience Flow Area */}
+        <main className="flex-1 min-h-0 max-w-4xl w-full mx-auto px-3.5 sm:px-6 py-4 flex flex-col justify-center overflow-y-auto">
+          {experienceState === 'briefing' && (
+            <QuestBriefingCard
+              quest={currentItem}
+              onEnterExperience={() => setExperienceState('interactive')}
+            />
+          )}
+
+          {experienceState === 'interactive' && (
+            <>
+              {currentItem.experienceType === 'PROJECTILE_SIMULATION' && (
+                <ExperienceContainer
+                  config={(currentItem as any).experienceConfig || PROJECTILE_MOTION_EXPERIENCE}
+                  onComplete={handleExperienceComplete}
+                  backHref="/home"
+                />
+              )}
+              {currentItem.experienceType === 'OBJECT_MANIPULATION' && (
+                <ObjectExperienceContainer
+                  config={(currentItem as any).experienceConfig || OBJECT_MANIPULATION_EXPERIENCE}
+                  onComplete={handleExperienceComplete}
+                  backHref="/home"
+                />
+              )}
+              {currentItem.experienceType === 'MOLECULE_BUILDER' && (
+                <MoleculeExperienceContainer
+                  config={(currentItem as any).experienceConfig || MOLECULE_BUILDER_EXPERIENCE}
+                  onComplete={handleExperienceComplete}
+                  backHref="/home"
+                />
+              )}
+              {currentItem.experienceType === 'HEART_ANATOMY_EXPLORER' && (
+                <HeartExperienceContainer
+                  config={(currentItem as any).experienceConfig || HEART_ANATOMY_EXPERIENCE}
+                  onComplete={handleExperienceComplete}
+                  backHref="/home"
+                />
+              )}
+              {currentItem.experienceType === 'CODE_DEBUGGING' && (
+                <CodeExperienceContainer
+                  config={(currentItem as any).experienceConfig || CODE_DEBUGGING_EXPERIENCE}
+                  onComplete={handleExperienceComplete}
+                  backHref="/home"
+                />
+              )}
+            </>
+          )}
+
+          {experienceState === 'reflection' && experienceResult && (
+            <ExperienceReflectionCard
+              result={experienceResult}
+              onContinue={handleExperienceContinue}
+              nextActionReason={adaptiveResult?.reason || experienceNextAction?.reason}
+              nextActionTitle={experienceNextAction ? formatActionTitle(experienceNextAction) : 'Continue Learning Pathway'}
+              adaptiveResult={adaptiveResult}
+            />
+          )}
+        </main>
       </div>
     );
   }
