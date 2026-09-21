@@ -3,30 +3,33 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { getStoreData, saveStoreData, setActiveStoreUser } from '@/lib/store';
+import { getStoreData, saveStoreData, setActiveStoreUser, clearStoreData } from '@/lib/store';
 import { persistenceManager } from '@/lib/persistence';
 import { getNextStep } from '@/lib/onboarding';
-import { Eye, EyeOff, Compass, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Compass, Mail, Lock, AlertCircle, LogOut, ArrowRight } from 'lucide-react';
 
 interface AuthCardProps {
   initialMode?: 'signin' | 'signup';
+  initialError?: string | null;
 }
 
-export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) => {
+export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', initialError = null }) => {
   const [isSignUp, setIsSignUp] = useState<boolean>(initialMode === 'signup');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(initialError);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess] = useState<boolean>(false);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const [resetSent, setResetSent] = useState<boolean>(false);
+  const [confirmationSent, setConfirmationSent] = useState<string | null>(null);
+  const [existingSession, setExistingSession] = useState<{ email: string; targetUrl: string } | null>(null);
 
   const emailInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if returning user is already authenticated
+  // Check if returning user is already authenticated without forced redirect
   useEffect(() => {
     const checkExistingSession = async () => {
       if (!isSupabaseConfigured || !supabase) return;
@@ -40,7 +43,10 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
           saveStoreData(store, userId);
           const next = getNextStep(store);
           const targetUrl = next === 'goal' ? '/onboarding' : next === 'calibrate' ? '/calibrate' : '/home';
-          window.location.href = targetUrl;
+          setExistingSession({
+            email: data.session.user.email || 'Authenticated User',
+            targetUrl,
+          });
         }
       } catch {
         // Silent session check
@@ -49,6 +55,19 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
 
     checkExistingSession();
   }, []);
+
+  const handleSignOutExisting = async () => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('Sign out error:', err);
+      }
+    }
+    setActiveStoreUser(null);
+    clearStoreData();
+    setExistingSession(null);
+  };
 
   // Validate Supabase URL format at startup before credential entry
   const urlValidation = useMemo(() => {
@@ -80,12 +99,13 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
 
   // Switch between Sign In and Create Account with smooth cross-fade
   const toggleAuthMode = (mode: boolean) => {
-    if (mode === isSignUp) return;
+    if (mode === isSignUp && !confirmationSent) return;
     setIsTransitioning(true);
     setTimeout(() => {
       setIsSignUp(mode);
       setFormError(null);
       setResetSent(false);
+      setConfirmationSent(null);
       setIsTransitioning(false);
     }, 150);
   };
@@ -109,7 +129,10 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
       return "That email and password don't match.";
     }
     if (code === 'email_not_confirmed' || msg.includes('email not confirmed')) {
-      return 'Check your inbox to confirm this address.';
+      return 'Please check your inbox to confirm your email before logging in.';
+    }
+    if (code === 'user_already_exists' || msg.includes('user already registered') || msg.includes('already registered')) {
+      return 'An account with this email already exists. Please log in.';
     }
     if (code === 'user_not_found' || msg.includes('user not found')) {
       return 'No account with that email. Create one below?';
@@ -141,7 +164,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
     try {
       setIsGoogleLoading(true);
       setFormError(null);
-      const origin = window.location.origin;
+      const origin = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin) : '';
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -177,8 +200,9 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
     }
 
     try {
+      const origin = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin) : '';
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/login?reset=true`,
+        redirectTo: `${origin}/login?reset=true`,
       });
 
       if (error) {
@@ -195,6 +219,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
     e.preventDefault();
     setFormError(null);
     setResetSent(false);
+    setConfirmationSent(null);
 
     if (!urlValidation.isValid) {
       setFormError(urlValidation.message);
@@ -213,21 +238,17 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
     // LOCAL MODE FALLBACK (When Supabase keys are absent in .env.local)
     // =========================================================================
     if (!isSupabaseConfigured || !supabase) {
-      setTimeout(async () => {
-        setIsSubmitting(false);
-        setSubmitSuccess(true);
-        const localUserId = 'local_' + email.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-        setActiveStoreUser(localUserId);
-        persistenceManager.setActiveUserId(localUserId);
-        const store = await persistenceManager.loadUserStore(localUserId);
-        saveStoreData(store, localUserId);
+      const localUserId = 'local_' + email.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+      setActiveStoreUser(localUserId);
+      persistenceManager.setActiveUserId(localUserId);
+      const store = await persistenceManager.loadUserStore(localUserId);
+      saveStoreData(store, localUserId);
 
-        setTimeout(() => {
-          const next = getNextStep(store);
-          const targetUrl = next === 'goal' ? '/onboarding' : next === 'calibrate' ? '/calibrate' : '/home';
-          window.location.href = targetUrl;
-        }, 500);
-      }, 400);
+      setIsSubmitting(false);
+      setSubmitSuccess(true);
+      const next = getNextStep(store);
+      const targetUrl = next === 'goal' ? '/onboarding' : next === 'calibrate' ? '/calibrate' : '/home';
+      window.location.href = targetUrl;
       return;
     }
 
@@ -237,9 +258,13 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
     try {
       if (isSignUp) {
         // Sign Up Flow
+        const origin = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin) : '';
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
+          options: {
+            emailRedirectTo: `${origin}/auth/callback?next=/home`,
+          },
         });
 
         if (error) {
@@ -249,32 +274,48 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
           return;
         }
 
+        // When email confirmation is required, Supabase returns a user but session is null
+        if (data?.user && !data?.session) {
+          setIsSubmitting(false);
+          setResetSent(false);
+          setFormError(null);
+          setConfirmationSent(email.trim());
+          return;
+        }
+
         let store = getStoreData();
         if (data?.user) {
-          const userId = data.user.id;
+          const user = data.user;
+          const userId = user.id;
           setActiveStoreUser(userId);
           persistenceManager.setActiveUserId(userId);
-          store = await persistenceManager.loadUserStore(userId);
-          saveStoreData(store, userId);
 
-          try {
-            await supabase.from('profiles').upsert({
-              id: data.user.id,
-              email: data.user.email,
-              updated_at: new Date().toISOString(),
-            });
-          } catch (profileErr) {
-            console.warn('Profile upsert warning (non-blocking):', profileErr);
-          }
+          // Parallelize store loading and non-blocking profile upsert
+          const [loadedStore] = await Promise.all([
+            persistenceManager.loadUserStore(userId),
+            (async () => {
+              try {
+                await supabase.from('profiles').upsert({
+                  id: user.id,
+                  email: user.email,
+                  updated_at: new Date().toISOString(),
+                });
+              } catch (profileErr) {
+                console.warn('Profile upsert warning (non-blocking):', profileErr);
+              }
+              return null;
+            })(),
+          ]);
+
+          if (loadedStore) store = loadedStore;
+          saveStoreData(store, userId);
         }
 
         const next = getNextStep(store);
         const targetUrl = next === 'goal' ? '/onboarding' : next === 'calibrate' ? '/calibrate' : '/home';
 
         setSubmitSuccess(true);
-        setTimeout(() => {
-          window.location.href = targetUrl;
-        }, 600);
+        window.location.href = targetUrl;
       } else {
         // Sign In Flow
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -291,30 +332,37 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
 
         let store = getStoreData();
         if (data?.user) {
-          const userId = data.user.id;
+          const user = data.user;
+          const userId = user.id;
           setActiveStoreUser(userId);
           persistenceManager.setActiveUserId(userId);
-          store = await persistenceManager.loadUserStore(userId);
-          saveStoreData(store, userId);
 
-          try {
-            await supabase.from('profiles').upsert({
-              id: data.user.id,
-              email: data.user.email,
-              updated_at: new Date().toISOString(),
-            });
-          } catch (profileErr) {
-            console.warn('Profile upsert warning (non-blocking):', profileErr);
-          }
+          // Parallelize store loading and non-blocking profile upsert
+          const [loadedStore] = await Promise.all([
+            persistenceManager.loadUserStore(userId),
+            (async () => {
+              try {
+                await supabase.from('profiles').upsert({
+                  id: user.id,
+                  email: user.email,
+                  updated_at: new Date().toISOString(),
+                });
+              } catch (profileErr) {
+                console.warn('Profile upsert warning (non-blocking):', profileErr);
+              }
+              return null;
+            })(),
+          ]);
+
+          if (loadedStore) store = loadedStore;
+          saveStoreData(store, userId);
         }
 
         const next = getNextStep(store);
         const targetUrl = next === 'goal' ? '/onboarding' : next === 'calibrate' ? '/calibrate' : '/home';
 
         setSubmitSuccess(true);
-        setTimeout(() => {
-          window.location.href = targetUrl;
-        }, 500);
+        window.location.href = targetUrl;
       }
     } catch (err: any) {
       setFormError(mapSupabaseError(err));
@@ -352,12 +400,37 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
           </div>
         )}
 
-        {/* Local Mode Notice Banner */}
-        {!isSupabaseConfigured && (
-          <div className="p-2.5 bg-slate-800/60 border border-white/[0.06] rounded-xl text-center">
-            <span className="font-sans text-xs text-slate-400 block">
-              Local demo mode — submit below to proceed without cloud keys.
-            </span>
+        {/* Existing Session Prompt (Intentional Navigation / Switch Account) */}
+        {existingSession && (
+          <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl space-y-3" role="region" aria-label="Active session">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[10px] tracking-wider uppercase text-indigo-400 font-bold">
+                Active Session Detected
+              </span>
+              <span className="font-sans text-xs text-slate-300 font-semibold truncate max-w-[190px]">
+                {existingSession.email}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = existingSession.targetUrl;
+                }}
+                className="flex-1 h-9 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-sans text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>Continue</span>
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOutExisting}
+                className="flex-1 h-9 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] active:bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white font-sans text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                <span>Switch Account</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -379,19 +452,42 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Form Error Alert */}
-            {formError && (
-              <div
-                id="auth-error-alert"
-                role="alert"
-                className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-sans text-red-300 flex items-start gap-2"
-              >
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
-                <span>{formError}</span>
+          {/* Form or Confirmation Notice */}
+          {confirmationSent ? (
+            <div className="p-5 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl text-center space-y-3">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 mx-auto">
+                <Mail className="w-5 h-5" aria-hidden="true" />
               </div>
-            )}
+              <h3 className="font-sans font-bold text-base text-white">Check your inbox</h3>
+              <p className="font-sans text-xs text-slate-300 leading-relaxed max-w-xs mx-auto">
+                We sent a confirmation link to <span className="font-semibold text-white">{confirmationSent}</span>. Click the link in that email to activate your account.
+              </p>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmationSent(null);
+                    toggleAuthMode(false);
+                  }}
+                  className="w-full h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-sans text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center"
+                >
+                  Return to Log in
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Form Error Alert */}
+              {formError && (
+                <div
+                  id="auth-error-alert"
+                  role="alert"
+                  className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-sans text-red-300 flex items-start gap-2"
+                >
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
+                  <span>{formError}</span>
+                </div>
+              )}
 
             {/* Reset Email Sent Confirmation */}
             {resetSent && (
@@ -486,6 +582,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin' }) =>
               </div>
             )}
           </form>
+          )}
 
           {/* Divider */}
           <div className="relative flex items-center justify-center my-4">

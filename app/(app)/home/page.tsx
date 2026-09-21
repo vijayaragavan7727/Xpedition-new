@@ -26,6 +26,8 @@ import {
   Award,
   Circle,
 } from 'lucide-react';
+import { BuddyPresence } from '@/components/buddy/BuddyPresence';
+import { XiraStudyWorkspace } from '@/components/xira';
 
 export default function HomePage() {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
@@ -40,7 +42,7 @@ export default function HomePage() {
     return resolveHomeState(storeData);
   }, [storeData]);
 
-  // Background lesson pre-fetch for target concept to eliminate cold LLM latency
+  // Non-blocking idle pre-fetch for target concept to eliminate cold LLM latency without competing with Home render
   useEffect(() => {
     if (!storeData || !homeState) return;
     const conceptId = homeState.mission.conceptId;
@@ -49,26 +51,37 @@ export default function HomePage() {
     if (conceptId && conceptId !== 'default') {
       const cacheKey = `xyra_lesson_${conceptId}`;
       if (typeof window !== 'undefined' && !sessionStorage.getItem(cacheKey)) {
-        fetch('/api/lesson', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conceptId,
-            conceptName,
-            conceptSummary: '',
-            language: storeData?.learnerProfile?.language || 'english',
-            startingLevel: storeData?.learnerProfile?.startingLevel || 'Complete beginner',
-            masteryPercentage: homeState.stats.masteryPercentage || 0,
-            isQuickLearn: false,
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data?.chunks && typeof window !== 'undefined') {
-              sessionStorage.setItem(cacheKey, JSON.stringify(data));
-            }
+        let idleId: any;
+        const doPrefetch = () => {
+          fetch('/api/lesson', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conceptId,
+              conceptName,
+              conceptSummary: '',
+              language: storeData?.learnerProfile?.language || 'english',
+              startingLevel: storeData?.learnerProfile?.startingLevel || 'Complete beginner',
+              masteryPercentage: homeState.stats.masteryPercentage || 0,
+              isQuickLearn: false,
+            }),
           })
-          .catch(() => {});
+            .then((res) => res.json())
+            .then((data) => {
+              if (data?.chunks && typeof window !== 'undefined') {
+                sessionStorage.setItem(cacheKey, JSON.stringify(data));
+              }
+            })
+            .catch(() => {});
+        };
+
+        if ('requestIdleCallback' in window) {
+          idleId = (window as any).requestIdleCallback(doPrefetch, { timeout: 4000 });
+          return () => (window as any).cancelIdleCallback(idleId);
+        } else {
+          idleId = setTimeout(doPrefetch, 2500);
+          return () => clearTimeout(idleId);
+        }
       }
     }
   }, [storeData?.activeGraphId, homeState?.mission.conceptId, homeState?.mission.conceptName, homeState?.stats.masteryPercentage]);
@@ -236,7 +249,13 @@ export default function HomePage() {
                 </div>
 
                 {/* Primary CTA (Touch target >= 48px, bold, accessible) */}
-                <div className="pt-2">
+                <div className="pt-2 space-y-3">
+                  <BuddyPresence
+                    mode="compact"
+                    state="ENCOURAGING"
+                    message="Ready to continue your expedition?"
+                    className="w-full sm:w-auto"
+                  />
                   <Link
                     href={mission.route}
                     className="w-full min-h-[48px] px-5 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 hover:from-indigo-450 hover:to-indigo-650 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-indigo-400 outline-none"
@@ -252,12 +271,15 @@ export default function HomePage() {
           </section>
 
           {/* ===================================================================
-              E. PROGRESS SNAPSHOT (Rendered here on mobile to be directly under CTA)
-              Hidden on desktop (lg:hidden) because desktop renders it in right column.
+              STUDY WITH XIRA (Interactive Study Workspace)
               =================================================================== */}
-          <div className="block lg:hidden">
-            <ProgressSnapshotSection stats={stats} isNewLearner={isNewLearner} />
-          </div>
+          <XiraStudyWorkspace
+            conceptId={mission.conceptId || 'projectile_motion'}
+            conceptName={mission.conceptName || 'Projectile Motion'}
+            learnerGoal={pathway.goalTitle || storeData?.goalText || 'Master Core Concepts'}
+            learnerTheta={storeData?.concepts?.find((c) => c.id === mission.conceptId)?.thetaSolo ?? -0.4}
+            learnerLanguage={storeData?.learnerProfile?.language || 'english'}
+          />
 
           {/* ===================================================================
               F. CONTINUE LEARNING (Active Learning Pathway & Milestones)
@@ -361,10 +383,11 @@ export default function HomePage() {
           </section>
 
           {/* ===================================================================
-              XIRA INSIGHT & QUICK ENTRY (Mobile order)
+              MOBILE ORDER: Progress Snapshot, Xira Insight & Quick Entry
               Hidden on desktop (lg:hidden) because desktop renders them in right column.
               =================================================================== */}
           <div className="space-y-6 block lg:hidden">
+            <ProgressSnapshotSection stats={stats} isNewLearner={isNewLearner} />
             {xiraInsight && <XiraInsightSection xiraInsight={xiraInsight} />}
             <QuickEntrySection quickEntry={quickEntry} />
           </div>

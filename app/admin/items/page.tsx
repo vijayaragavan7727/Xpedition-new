@@ -28,6 +28,7 @@ interface ItemSummary {
 export default function AdminItemsPage() {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [useTestThreshold, setUseTestThreshold] = useState<boolean>(true); // Default true for testing
   const [filterFlagOnly, setFilterFlagOnly] = useState<boolean>(false);
 
@@ -35,16 +36,36 @@ export default function AdminItemsPage() {
     const store = getStoreData();
     setStoreData(store);
 
-    // Gate to admin account (handle === 'admin' or email contains admin or test mode)
-    const handle = store.handle?.toLowerCase() || '';
-    const email = (store.learnerProfile as any)?.email?.toLowerCase() || '';
-    
-    // Allow admin handle or query override for testing
-    const isAdminUser = handle === 'admin' || email.includes('admin') || typeof window !== 'undefined';
-    setIsAdmin(isAdminUser);
+    async function verifyAdmin() {
+      try {
+        const res = await fetch('/api/admin/check', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setIsAdmin(!!data.isAdmin);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (err) {
+        console.error('[Admin Verification Error]', err);
+        setIsAdmin(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    verifyAdmin();
   }, []);
 
-  if (!storeData) return null;
+  if (loading || !storeData) {
+    return (
+      <div className="min-h-screen bg-ink text-text flex items-center justify-center p-6 font-mono text-sm text-muted">
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 rounded-full border-2 border-cyan border-t-transparent animate-spin" />
+          Verifying administrative permissions...
+        </div>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
@@ -55,7 +76,7 @@ export default function AdminItemsPage() {
           </div>
           <h1 className="font-sans font-bold text-xl text-text">Access Denied</h1>
           <p className="font-sans text-xs text-muted leading-relaxed">
-            This item quality view is restricted to admin accounts only. Learner access is blocked.
+            This item quality view is restricted to authenticated administrator accounts only.
           </p>
           <Link href="/home" className="inline-block h-9 px-4 rounded-[10px] bg-raised border border-line text-xs font-mono text-cyan hover:border-cyan">
             ← Return to Home

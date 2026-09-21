@@ -19,13 +19,14 @@ export default function AppLayout({
   const [step, setStep] = useState<OnboardingStep | null>(null);
   const [loopBrokenNotice, setLoopBrokenNotice] = useState<boolean>(false);
   const isWorldPage = pathname === '/world';
+  const isBypassedPage = pathname === '/world' || pathname === '/profile';
 
   useEffect(() => {
     const data = getStoreData();
     setStoreData(data);
 
-    // Bypass gate for World page directly
-    if (pathname === '/world') {
+    // Bypass gate for World and Profile pages directly
+    if (pathname === '/world' || pathname === '/profile') {
       setStep('ready');
       return;
     }
@@ -56,18 +57,18 @@ export default function AppLayout({
         return;
       }
 
-      if (nextStep === 'goal' && pathname !== '/onboarding' && pathname !== '/world') {
+      if (nextStep === 'goal' && pathname !== '/onboarding' && pathname !== '/world' && pathname !== '/profile') {
         sessionStorage.setItem(redirectKey, String(count + 1));
         router.replace('/onboarding');
-      } else if (nextStep === 'calibrate' && pathname !== '/calibrate' && pathname !== '/world') {
+      } else if (nextStep === 'calibrate' && pathname !== '/calibrate' && pathname !== '/world' && pathname !== '/profile') {
         sessionStorage.setItem(redirectKey, String(count + 1));
         router.replace('/calibrate');
       }
     }
   }, [pathname, router]);
 
-  // Render skeleton loader while resolving (bypassed for /world)
-  if (!isWorldPage && (!storeData || step === null || (step !== 'ready' && typeof window !== 'undefined' && sessionStorage.getItem('xpedition_exit_override') !== 'true' && !loopBrokenNotice))) {
+  // Render skeleton loader while resolving (bypassed for /world and /profile)
+  if (!isBypassedPage && (!storeData || step === null || (step !== 'ready' && typeof window !== 'undefined' && sessionStorage.getItem('xpedition_exit_override') !== 'true' && !loopBrokenNotice))) {
     return (
       <div className="flex flex-col h-screen overflow-hidden bg-ink text-text relative">
         <DashBackdrop src="/art/hero-left.jpg" />

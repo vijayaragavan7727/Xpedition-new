@@ -70,24 +70,19 @@ export async function middleware(request: NextRequest) {
     console.warn('[Middleware Auth Warning] getUser fetch failed:', err);
   }
 
-
   // 7. Protected route check
-  const protectedRoutes = ['/home', '/history', '/passport', '/profile', '/quest', '/calibrate'];
+  const protectedRoutes = ['/home', '/history', '/passport', '/profile', '/quest', '/calibrate', '/admin'];
   const isProtectedRoute = protectedRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
   if (isProtectedRoute && !user) {
-    // Check if auth token cookie exists in request before bouncing
-    const hasAuthCookie = request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('-auth-token'));
-    if (!hasAuthCookie) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/';
-      url.searchParams.set('next', pathname);
-      const redirectResp = NextResponse.redirect(url);
-      response.cookies.getAll().forEach((c) => redirectResp.cookies.set(c.name, c.value));
-      return redirectResp;
-    }
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('next', pathname);
+    const redirectResp = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((c) => redirectResp.cookies.set(c.name, c.value));
+    return redirectResp;
   }
 
   // Return mutated response object with updated cookies

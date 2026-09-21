@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireServerAuth } from '@/lib/auth/serverAuth';
 import {
   runIntelligence,
   defaultDecisionEngine,
@@ -12,6 +13,11 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    const { user, errorResponse } = await requireServerAuth(request);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     const body = await request.json().catch(() => ({}));
     const { message = '', context = {} } = body;
 
@@ -120,6 +126,26 @@ Rules:
 4. Never reveal direct quiz answers — provide helpful scaffolding hints.
 5. If the user asks something completely unrelated (e.g. general chit-chat, unrelated trivia): refuse kindly and redirect them back to ${concept} in ${language}.
 6. Speak in a friendly, supportive teacher tone.`;
+    } else if (scope === 'workspace') {
+      systemPrompt = `You are XIRA, the cognitive intelligence and study guide in XPedition.
+Target Topic: ${concept}
+Learner Goal: ${goal}
+Learner Ability Level (theta): ${theta}
+Pedagogical Recommendation: ${nextAction.action} (${nextAction.reason})
+Language: ${language}
+
+Your task: Provide active learning guidance that moves the student toward DOING.
+Structure your answer with these concise sections:
+- A concise, intuitive explanation (1-2 sentences, strictly under 40 words).
+- Key idea: State the single most important mental model or rule.
+- Try this: A short concrete example, edge case, or thought experiment.
+- Quick Check: Ask ONE active recall question to check their understanding.
+
+Rules:
+1. Never give a long generic dump.
+2. Focus strictly on learning and comprehension of ${concept}.
+3. Keep the total response under 90 words.
+4. Maintain a supportive, inspiring educational tone.`;
     } else {
       systemPrompt = `You are XYRA, personal AI learning guide in XPedition.
 Learner Name: ${name}
@@ -152,14 +178,26 @@ Rules:
     });
 
     if (result && result.text) {
-      return NextResponse.json({ reply: result.text.trim() });
+      return NextResponse.json({
+        reply: result.text.trim(),
+        nextAction,
+        conceptId: nextAction.targetConceptId || 'projectile_motion',
+        conceptName: nextAction.targetConceptName || concept,
+      });
     }
 
-    const fallback = scope === 'tutor'
+    const fallback = scope === 'workspace'
+      ? `${concept} is a fundamental concept in your learning pathway. Key idea: Analyze the governing rules step by step. Try this: What changes if the primary parameter is doubled? Quick Check: How would you verify this in Class?`
+      : scope === 'tutor'
       ? `Focus on the core mechanism of ${concept}. What happens when you apply this rule in practice?`
       : `Keep up your momentum on ${goal}! Would you like to practice your next concept today?`;
 
-    return NextResponse.json({ reply: fallback });
+    return NextResponse.json({
+      reply: fallback,
+      nextAction,
+      conceptId: nextAction.targetConceptId || 'projectile_motion',
+      conceptName: nextAction.targetConceptName || concept,
+    });
   } catch (err: any) {
     console.error('XYRA Chat API Error:', err);
     return NextResponse.json({

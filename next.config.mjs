@@ -8,6 +8,7 @@ const nextConfig = {
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           {
@@ -20,6 +21,7 @@ const nextConfig = {
               "img-src 'self' data: blob:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.groq.com https://generativelanguage.googleapis.com https://api.sarvam.ai https://api.tavily.com",
               "media-src 'self' blob:",
+              "frame-ancestors 'none'",
             ].join('; '),
           },
         ],

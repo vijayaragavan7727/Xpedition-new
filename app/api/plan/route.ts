@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { callAi } from '@/lib/ai';
+import { requireServerAuth } from '@/lib/auth/serverAuth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -29,6 +30,11 @@ interface StudyPlanResponse {
 
 export async function POST(request: Request) {
   try {
+    const { user, errorResponse } = await requireServerAuth(request);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     const body = await request.json().catch(() => ({}));
     const {
       pathType = 'goal',

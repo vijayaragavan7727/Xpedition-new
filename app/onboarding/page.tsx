@@ -38,7 +38,9 @@ import {
   Landmark,
   Clock,
   Gauge,
+  LogOut,
 } from 'lucide-react';
+import { BuddyPresence } from '@/components/buddy/BuddyPresence';
 
 // =============================================================================
 // STEP 1: GOALS DATA
@@ -279,6 +281,7 @@ export default function OnboardingPage() {
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>('');
+  const [showBuddyGreeting, setShowBuddyGreeting] = useState<boolean>(true);
 
   // Resume step and selections from store on mount
   useEffect(() => {
@@ -367,6 +370,27 @@ export default function OnboardingPage() {
     } else {
       router.push('/');
     }
+  };
+
+  const handleExit = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('xpedition_exit_override', 'true');
+    }
+    router.push('/home');
+  };
+
+  const handleSignOut = async () => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('SignOut error:', err);
+      }
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.clear();
+    }
+    router.push('/login');
   };
 
   // Final Action: Begin Expedition and route to Calibration
@@ -501,12 +525,25 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <Link
-          href="/home"
-          className="text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-300 transition-colors py-1.5 px-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-        >
-          Exit
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExit}
+            className="text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-colors py-1.5 px-2.5 rounded-lg hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 cursor-pointer"
+          >
+            Exit
+          </button>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="text-xs sm:text-sm font-medium text-rose-400 hover:text-rose-300 transition-colors py-1.5 px-2.5 rounded-lg hover:bg-rose-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 cursor-pointer flex items-center gap-1.5"
+            title="Sign Out"
+            aria-label="Sign Out"
+          >
+            <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="hidden xs:inline">Sign Out</span>
+          </button>
+        </div>
       </header>
 
       {/* =========================================================================
@@ -518,6 +555,15 @@ export default function OnboardingPage() {
             ===================================================================== */}
         {currentStep === 0 && (
           <div className="w-full space-y-6 transition-all duration-200">
+            {showBuddyGreeting && (
+              <BuddyPresence
+                mode="banner"
+                state="INTRODUCING"
+                speakerName="Buddy"
+                message="Welcome to Xpedition! I'm Buddy, your learning companion. Let's see how you learn."
+                onDismiss={() => setShowBuddyGreeting(false)}
+              />
+            )}
             <div className="text-center space-y-1.5">
               <h1 className="font-sans font-bold text-2xl sm:text-3xl text-[#F8FAFC] tracking-tight">
                 What do you want to achieve?

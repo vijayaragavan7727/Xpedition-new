@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { callAi } from '@/lib/ai';
+import { requireServerAuth } from '@/lib/auth/serverAuth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -36,6 +37,11 @@ interface GroqResponsePayload {
 
 export async function POST(request: Request) {
   try {
+    const { user, errorResponse } = await requireServerAuth(request);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     const body = await request.json().catch(() => ({}));
     const { goal, bypassCache = false } = body;
 
@@ -49,7 +55,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'no_key' }, { status: 503 });
     }
 
-    // Optional Tavily Grounding Search
+    // Optional Tavily Grounding Search (bounded by 2.5s timeout)
     let groundingContext = '';
     const tavilyApiKey = process.env.TAVILY_API_KEY;
     if (tavilyApiKey) {
@@ -57,6 +63,7 @@ export async function POST(request: Request) {
         const tavilyRes = await fetch('https://api.tavily.com/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(2500),
           body: JSON.stringify({
             api_key: tavilyApiKey,
             query: `${goal} — required skills, interview topics, core principles`,
@@ -75,7 +82,7 @@ export async function POST(request: Request) {
           }
         }
       } catch (err) {
-        console.warn('Tavily grounding search skipped or failed:', err);
+        console.warn('Tavily grounding search skipped or timed out:', err);
       }
     }
 

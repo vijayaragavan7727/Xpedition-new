@@ -19,18 +19,13 @@ export async function POST(request: Request) {
   try {
     let userId: string | null = null;
 
-    // 1. Verify session identity via Supabase server client
+    // 1. Verify session identity strictly via Supabase server client
     const supabase = createClient();
     if (supabase) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         userId = user.id;
       }
-    }
-
-    // 2. Local mode / header fallback for test environments
-    if (!userId) {
-      userId = request.headers.get('x-user-id');
     }
 
     if (!userId) {

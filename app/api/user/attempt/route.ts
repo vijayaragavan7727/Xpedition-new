@@ -20,10 +20,6 @@ export async function POST(request: Request) {
     }
 
     if (!userId) {
-      userId = request.headers.get('x-user-id');
-    }
-
-    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

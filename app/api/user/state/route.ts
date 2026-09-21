@@ -25,16 +25,11 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. Fallback to header in local/dev mode
-    if (!userId) {
-      userId = request.headers.get('x-user-id');
-    }
-
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 3. Fetch canonical state
+    // 2. Fetch canonical state
     let state = await defaultSupabasePersistence.getUserState(userId);
     if (!state) {
       state = defaultLocalPersistence.createDefaultUserData(userId, email, displayName);
@@ -58,13 +53,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
-    if (!body || !body.data) {
+    if (!body || !body.data || typeof body.data !== 'object') {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
     let authenticatedUserId: string | null = null;
 
-    // 1. Verify session identity via Supabase server client
+    // 1. Verify session identity strictly via Supabase server client
     const supabase = createClient();
     if (supabase) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -73,18 +68,13 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Local mode fallback
-    if (!authenticatedUserId) {
-      authenticatedUserId = request.headers.get('x-user-id');
-    }
-
     if (!authenticatedUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const payloadData = body.data;
 
-    // 3. User Isolation / IDOR Protection:
+    // 2. User Isolation / IDOR Protection:
     // Reject if client attempts to write state belonging to another user ID
     if (payloadData.userId && payloadData.userId !== authenticatedUserId) {
       return NextResponse.json(
@@ -94,6 +84,46 @@ export async function POST(request: Request) {
     }
 
     payloadData.userId = authenticatedUserId;
+
+    // 3. Telemetry & Progress Validation Boundary (BIZ-01 mitigation)
+    if (payloadData.progression && typeof payloadData.progression === 'object') {
+      const prog = payloadData.progression;
+      if (typeof prog.xp === 'number') {
+        prog.xp = Math.max(0, Math.min(1000000, Math.floor(prog.xp)));
+      }
+      if (typeof prog.level === 'number') {
+        prog.level = Math.max(1, Math.min(1000, Math.floor(prog.level)));
+      }
+      if (typeof prog.streak === 'number') {
+        prog.streak = Math.max(0, Math.min(3650, Math.floor(prog.streak)));
+      }
+      if (typeof prog.coins === 'number') {
+        prog.coins = Math.max(0, Math.min(1000000, Math.floor(prog.coins)));
+      }
+    }
+
+    // Clamp mastery percentages and theta estimates in skill graphs
+    if (Array.isArray(payloadData.graphs)) {
+      payloadData.graphs.forEach((g: any) => {
+        if (g && Array.isArray(g.concepts)) {
+          g.concepts.forEach((c: any) => {
+            if (typeof c.masteryPercentage === 'number') {
+              c.masteryPercentage = Math.max(0, Math.min(100, Math.round(c.masteryPercentage)));
+            }
+            if (typeof c.thetaAssisted === 'number') {
+              c.thetaAssisted = Math.max(-4.0, Math.min(4.0, c.thetaAssisted));
+            }
+            if (typeof c.thetaSolo === 'number') {
+              c.thetaSolo = Math.max(-4.0, Math.min(4.0, c.thetaSolo));
+            }
+          });
+        }
+        if (typeof g.calibratedTheta === 'number') {
+          g.calibratedTheta = Math.max(-4.0, Math.min(4.0, g.calibratedTheta));
+        }
+      });
+    }
+
     const saved = await defaultSupabasePersistence.saveUserState(authenticatedUserId, payloadData);
 
     return NextResponse.json({

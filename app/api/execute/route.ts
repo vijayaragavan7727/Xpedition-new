@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireServerAuth } from '@/lib/auth/serverAuth';
 import {
   executeLearningAction,
   LearningAction,
@@ -9,6 +10,11 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    const { user, errorResponse } = await requireServerAuth(request);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     const body = await request.json().catch(() => ({}));
     const { action, context = {} } = body;
 

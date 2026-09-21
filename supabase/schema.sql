@@ -465,10 +465,8 @@ CREATE POLICY "Users can manage own profile" ON public.profiles
   FOR ALL USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
--- Public read for display names & tutor attribution (without exposing private columns)
+-- Prevent unauthorized bulk email enumeration (Drop public read access on profiles)
 DROP POLICY IF EXISTS "Allow public read access for profiles" ON public.profiles;
-CREATE POLICY "Allow public read access for profiles" ON public.profiles
-  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Users can manage own learner profile" ON public.learner_profile;
 CREATE POLICY "Users can manage own learner profile" ON public.learner_profile

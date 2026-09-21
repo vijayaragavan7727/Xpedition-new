@@ -27,11 +27,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. Header fallback for local development / testing
-    if (!userId) {
-      userId = request.headers.get('x-user-id');
-    }
-
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized: You must be logged in to export your learning data.' },

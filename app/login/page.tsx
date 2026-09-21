@@ -9,8 +9,9 @@ import { ArrowLeft } from 'lucide-react';
 function LoginContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const error = searchParams.get('error');
 
-  return <AuthCard initialMode={mode} />;
+  return <AuthCard initialMode={mode} initialError={error} />;
 }
 
 export default function LoginPage() {

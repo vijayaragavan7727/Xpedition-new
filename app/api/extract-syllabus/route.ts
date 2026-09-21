@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 const pdfParse = require('pdf-parse');
 import { callAi } from '@/lib/ai';
+import { requireServerAuth } from '@/lib/auth/serverAuth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
+    const { user, errorResponse } = await requireServerAuth(request);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 

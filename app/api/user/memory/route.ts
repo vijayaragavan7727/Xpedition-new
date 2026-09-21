@@ -31,10 +31,6 @@ export async function GET(request: Request) {
     }
 
     if (!userId) {
-      userId = request.headers.get('x-user-id');
-    }
-
-    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -59,10 +55,6 @@ export async function POST(request: Request) {
       if (user) {
         userId = user.id;
       }
-    }
-
-    if (!userId) {
-      userId = request.headers.get('x-user-id');
     }
 
     if (!userId) {

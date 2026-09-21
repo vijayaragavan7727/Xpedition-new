@@ -62,9 +62,9 @@ export default function CalibratePage() {
       difficulty: Number(q.difficulty) || 0,
     }));
 
-    if (pool.length === 0) {
-      // Fallback if graph has no items
-      pool = (store.concepts || []).map((c, idx) => ({
+    if (pool.length === 0 && Array.isArray(store.concepts) && store.concepts.length > 0) {
+      // Fallback from existing store concepts
+      pool = store.concepts.map((c, idx) => ({
         id: `calib_${c.id}`,
         conceptId: c.id,
         conceptName: c.name,
@@ -73,6 +73,25 @@ export default function CalibratePage() {
         correctIndex: 0,
         explanation: `Evaluates fundamental understanding of ${c.name}.`,
         difficulty: -1.5 + idx * 0.8,
+      }));
+    } else if (pool.length === 0) {
+      // Immediate foundational pool when first entering without prior state
+      const defaultConcepts = [
+        { id: 'c_foundations', name: 'Core Foundations' },
+        { id: 'c_logic', name: 'Systematic Logic' },
+        { id: 'c_application', name: 'Problem Application' },
+        { id: 'c_analysis', name: 'Analytical Reasoning' },
+        { id: 'c_synthesis', name: 'Synthesis & Transfer' },
+      ];
+      pool = defaultConcepts.map((c, idx) => ({
+        id: `calib_${c.id}`,
+        conceptId: c.id,
+        conceptName: c.name,
+        prompt: `Diagnostic challenge evaluating understanding of ${c.name}.`,
+        options: ['Optimal principle-based solution', 'Common naive approach', 'Unrelated alternative', 'Inverse relationship'],
+        correctIndex: 0,
+        explanation: `Demonstrates mastery of core ${c.name} principles.`,
+        difficulty: -1.5 + idx * 0.75,
       }));
     }
 
@@ -125,7 +144,7 @@ export default function CalibratePage() {
     ];
     setFeedbackMessage(feedbacks[currentIndex % feedbacks.length]);
 
-    // Auto-advance after brief respectful transition
+    // Auto-advance after brief, responsive transition (420ms)
     setTimeout(() => {
       if (currentIndex + 1 < totalItems) {
         setCurrentIndex((prev) => prev + 1);
@@ -137,7 +156,7 @@ export default function CalibratePage() {
         completeCalibration(Number(newTheta.toFixed(2)));
         setStage('completed');
       }
-    }, 950);
+    }, 420);
   };
 
   const handleExit = () => {

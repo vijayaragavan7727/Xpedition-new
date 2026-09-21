@@ -4,24 +4,34 @@
 
 :root {
   /* =======================================================================
-     XPEDITION DESIGN TOKENS (Nocturne Scholar / Calm Adventure)
+     XPEDITION DESIGN 1 TOKENS: Dark, Immersive, 3D Focus
      ======================================================================= */
-  --xp-bg-base: #0B0D14;
-  --xp-bg-subtle: #0F121C;
-  --xp-surface: #141826;
-  --xp-surface-elevated: #1A1F32;
-  --xp-surface-interactive: #20263E;
+  
+  /* Surface & Background (Deep Midnight / Obsidian Palette) */
+  --xp-bg-base: #060B18;              /* Root viewport midnight blue */
+  --xp-bg-subtle: #0A1024;            /* Inset areas & deep wells */
+  --xp-surface: #0E152E;              /* Primary card surface */
+  --xp-surface-elevated: #141D3D;     /* Raised elements, popovers, headers */
+  --xp-surface-interactive: #1A254D;  /* Hover / active interactive states */
+  --xp-surface-glass: rgba(14, 21, 46, 0.78); /* Glassmorphic backdrops */
+  --xp-surface-glass-border: rgba(255, 255, 255, 0.08);
 
-  /* Primary Brand (Soft Indigo-Violet) */
+  /* Primary Brand (Luminous Indigo-Violet) */
   --xp-primary: #6366F1;
   --xp-primary-hover: #4F46E5;
-  --xp-primary-soft: rgba(99, 102, 241, 0.14);
+  --xp-primary-active: #4338CA;
+  --xp-primary-soft: rgba(99, 102, 241, 0.15);
+  --xp-primary-glow: 0 0 24px -2px rgba(99, 102, 241, 0.45);
 
-  /* Secondary (Companion Sky/Cyan) */
+  /* Secondary Brand (Atmospheric Cyan / Sky) */
   --xp-secondary: #0EA5E9;
-  --xp-secondary-soft: rgba(14, 165, 233, 0.12);
+  --xp-secondary-hover: #0284C7;
+  --xp-secondary-soft: rgba(14, 165, 233, 0.15);
+  --xp-secondary-glow: 0 0 24px -2px rgba(14, 165, 233, 0.4);
 
-  /* Semantic Accents */
+  /* Accent Tints */
+  --xp-accent-purple: #8B5CF6;
+  --xp-accent-purple-soft: rgba(139, 92, 246, 0.15);
   --xp-accent-warm: #F59E0B;
   --xp-accent-warm-soft: rgba(245, 158, 11, 0.14);
   --xp-accent-sage: #10B981;
@@ -30,23 +40,62 @@
   --xp-accent-rose-soft: rgba(244, 63, 94, 0.14);
 
   /* Typography Hierarchy */
-  --xp-text-primary: #F8FAFC;
-  --xp-text-secondary: #94A3B8;
-  --xp-text-muted: #64748B;
+  --xp-text-primary: #F8FAFC;         /* High-contrast headings and active text */
+  --xp-text-secondary: #94A3B8;       /* Readable body text, secondary labels */
+  --xp-text-muted: #64748B;           /* Subtext, timestamps, disabled indicators */
+  --xp-text-disabled: #475569;        /* Non-interactive disabled items */
+  --xp-text-inverse: #020617;         /* Dark text over glowing/white buttons */
+
+  /* Semantic Learning Class Stages */
+  --xp-stage-intro: #38BDF8;          /* Light Sky */
+  --xp-stage-explain: #818CF8;        /* Soft Indigo */
+  --xp-stage-explore: #06B6D4;        /* Cyan */
+  --xp-stage-predict: #F59E0B;        /* Warm Amber */
+  --xp-stage-interact: #6366F1;       /* Indigo */
+  --xp-stage-observe: #14B8A6;        /* Teal */
+  --xp-stage-check: #10B981;          /* Emerald */
+  --xp-stage-mission: #F59E0B;        /* Gold / Quest */
+  --xp-stage-challenge: #EC4899;      /* Hot Rose / Challenge */
+  --xp-stage-assessment: #8B5CF6;     /* Purple / Mastery Evaluative */
+  --xp-stage-feedback: #0EA5E9;       /* Sky Feedback */
+  --xp-stage-reward: #FBBF24;         /* Trophy Amber */
+  --xp-stage-next: #6366F1;           /* Forward Indigo */
+
+  /* AI Personalities: Buddy (Embodiment) & Xira (Cognitive Brain) */
+  --xp-buddy-accent: #38BDF8;
+  --xp-buddy-glow: rgba(56, 189, 248, 0.25);
+  --xp-buddy-bubble: rgba(15, 23, 42, 0.88);
+  --xp-xira-accent: #818CF8;
+  --xp-xira-glow: rgba(129, 140, 248, 0.25);
+  --xp-xira-card: rgba(19, 26, 54, 0.85);
 
   /* Border System */
   --xp-border-subtle: rgba(255, 255, 255, 0.07);
   --xp-border-medium: rgba(255, 255, 255, 0.12);
-  --xp-border-focus: rgba(99, 102, 241, 0.45);
+  --xp-border-strong: rgba(255, 255, 255, 0.18);
+  --xp-border-focus: rgba(99, 102, 241, 0.55);
+  --xp-border-interactive: rgba(99, 102, 241, 0.3);
 
   /* Shape & Radius Tokens */
-  --xp-radius-card: 1rem;
-  --xp-radius-control: 0.75rem;
+  --xp-radius-sm: 0.5rem;             /* 8px */
+  --xp-radius-control: 0.75rem;       /* 12px */
+  --xp-radius-card: 1rem;             /* 16px */
+  --xp-radius-modal: 1.5rem;          /* 24px */
   --xp-radius-pill: 9999px;
 
   /* Elevation Shadows */
-  --xp-shadow-subtle: 0 4px 20px -4px rgba(0, 0, 0, 0.35);
-  --xp-shadow-elevated: 0 12px 36px -6px rgba(0, 0, 0, 0.5);
+  --xp-shadow-subtle: 0 4px 20px -4px rgba(0, 0, 0, 0.4);
+  --xp-shadow-elevated: 0 12px 36px -6px rgba(0, 0, 0, 0.6);
+  --xp-shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  --xp-shadow-primary-cta: 0 6px 24px -2px rgba(99, 102, 241, 0.45);
+
+  /* Motion & Animation Timings */
+  --xp-motion-instant: 75ms;
+  --xp-motion-fast: 150ms;
+  --xp-motion-normal: 250ms;
+  --xp-motion-slow: 400ms;
+  --xp-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --xp-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Legacy variable compatibility */
   --bg-base: var(--xp-bg-base);
@@ -61,7 +110,7 @@
   --text-tertiary: var(--xp-text-muted);
   --accent-primary: var(--xp-primary);
   --accent-cyan: var(--xp-secondary);
-  --accent-purple: #8B5CF6;
+  --accent-purple: var(--xp-accent-purple);
   --success: var(--xp-accent-sage);
   --warning: var(--xp-accent-warm);
   --danger: var(--xp-accent-rose);
@@ -70,7 +119,7 @@
   --raised: var(--xp-surface-elevated);
   --line: var(--xp-border-subtle);
   --violet: var(--xp-primary);
-  --violet-hot: #8B5CF6;
+  --violet-hot: var(--xp-accent-purple);
   --cyan: var(--xp-secondary);
   --magenta: #EC4899;
   --text: var(--xp-text-primary);
@@ -86,18 +135,40 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle Gradient Utilities */
+/* Atmospheric Gradients & Ambient Effects */
 .bg-signature-gradient {
   background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #0EA5E9 100%);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 50%, #38BDF8 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 55%, #93C5FD 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Scrollbar Customization */
+.text-gradient-purple {
+  background: linear-gradient(135deg, #C084FC 0%, #818CF8 50%, #38BDF8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glass Surface Utility */
+.glass-panel {
+  background: var(--xp-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--xp-surface-glass-border);
+}
+
+.glass-panel-elevated {
+  background: rgba(20, 29, 61, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--xp-shadow-elevated);
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -113,7 +184,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -123,3 +194,16 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
