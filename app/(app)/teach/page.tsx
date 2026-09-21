@@ -12,6 +12,8 @@ import { useSearchParams } from 'next/navigation';
 import { TopicResolver } from '@/lib/experience/topicResolver';
 import { TopicExperienceComposer } from '@/lib/experience/topicExperienceComposer';
 import { UniversalTeachingContainer } from '@/components/experience/UniversalTeachingContainer';
+import { ClassroomLayout } from '@/components/classroom/ClassroomLayout';
+import { CANONICAL_CLASSROOM_LESSONS } from '@/lib/classroom/classroomCatalog';
 import { TeachingExperiencePlan } from '@/lib/experience/universalTopicTypes';
 import {
   Sparkles,
@@ -204,7 +206,20 @@ export default function TeachMePage() {
         </div>
       ) : (
         <div className="w-full animate-fadeIn">
-          <UniversalTeachingContainer plan={activePlan} />
+          {activePlan && (
+            activePlan.topic.topicId === 'dc_motor' ||
+            activePlan.topic.rawUserTopic.toLowerCase().includes('motor') ||
+            activePlan.topic.rawUserTopic.toLowerCase().includes('electric') ||
+            Boolean(CANONICAL_CLASSROOM_LESSONS[activePlan.topic.topicId]) ? (
+              <ClassroomLayout
+                conceptId={activePlan.topic.topicId || 'dc_motor'}
+                backHref="/teach"
+                onClassComplete={() => handleReset()}
+              />
+            ) : (
+              <UniversalTeachingContainer plan={activePlan} />
+            )
+          )}
         </div>
       )}
     </div>

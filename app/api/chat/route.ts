@@ -38,6 +38,9 @@ export async function POST(request: Request) {
       concepts = [],
       fadingConcepts = [],
       executeAction = undefined,
+      misconception = '',
+      hintsUsed = 0,
+      stepTitle = '',
     } = context;
 
     // Direct Capability Execution when explicitly requested
@@ -110,7 +113,27 @@ export async function POST(request: Request) {
 
     let systemPrompt = '';
 
-    if (scope === 'tutor') {
+    if (scope === 'classroom') {
+      systemPrompt = `You are XIRA, the cognitive classroom intelligence in Xpedition.
+Active Lesson Topic: ${concept}
+Current Lesson Step: "${stepTitle || chunk || 'Core Concept'}"
+Learner Ability Level (theta): ${theta}
+Pedagogical Action: ${nextAction.action} (${nextAction.reason})
+${misconception ? `Detected Misconception to Clarify: ${misconception}` : ''}
+${hintsUsed > 0 ? `Hints Requested by Learner: ${hintsUsed}` : ''}
+
+Your task: Provide concise, targeted cognitive coaching that clears confusion and redirects the learner back to the Smart Board.
+Structure your answer concisely:
+- Key idea: Direct insight addressing the exact concept or misconception (under 30 words).
+- Why this matters: The physical cause-and-effect relationship (1-2 sentences).
+- Action in Class: Tell them what to look for on the Smart Board or test using the classroom tools.
+
+Rules:
+1. Ground answers strictly in ${concept} and the current lesson step.
+2. Directly address misconceptions without lecturing.
+3. Keep the total response under 80 words.
+4. Encourage doing and observing on the Smart Board.`;
+    } else if (scope === 'tutor') {
       systemPrompt = `You are XYRA, the classroom AI teacher in XPedition.
 Current Concept: ${concept}
 Current Lesson Chunk: "${chunk || 'Core Concept introduction'}"
@@ -186,7 +209,9 @@ Rules:
       });
     }
 
-    const fallback = scope === 'workspace'
+    const fallback = scope === 'classroom'
+      ? `Regarding ${concept} (${stepTitle || 'Current Step'}):\n\nKey idea: Focus on how the underlying variables interact.\n\nTry this: Observe the visual demonstration on the Smart Board to see the cause and effect in action!`
+      : scope === 'workspace'
       ? `${concept} is a fundamental concept in your learning pathway. Key idea: Analyze the governing rules step by step. Try this: What changes if the primary parameter is doubled? Quick Check: How would you verify this in Class?`
       : scope === 'tutor'
       ? `Focus on the core mechanism of ${concept}. What happens when you apply this rule in practice?`

@@ -32,7 +32,9 @@
     "test:buddy": "node test/runBuddyTest.js",
     "test:xira": "node test/runXiraWorkspaceTest.js",
     "test:skip": "node test/runSkipSystemTest.js",
-    "test": "node test/runSecurityRemediationTest.js && node test/runSourceIntelligenceTest.js && node test/runUniversalTeachingTest.js && node test/runHardeningTest.js && node test/runPersistenceTest.js && node test/runThreeDisposalTest.js && node test/runRealUserJourneyTest.js && node test/runVisualTeachingTest.js && node test/runLegalTrustTest.js && node test/runProductionReadinessTest.js && node test/runBuddyTest.js && node test/runXiraWorkspaceTest.js && node test/runSkipSystemTest.js"
+    "test:toolkit": "node test/runClassroomToolkitTest.js",
+    "test:adaptive:classroom": "node test/runClassroomAdaptiveTest.js",
+    "test": "node test/runSecurityRemediationTest.js && node test/runSourceIntelligenceTest.js && node test/runUniversalTeachingTest.js && node test/runHardeningTest.js && node test/runPersistenceTest.js && node test/runThreeDisposalTest.js && node test/runRealUserJourneyTest.js && node test/runVisualTeachingTest.js && node test/runLegalTrustTest.js && node test/runProductionReadinessTest.js && node test/runBuddyTest.js && node test/runXiraWorkspaceTest.js && node test/runSkipSystemTest.js && node test/runClassroomToolkitTest.js && node test/runClassroomAdaptiveTest.js"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

@@ -303,12 +303,111 @@ export const CANONICAL_CLASSES: Record<string, ClassSessionData> = {
       reason: 'You understand the mechanical chambers. Next, learn how the SA node and Purkinje fibers generate the rhythmic electrical impulses of an ECG.',
     },
   },
+
+  dc_motor: {
+    conceptId: 'dc_motor',
+    conceptName: 'DC Electric Motor & Commutation',
+    subject: 'Physics',
+    classNumber: 4,
+    totalClasses: 8,
+    estimatedMinutes: 10,
+    xpReward: 150,
+    difficulty: 'Intermediate',
+    modality: 'FULL_3D',
+    hook: 'Discover how magnetic forces convert direct current into continuous mechanical rotation via split-ring commutation.',
+    objective: 'Predict armature torque and understand how commutator current reversal prevents motor stalling.',
+    explanation: {
+      title: 'Electromagnetic Torque & Commutation',
+      summary:
+        'A DC motor converts electrical energy into rotational motion. Current flowing through the coil inside a permanent magnetic field experiences Lorentz forces (F = I·L·B), producing a torque couple.',
+      keyPrinciple:
+        'The split-ring commutator acts as a mechanical inverter, reversing the direction of current in the coil every 180° so the torque couple continues driving the rotor in the same direction.',
+      formula: 'F = I · L · B · sin(θ)   |   τ = 2 · F · r',
+    },
+    prediction: {
+      question: 'What happens to the rotating armature if the split-ring commutator is disabled or removed?',
+      options: [
+        {
+          id: 'opt_stall',
+          label: 'The coil stalls vertically and oscillates back and forth',
+          description: 'Correct: Without commutation, torque reverses direction after vertical and opposes motion.',
+          isCorrect: true,
+        },
+        {
+          id: 'opt_double',
+          label: 'The coil rotates at double its original speed',
+          description: 'Incorrect: Opposing forces prevent rotation.',
+          isCorrect: false,
+        },
+        {
+          id: 'opt_burn',
+          label: 'The permanent stator magnets lose their magnetism',
+          description: 'Incorrect: Permanent magnets are unaffected.',
+          isCorrect: false,
+        },
+      ],
+      explanation: 'Without commutation reversing current every half-turn, the opposing torque halts continuous rotation.',
+    },
+    quickCheck: {
+      question: 'Which component is responsible for reversing the coil current every half-turn in a DC motor?',
+      options: ['Permanent Stator Magnets', 'Split-Ring Commutator', 'Axle Drive Shaft', 'Armature Core'],
+      correctIndex: 1,
+      explanation: 'The split-ring commutator rotates with the axle, switching brush contacts every 180° to keep torque unidirectional.',
+    },
+    mission: {
+      title: 'Mission: Achieve Continuous Rotation',
+      description: 'Engage DC current, align stator magnets, and ensure commutator is active to spin the rotor continuously.',
+      target: 'Continuous 360° rotation under 5.0A current',
+      maxAttempts: 3,
+      xpBonus: 100,
+    },
+    challenge: {
+      title: 'Challenge: Commutator Failure Diagnosis',
+      description: 'Observe what happens when the commutator is deactivated and calculate the net torque at 90° deflection.',
+      constraint: 'Commutator Disabled',
+      xpBonus: 120,
+    },
+    assessment: {
+      questions: [
+        {
+          id: 'q1',
+          prompt: 'According to Fleming’s Left-Hand Rule, what do the thumb, first finger, and second finger represent?',
+          options: [
+            'Thumb = Force, First Finger = Magnetic Field, Second Finger = Current',
+            'Thumb = Current, First Finger = Force, Second Finger = Field',
+            'Thumb = Resistance, First Finger = Voltage, Second Finger = Current',
+            'Thumb = Velocity, First Finger = Acceleration, Second Finger = Mass',
+          ],
+          correctIndex: 0,
+          explanation: 'Thumb points to Motion/Force, Index finger points in the direction of the Field (N to S), Middle finger points along Current (+ to -).',
+        },
+      ],
+    },
+    nextConcept: {
+      conceptId: 'electromagnetic_induction',
+      conceptName: 'Faraday Induction & Generators',
+      subject: 'Physics',
+      reason: 'You mastered converting electricity into motion. Next, discover how motion generates electricity!',
+    },
+  },
 };
 
 export function getClassData(conceptId: string): ClassSessionData {
-  if (CANONICAL_CLASSES[conceptId]) {
-    return CANONICAL_CLASSES[conceptId];
+  const normalized = (conceptId || '').toLowerCase().trim();
+
+  if (CANONICAL_CLASSES[normalized]) {
+    return CANONICAL_CLASSES[normalized];
   }
-  // Default to projectile motion proof
-  return CANONICAL_CLASSES.projectile_motion;
+  if (normalized.includes('motor') || normalized.includes('electric') || normalized.includes('commutat')) {
+    return CANONICAL_CLASSES.dc_motor;
+  }
+  if (normalized.includes('projectile') || normalized.includes('kinematic')) {
+    return CANONICAL_CLASSES.projectile_motion;
+  }
+  if (normalized.includes('heart') || normalized.includes('cardio') || normalized.includes('anatomy')) {
+    return CANONICAL_CLASSES.human_heart_anatomy;
+  }
+
+  // Default to dc_motor for teaching experience
+  return CANONICAL_CLASSES.dc_motor;
 }

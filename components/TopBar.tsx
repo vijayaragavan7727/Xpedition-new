@@ -31,7 +31,25 @@ export const TopBar: React.FC = () => {
   const activeGraph =
     storeData?.graphs?.find((g) => g.id === storeData?.activeGraphId) ||
     storeData?.graphs?.[0];
-  const goalTitle = activeGraph?.goalText || storeData?.goalText || 'Xpedition';
+
+  // Dynamic context derivation: On teaching or class routes, reflect active topic/subject
+  let goalTitle = activeGraph?.goalText || storeData?.goalText || 'Xpedition';
+  if (pathname.startsWith('/teach') || pathname.startsWith('/class')) {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const topic = (urlParams.get('topic') || urlParams.get('concept') || '').toLowerCase();
+      if (topic.includes('motor') || topic.includes('electric') || topic.includes('commutat') || pathname.includes('motor')) {
+        goalTitle = 'Physics — DC Motor';
+      } else if (topic.includes('projectile') || topic.includes('kinematic') || pathname.includes('projectile')) {
+        goalTitle = 'Physics — Mechanics';
+      } else if (topic.includes('heart') || topic.includes('cardio') || pathname.includes('heart')) {
+        goalTitle = 'Biology — Heart Anatomy';
+      } else if (topic) {
+        goalTitle = decodeURIComponent(urlParams.get('topic') || urlParams.get('concept') || goalTitle);
+      }
+    }
+  }
+
   const avatarId =
     storeData?.learnerProfile?.avatar_id ||
     activeGraph?.learnerProfile?.avatar_id ||
