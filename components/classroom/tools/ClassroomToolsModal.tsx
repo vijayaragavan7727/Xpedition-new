@@ -31,6 +31,17 @@ import {
   FlashcardItem,
 } from '../types';
 import { ClassroomTelemetryEvent } from '@/lib/classroom/classroomIntelligence';
+import {
+  LearningFlashcard,
+  FormulaCard,
+  StickyNote,
+  FlashcardContent,
+  FormulaCardContent,
+  StickyNoteContent,
+  DEMO_FLASHCARDS,
+  DEMO_FORMULA_CARDS,
+  DEMO_STICKY_NOTES,
+} from '@/components/learning-objects';
 
 export interface ClassroomToolsModalProps {
   isOpen: boolean;
@@ -674,38 +685,37 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
               </span>
             </div>
 
-            {/* Render unlocked hints in progressive sequence */}
-            <div className="space-y-3">
+            {/* Render unlocked hints as Physical Sticky Notes */}
+            <div className="flex flex-wrap items-center justify-center gap-4 py-2">
               {activeHintData.hints.slice(0, hintStage + 1).map((hintText, idx) => {
-                const stageLabel =
-                  idx === 0
-                    ? 'Hint 1: Conceptual Nudge'
-                    : idx === 1
-                    ? 'Hint 2: Specific Direction'
-                    : 'Hint 3: Deep Scaffold';
+                const noteColor =
+                  idx === 0 ? 'orange' : idx === 1 ? 'yellow' : 'green';
+                const noteType =
+                  idx === 0 ? 'hint' : idx === 1 ? 'remember' : 'key_idea';
+                const stageTitle =
+                  idx === 0 ? 'HINT' : idx === 1 ? 'REMEMBER' : 'KEY IDEA';
 
                 return (
-                  <div
-                    key={idx}
-                    className="p-3.5 rounded-xl bg-gradient-to-b from-[#181D30] to-[#0E1324] border border-white/[0.1] space-y-2 shadow-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-mono font-bold text-amber-300 uppercase tracking-wide">
-                        {stageLabel}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleSpeakHint(hintText)}
-                        aria-label="Read hint aloud"
-                        className="p-1 rounded text-slate-400 hover:text-amber-300 transition-colors"
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    <p className="font-sans text-xs sm:text-sm text-slate-200 leading-relaxed">
-                      {hintText}
-                    </p>
+                  <div key={idx} className="relative group">
+                    <StickyNote
+                      note={{
+                        id: `hint_${idx}`,
+                        type: noteType,
+                        color: noteColor,
+                        title: stageTitle,
+                        content: hintText,
+                        author: `Stage ${idx + 1}`,
+                        rotation: idx === 0 ? -1.8 : idx === 1 ? 1.5 : -0.8,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSpeakHint(hintText)}
+                      aria-label="Read hint aloud"
+                      className="absolute top-2 right-2 p-1 rounded-md bg-black/10 hover:bg-black/20 text-slate-700 hover:text-slate-900 transition-colors z-20"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 );
               })}
@@ -813,64 +823,37 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
         )}
 
         {/* ===================================================================
-            5. FORMULA SHEET TOOL (PHYSICAL STUDY FORMULA CARD)
+            5. FORMULA SHEET TOOL (PHYSICAL SCIENTIFIC FORMULA CARDS)
            =================================================================== */}
         {toolType === 'formula' && (
-          <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+            <div className="text-center pb-1">
+              <span className="text-[11px] font-mono text-cyan-300 uppercase tracking-wider">
+                Physical Scientific Reference Cards • Tap copy or inspect
+              </span>
+            </div>
             {lesson.formulas && lesson.formulas.length > 0 ? (
-              lesson.formulas.map((f, idx) => (
-                <div
-                  key={f.id}
-                  className={`p-4 rounded-2xl bg-gradient-to-br from-[#0D1530] via-[#090F24] to-[#060B1C] border border-cyan-500/30 space-y-3 shadow-xl transition-all hover:border-cyan-400/50 ${
-                    idx % 2 === 0 ? 'transform rotate-[0.3deg]' : 'transform -rotate-[0.3deg]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between border-b border-white/[0.08] pb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-serif font-black text-cyan-400 text-base">∑</span>
-                      <span className="font-sans font-bold text-xs sm:text-sm text-white">
-                        {f.name}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyFormula(f.formula, f.id)}
-                      className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 bg-cyan-950/60 px-2.5 py-1 rounded-lg border border-cyan-500/30 transition-colors"
-                    >
-                      <Copy className="w-3 h-3" />
-                      <span>{copiedFormulaId === f.id ? 'Copied!' : 'Copy'}</span>
-                    </button>
-                  </div>
-
-                  {/* Physical Formula Chalkboard / Card Display */}
-                  <div className="p-3 rounded-xl bg-[#040816] border border-cyan-500/25 font-mono text-sm sm:text-base text-cyan-300 font-bold tracking-wide text-center shadow-inner">
-                    {f.formula}
-                  </div>
-
-                  {/* Description */}
-                  <p className="font-sans text-xs text-slate-300 leading-relaxed font-medium">
-                    {f.description}
-                  </p>
-
-                  {/* Variables Table */}
-                  <div className="pt-2 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] font-mono text-slate-400">
-                    {f.variables.map((v) => (
-                      <div key={v.symbol} className="truncate">
-                        <span className="text-cyan-400 font-bold">{v.symbol}</span> = {v.description}{' '}
-                        {v.unit && <span className="text-slate-500 font-sans">({v.unit})</span>}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Worked Example */}
-                  {f.example && (
-                    <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[11px] font-sans text-slate-300">
-                      <span className="font-mono text-cyan-400 font-bold mr-1">Example:</span>
-                      {f.example}
-                    </div>
-                  )}
-                </div>
-              ))
+              <div className="flex flex-wrap items-center justify-center gap-5 py-2">
+                {lesson.formulas.map((f, idx) => (
+                  <FormulaCard
+                    key={f.id}
+                    card={{
+                      id: f.id,
+                      subject: lesson.subject || 'PHYSICS',
+                      cardNumber: `FORMULA CARD 0${idx + 1}`,
+                      title: f.name,
+                      formulaTex: f.formula,
+                      variables: f.variables,
+                      unit: f.variables.find((v) => v.unit)?.unit,
+                      example: f.example || f.description,
+                      emblem: 'atom',
+                      conceptId: lesson.conceptId,
+                      rotation: idx % 2 === 0 ? -1 : 1.2,
+                    }}
+                    onCopy={(tex) => handleCopyFormula(tex, f.id)}
+                  />
+                ))}
+              </div>
             ) : (
               <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-center space-y-2">
                 <p className="text-sm font-sans text-slate-300 font-medium">
@@ -885,7 +868,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
         )}
 
         {/* ===================================================================
-            6. FLASHCARDS TOOL (PHYSICAL STUDY CARDS WITH 3D DEPTH)
+            6. FLASHCARDS TOOL (PHYSICAL COLLECTIBLE STUDY CARDS WITH 3D FLIP)
            =================================================================== */}
         {toolType === 'flashcards' && (
           <div className="space-y-4">
@@ -909,49 +892,58 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
             </div>
 
             {currentCard ? (
-              <div className="space-y-3">
-                {/* 3D Flip Physical Study Card Container */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Flashcard. Click or press Enter to flip."
-                  onClick={() => setIsFlipped(!isFlipped)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setIsFlipped(!isFlipped);
-                    }
+              <div className="space-y-4 flex flex-col items-center">
+                {/* Physical Collectible Study Flashcard */}
+                <LearningFlashcard
+                  card={{
+                    id: currentCard.id,
+                    subject: lesson.subject || 'PHYSICS',
+                    cardNumber: `0${cardIndex + 1}`,
+                    title:
+                      currentCard.category?.toUpperCase() ||
+                      (cardIndex === 0
+                        ? 'DC MOTOR'
+                        : cardIndex === 1
+                        ? 'MAGNETIC FORCE'
+                        : 'QUICK CHECK'),
+                    colorTheme:
+                      cardIndex === 0
+                        ? 'navy'
+                        : cardIndex === 1
+                        ? 'forest'
+                        : 'terracotta',
+                    emblem:
+                      cardIndex === 0
+                        ? 'lightning'
+                        : cardIndex === 1
+                        ? 'magnet'
+                        : 'question',
+                    illustrationUrl:
+                      cardIndex === 0
+                        ? '/images/classroom/dc-motor-core.png'
+                        : undefined,
+                    illustrationAlt: currentCard.category || 'Concept',
+                    front: {
+                      question: currentCard.front,
+                      answerPreview: currentCard.back,
+                    },
+                    back: {
+                      answer: currentCard.back,
+                      explanation:
+                        'Physical electromagnetic mechanism demonstrated in the active classroom lesson.',
+                      keyTakeaway:
+                        'Current reversal = Torque reversal = Rotational reversal.',
+                    },
+                    status: currentCard.status,
+                    rotation: cardIndex % 2 === 0 ? -0.8 : 0.8,
                   }}
-                  className="w-full min-h-[190px] p-6 rounded-2xl bg-gradient-to-br from-[#121936] via-[#0D132A] to-[#070B18] border border-cyan-500/35 flex flex-col items-center justify-between text-center cursor-pointer select-none shadow-[0_16px_36px_rgba(0,0,0,0.8)] hover:border-cyan-400/60 transform rotate-[0.4deg] hover:rotate-0 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                >
-                  {/* Card Header */}
-                  <div className="w-full flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold border-b border-white/[0.06] pb-2">
-                    <span className="flex items-center gap-1">
-                      <span>🏷️</span>
-                      <span>{currentCard.category || 'Term'}</span>
-                    </span>
-                    <span className="text-slate-400 font-normal">
-                      {isFlipped ? 'Answer (Click to Flip)' : 'Prompt (Click to Flip)'}
-                    </span>
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="my-auto py-3">
-                    <p className="font-sans text-sm sm:text-base font-bold text-white leading-relaxed">
-                      {isFlipped ? currentCard.back : currentCard.front}
-                    </p>
-                  </div>
-
-                  {/* Card Footer Badge */}
-                  <div className="w-full flex items-center justify-center pt-2 border-t border-white/[0.06]">
-                    <span className="text-[10px] font-mono text-slate-400">
-                      Card {cardIndex + 1} of {initialCards.length} • Tap space or card to flip
-                    </span>
-                  </div>
-                </div>
+                  isFlipped={isFlipped}
+                  onFlip={(flipped) => setIsFlipped(flipped)}
+                  onMarkStatus={(status) => handleMarkStatus(status)}
+                />
 
                 {/* Flip & Review Action Bar */}
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-1 w-full max-w-xs">
                   <button
                     type="button"
                     onClick={() => handleMarkStatus('REVIEW')}

@@ -14,6 +14,7 @@ import {
   RotateCw,
   Lightbulb,
 } from 'lucide-react';
+import { StickyNote } from '@/components/learning-objects';
 
 export interface SmartBoardProps {
   step: ClassroomLessonStep;
@@ -113,9 +114,23 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
       <div className="flex-1 p-3.5 sm:p-5 overflow-hidden flex flex-col justify-between min-h-0">
         {/* Board Headline & Single Concise Explanation */}
         <div className="space-y-1 shrink-0">
-          <h2 className="font-sans font-black text-lg sm:text-xl lg:text-2xl text-white tracking-tight">
-            {step.boardTitle}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-sans font-black text-lg sm:text-xl lg:text-2xl text-white tracking-tight">
+              {step.boardTitle}
+            </h2>
+            {step.formulaSnippet && onOpenTool && (
+              <button
+                type="button"
+                onClick={() => onOpenTool('formula')}
+                title="Inspect scientific formula card"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/35 hover:bg-amber-500/25 text-amber-200 text-xs font-mono font-bold transition-all cursor-pointer shadow-sm hover:scale-105"
+              >
+                <span>📐 Formula:</span>
+                <span className="text-white font-bold">{step.formulaSnippet}</span>
+                <span className="text-[10px] text-amber-300">Inspect Card →</span>
+              </button>
+            )}
+          </div>
           <p className="font-sans text-xs sm:text-[13px] text-slate-300 leading-relaxed max-w-2xl font-medium">
             {step.boardSummary}
           </p>
@@ -311,17 +326,37 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 Submit Answer
               </button>
             ) : (
-              <div className="flex items-center justify-between pt-1">
-                <p className="text-[11px] font-sans text-slate-300">
-                  {selectedOption?.feedback}
-                </p>
-                <button
-                  type="button"
-                  onClick={handleResetAnswer}
-                  className="text-[10px] font-mono text-indigo-400 hover:underline cursor-pointer"
-                >
-                  Try Again
-                </button>
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-sans text-slate-300">
+                    {selectedOption?.feedback}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResetAnswer}
+                    className="text-[10px] font-mono text-indigo-400 hover:underline cursor-pointer"
+                  >
+                    Try Again
+                  </button>
+                </div>
+
+                {/* Tactile Common Mistake Sticky Note */}
+                {!selectedOption?.isCorrect && (
+                  <div className="flex justify-center pt-2">
+                    <StickyNote
+                      note={{
+                        id: 'mistake_note',
+                        type: 'common_mistake',
+                        color: 'pink',
+                        title: 'COMMON MISTAKE',
+                        content:
+                          'Do not confuse current direction with magnetic-field direction.',
+                        author: 'Buddy',
+                        rotation: 1.2,
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
