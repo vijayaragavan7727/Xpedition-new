@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { BookOpen, Search, Bell, ChevronDown, User, LogOut, Settings, Award } from 'lucide-react';
 
+import { XpeditionLogo } from '@/components/XpeditionLogo';
+
 interface LearningJourneyTopBarProps {
   learnerName: string;
 }
@@ -12,19 +14,40 @@ export const LearningJourneyTopBar: React.FC<LearningJourneyTopBarProps> = ({ le
   const [showSearch, setShowSearch] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
-  const initial = learnerName ? learnerName.charAt(0).toUpperCase() : 'V';
+  const initial = learnerName ? learnerName.charAt(0).toUpperCase() : 'L';
 
   return (
-    <header className="w-full h-11 sm:h-14 md:h-16 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#EBE7DF] px-3 sm:px-6 md:px-8 flex items-center justify-between select-none z-20 shrink-0 sticky top-0">
-      {/* Left: Breadcrumb / Section Title */}
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-[#E8F5EE] text-[#0F5132] flex items-center justify-center">
-          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+    <header className="w-full h-11 sm:h-14 md:h-16 bg-[#FAF8F5]/95 backdrop-blur-md border-b border-[#EBE7DF] px-3 sm:px-6 md:px-8 flex items-center justify-between select-none z-20 shrink-0 sticky top-0">
+      {/* Left: XPEDITION Logo Wordmark */}
+      <Link
+        href="/home"
+        className="inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] rounded-lg"
+        aria-label="Xpedition Home"
+      >
+        <div className="flex items-center gap-2">
+          {/* Logo Mark */}
+          <svg
+            className="w-6 h-6 sm:w-7 sm:h-7 shrink-0 drop-shadow-2xs"
+            viewBox="0 0 36 36"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path d="M18 18 C14 8 8 4 5 7 C2 10 6 16 18 18 Z" fill="#1B5E43" />
+            <path d="M17 17 C13.5 9 8.5 6 6 8.5 C3.5 11 7 15 17 17 Z" fill="#32956D" opacity="0.65" />
+            <path d="M18 18 C22 8 28 4 31 7 C34 10 30 16 18 18 Z" fill="#16513A" />
+            <path d="M19 17 C22.5 9 27.5 6 30 8.5 C32.5 11 29 15 19 17 Z" fill="#2C8862" opacity="0.65" />
+            <path d="M18 18 C14 28 8 32 5 29 C2 26 6 20 18 18 Z" fill="#134733" />
+            <path d="M17 19 C13.5 27 8.5 30 6 27.5 C3.5 25 7 21 17 19 Z" fill="#277D5A" opacity="0.65" />
+            <path d="M18 18 C22 28 28 32 31 29 C34 26 30 20 18 18 Z" fill="#1B5E43" />
+            <path d="M19 19 C22.5 27 27.5 30 30 27.5 C32.5 25 29 21 19 19 Z" fill="#32956D" opacity="0.65" />
+            <circle cx="18" cy="18" r="2.2" fill="#0E3827" />
+          </svg>
+          <span className="font-sans font-extrabold text-sm sm:text-lg tracking-[0.14em] text-slate-900 leading-none">
+            XPEDITION
+          </span>
         </div>
-        <span className="font-sans font-bold text-xs sm:text-base text-slate-800">
-          Learn / Class
-        </span>
-      </div>
+      </Link>
 
       {/* Right: Search, Notifications, Avatar */}
       <div className="flex items-center gap-1.5 sm:gap-3">
@@ -74,7 +97,7 @@ export const LearningJourneyTopBar: React.FC<LearningJourneyTopBarProps> = ({ le
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#184E38] text-white flex items-center justify-center font-sans font-bold text-[11px] sm:text-xs shadow-xs">
               {initial}
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-500 hidden sm:block" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
           </button>
 
           {showMenu && (

@@ -43,39 +43,28 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
   };
 
   return (
-    <div className="w-full rounded-xl sm:rounded-3xl bg-white/95 border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 md:p-7 shadow-xs sm:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] relative select-none">
-      {/* 1. Subject & Pathway Header Bar (Compact on Mobile, Spacious on Desktop ~45-50px) */}
-      <div className="pb-2 sm:pb-5 border-b border-[#F0ECE1] space-y-1.5 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
-        {/* Top Row on mobile: Subject Info (Left) + Level Badge (Right) */}
-        <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3">
+    <div className="w-full space-y-1.5 sm:space-y-5 select-none">
+      {/* 1. Subject & Pathway Header Card (Section C in reference) */}
+      <div className="w-full rounded-xl sm:rounded-3xl bg-white/95 border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 shadow-xs">
+        <div className="flex items-center justify-between gap-2.5 sm:gap-4">
+          {/* Left: Physics Icon + Subject Title & Topic */}
           <div className="flex items-center gap-2 sm:gap-3.5">
-            <div className="w-7 h-7 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-lg sm:rounded-2xl bg-[#0F5132] text-white flex items-center justify-center shadow-xs sm:shadow-md sm:shadow-[#0F5132]/20 shrink-0">
+            <div className="w-8 h-8 xs:w-9 xs:h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-lg sm:rounded-2xl bg-[#0F5132] text-white flex items-center justify-center shadow-xs sm:shadow-md sm:shadow-[#0F5132]/20 shrink-0">
               <Atom className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
             <div>
               <h2 className="font-serif font-black text-xs xs:text-sm sm:text-lg md:text-xl text-slate-900 tracking-tight leading-none">
                 {data.subject.title}
-                <span className="font-sans text-[10px] sm:text-xs text-slate-500 font-semibold ml-1.5 hidden xs:inline sm:hidden">
-                  · {data.subject.topic}
-                </span>
               </h2>
-              <p className="font-sans text-[10px] sm:text-xs text-slate-500 font-semibold mt-0.5 xs:hidden sm:block">
+              <p className="font-sans text-[9.5px] xs:text-[10.5px] sm:text-xs text-slate-500 font-semibold mt-0.5">
                 {data.subject.topic}
               </p>
             </div>
           </div>
 
-          {/* Level Badge on mobile sits on right of top row */}
-          <div className="inline-flex sm:hidden items-center gap-1 px-2 py-0.5 rounded-md bg-[#E8F5EE] border border-[#C5E6D2] text-[#0F5132] text-[10px] font-sans font-bold shadow-2xs">
-            <Mountain className="w-2.5 h-2.5 text-[#0F5132]" />
-            <span>Level {data.subject.level} · {data.subject.levelTitle}</span>
-          </div>
-        </div>
-
-        {/* Bottom Row on mobile: Progress bar + Level Capsule on desktop */}
-        <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-6 pt-0.5 sm:pt-0">
-          <div className="space-y-0.5 sm:space-y-1 w-full sm:w-auto sm:min-w-[150px]">
-            <div className="flex items-center justify-between text-[10px] sm:text-xs font-sans font-semibold text-slate-700">
+          {/* Right: Progress Bar + Level Badge */}
+          <div className="flex flex-col items-end gap-1 min-w-[125px] xs:min-w-[145px] sm:min-w-[200px]">
+            <div className="flex items-center justify-between w-full text-[9.5px] xs:text-[10.5px] sm:text-xs font-sans font-semibold text-slate-700">
               <span>{data.subject.completedCount + 1} of {data.subject.totalCount} lessons</span>
               <span className="font-mono text-slate-500">{data.subject.progressPercentage}%</span>
             </div>
@@ -85,12 +74,11 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
                 style={{ width: `${data.subject.progressPercentage}%` }}
               />
             </div>
-          </div>
-
-          {/* Level capsule on desktop */}
-          <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#E8F5EE] border border-[#C5E6D2] text-[#0F5132] text-xs font-sans font-bold shadow-xs shrink-0">
-            <Mountain className="w-4 h-4 text-[#0F5132]" />
-            <span>Level {data.subject.level} • {data.subject.levelTitle}</span>
+            {/* Level Pill */}
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#E8F5EE] border border-[#C5E6D2] text-[#0F5132] text-[9px] xs:text-[9.5px] sm:text-xs font-sans font-bold shadow-2xs mt-0.5">
+              <Mountain className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#0F5132]" />
+              <span>Level {data.subject.level} • {data.subject.levelTitle}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -110,147 +98,158 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
         </div>
       )}
 
-      {/* 2. Main Body Grid: Winding Map (Left) + Current Lesson Action Card (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-6 pt-2 sm:pt-6 items-stretch">
-        {/* Left Side: Illustrated Winding Journey Trail (Compact 285-305px on mobile) */}
-        <div className="lg:col-span-7 xl:col-span-8 relative h-[285px] xs:h-[305px] sm:h-[400px] md:min-h-[440px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-2 sm:p-4 md:p-5 flex flex-col justify-between">
-          {/* Subtle soft illustrated landscape terrain background */}
-          <div className="absolute inset-0 opacity-25 pointer-events-none">
+      {/* 2. Main Learning Journey Card (Map + Current Lesson) */}
+      <div className="w-full rounded-xl sm:rounded-3xl bg-white/95 border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 md:p-6 shadow-xs sm:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] relative select-none">
+        {/* Section Header: Compass + Title */}
+        <div className="flex items-center gap-1.5 sm:gap-2 pb-1.5 sm:pb-3 border-b border-[#F0ECE1]">
+          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#E8F5EE] text-[#0F5132] flex items-center justify-center p-0.5 shrink-0">
             <Image
-              src="/images/learning-journey/learning-journey-bg.jpg"
+              src="/images/learning-journey/compass.svg"
               alt=""
-              fill
-              className="object-cover object-bottom"
+              width={16}
+              height={16}
+              className="object-contain"
             />
           </div>
-
-          {/* SVG Trail Curve Vector connecting nodes in 2D landscape */}
-          <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            viewBox="0 0 500 400"
-            preserveAspectRatio="none"
-            fill="none"
-          >
-            <defs>
-              <linearGradient id="trailRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#E2EDE6" />
-                <stop offset="50%" stopColor="#DFEAE2" />
-                <stop offset="100%" stopColor="#E7E3D8" />
-              </linearGradient>
-            </defs>
-
-            {/* Soft Shadow & Ground Trail Bed */}
-            <path
-              d="M 70,72 C 120,60 160,60 210,64 C 255,70 230,130 260,176 C 290,215 360,165 400,192 C 430,220 410,265 380,304 C 340,335 300,335 250,328 C 200,320 165,330 130,312 C 90,290 60,260 70,224"
-              stroke="url(#trailRibbon)"
-              strokeWidth="16"
-              strokeLinecap="round"
-            />
-            {/* Main Green Journey Path */}
-            <path
-              d="M 70,72 C 120,60 160,60 210,64 C 255,70 230,130 260,176 C 290,215 360,165 400,192 C 430,220 410,265 380,304 C 340,335 300,335 250,328 C 200,320 165,330 130,312 C 90,290 60,260 70,224"
-              stroke="#0F5132"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray="6 6"
-            />
-
-            {/* Destination Flag at Final Node 8 */}
-            <g transform="translate(62, 206)">
-              <line x1="0" y1="18" x2="0" y2="0" stroke="#B48332" strokeWidth="2" strokeLinecap="round" />
-              <polygon points="0,0 12,4 0,8" fill="#D4AF37" />
-            </g>
-          </svg>
-
-          {/* 8 Nodes Positioned on the Trail */}
-          <div className="relative w-full h-full min-h-[250px] xs:min-h-[270px] sm:min-h-[360px] md:min-h-[400px]">
-            {data.nodes.map((node) => {
-              const isCompleted = node.status === 'completed';
-              const isCurrent = node.status === 'current';
-              const isLocked = node.status === 'locked';
-
-              return (
-                <div
-                  key={node.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Concept ${node.stepNumber}: ${node.title} - ${node.status}`}
-                  onClick={() => handleNodeClick(node)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleNodeClick(node);
-                    }
-                  }}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5132] focus-visible:ring-offset-2 rounded-full"
-                  style={{ left: `${node.coords.x}%`, top: `${node.coords.y}%` }}
-                >
-                  {/* Node Badge Avatar */}
-                  <div className="relative flex flex-col items-center">
-                    {/* Current Node Beacon Flag & Pedestal */}
-                    {isCurrent && (
-                      <div className="absolute -top-6 sm:-top-11 flex flex-col items-center animate-bounce duration-[2000ms] pointer-events-none z-20">
-                        <div className="px-1.5 sm:px-2.5 py-0.5 rounded-full bg-[#0F5132] text-white text-[8.5px] sm:text-[10px] font-sans font-bold shadow-md whitespace-nowrap flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
-                          <span>Current Lesson</span>
-                        </div>
-                        <div className="w-1.5 h-1.5 bg-[#0F5132] rotate-45 -mt-0.5" />
-                      </div>
-                    )}
-
-                    {/* Node Circle */}
-                    <div
-                      className={`relative w-7 h-7 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center font-sans font-bold text-[11px] sm:text-sm shadow-sm transition-all ${
-                        isCompleted
-                          ? 'bg-[#0F5132] text-white ring-2 sm:ring-4 ring-[#E8F5EE] group-hover:ring-[#C5E6D2]'
-                          : isCurrent
-                          ? 'bg-[#0F5132] text-white ring-2 sm:ring-4 ring-[#0F5132]/30 ring-offset-1 sm:ring-offset-2 animate-pulse'
-                          : 'bg-[#FAF8F5] text-slate-400 border border-slate-300 group-hover:border-slate-400'
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <Check className="w-3 h-3 sm:w-4 sm:h-4 stroke-[3]" />
-                      ) : isCurrent ? (
-                        <span>{node.stepNumber}</span>
-                      ) : (
-                        <Lock className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-slate-400" />
-                      )}
-                    </div>
-
-                    {/* Node Text Label Card */}
-                    <div className="mt-0.5 sm:mt-1 text-center pointer-events-none max-w-[62px] xs:max-w-[72px] sm:max-w-[95px] md:max-w-[120px]">
-                      <p
-                        className={`text-[8.5px] xs:text-[9.5px] sm:text-xs font-sans font-bold leading-tight ${
-                          isCurrent
-                            ? 'text-[#0F5132]'
-                            : isCompleted
-                            ? 'text-slate-800'
-                            : 'text-slate-500'
-                        }`}
-                      >
-                        {node.title}
-                      </p>
-                      <p className="text-[9px] sm:text-[10px] font-sans text-slate-400 mt-0.5 font-medium hidden sm:block">
-                        {node.subtitle}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Wooden signpost watermark at bottom-left */}
-          <div className="relative z-10 flex items-center gap-1.5 sm:gap-2 pt-0.5 sm:pt-2 text-[9px] sm:text-[11px] font-sans font-semibold text-[#0F5132]">
-            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 shrink-0" />
-            <span>Trail to Mastery: Follow the winding checkpoints</span>
-          </div>
+          <h3 className="font-serif font-black text-xs xs:text-sm sm:text-lg text-slate-900 tracking-tight">
+            Learning Journey
+          </h3>
         </div>
 
-        {/* Right Side: Current Lesson Destination Card (Compact ~115-125px on mobile) */}
-        <div className="lg:col-span-5 xl:col-span-4 flex flex-col justify-between rounded-xl sm:rounded-2xl bg-[#FAF8F5] border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 md:p-6 shadow-xs">
-          <div className="space-y-1.5 sm:space-y-4">
-            {/* Desktop Destination Illustration Pedestal (Hidden on compact mobile) */}
+        {/* Desktop Grid Layout: Map (Left) + Current Lesson (Right) | Mobile Stack */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-6 pt-1.5 sm:pt-4 items-stretch">
+          {/* Illustrated Winding Journey Trail */}
+          <div className="lg:col-span-7 xl:col-span-8 relative h-[210px] xs:h-[220px] sm:h-[400px] md:min-h-[440px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-1.5 sm:p-4 flex flex-col justify-between">
+            {/* Soft illustrated landscape terrain background */}
+            <div className="absolute inset-0 opacity-25 pointer-events-none">
+              <Image
+                src="/images/learning-journey/learning-journey-bg.jpg"
+                alt=""
+                fill
+                className="object-cover object-bottom"
+              />
+            </div>
+
+            {/* SVG Trail Curve Vector connecting nodes in 2D landscape */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              viewBox="0 0 500 400"
+              preserveAspectRatio="none"
+              fill="none"
+            >
+              <defs>
+                <linearGradient id="trailRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#E2EDE6" />
+                  <stop offset="50%" stopColor="#DFEAE2" />
+                  <stop offset="100%" stopColor="#E7E3D8" />
+                </linearGradient>
+              </defs>
+
+              {/* Soft Shadow & Ground Trail Bed */}
+              <path
+                d="M 70,72 C 120,60 160,60 210,64 C 255,70 230,130 260,176 C 290,215 360,165 400,192 C 430,220 410,265 380,304 C 340,335 300,335 250,328 C 200,320 165,330 130,312 C 90,290 60,260 70,224"
+                stroke="url(#trailRibbon)"
+                strokeWidth="16"
+                strokeLinecap="round"
+              />
+              {/* Main Green Journey Path */}
+              <path
+                d="M 70,72 C 120,60 160,60 210,64 C 255,70 230,130 260,176 C 290,215 360,165 400,192 C 430,220 410,265 380,304 C 340,335 300,335 250,328 C 200,320 165,330 130,312 C 90,290 60,260 70,224"
+                stroke="#0F5132"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray="6 6"
+              />
+
+              {/* Destination Flag at Final Node 8 */}
+              <g transform="translate(62, 206)">
+                <line x1="0" y1="18" x2="0" y2="0" stroke="#B48332" strokeWidth="2" strokeLinecap="round" />
+                <polygon points="0,0 12,4 0,8" fill="#D4AF37" />
+              </g>
+            </svg>
+
+            {/* 8 Nodes Positioned on the Trail */}
+            <div className="relative w-full h-full min-h-[195px] xs:min-h-[205px] sm:min-h-[360px] md:min-h-[400px]">
+              {data.nodes.map((node) => {
+                const isCompleted = node.status === 'completed';
+                const isCurrent = node.status === 'current';
+                const isLocked = node.status === 'locked';
+
+                return (
+                  <div
+                    key={node.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Concept ${node.stepNumber}: ${node.title} - ${node.status}`}
+                    onClick={() => handleNodeClick(node)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleNodeClick(node);
+                      }
+                    }}
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5132] focus-visible:ring-offset-2 rounded-full"
+                    style={{ left: `${node.coords.x}%`, top: `${node.coords.y}%` }}
+                  >
+                    {/* Node Badge Avatar */}
+                    <div className="relative flex flex-col items-center">
+                      {/* Current Node Beacon Flag */}
+                      {isCurrent && (
+                        <div className="absolute -top-5 sm:-top-11 flex flex-col items-center animate-bounce duration-[2000ms] pointer-events-none z-20">
+                          <div className="px-1.5 sm:px-2.5 py-0.5 rounded-full bg-[#0F5132] text-white text-[7.5px] sm:text-[10px] font-sans font-bold shadow-md whitespace-nowrap flex items-center gap-1">
+                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-emerald-300 animate-ping" />
+                            <span>Current Lesson</span>
+                          </div>
+                          <div className="w-1.5 h-1.5 bg-[#0F5132] rotate-45 -mt-0.5" />
+                        </div>
+                      )}
+
+                      {/* Node Circle */}
+                      <div
+                        className={`relative w-6 h-6 xs:w-6.5 xs:h-6.5 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center font-sans font-bold text-[10px] sm:text-sm shadow-sm transition-all ${
+                          isCompleted
+                            ? 'bg-[#0F5132] text-white ring-2 sm:ring-4 ring-[#E8F5EE] group-hover:ring-[#C5E6D2]'
+                            : isCurrent
+                            ? 'bg-[#0F5132] text-white ring-2 sm:ring-4 ring-[#0F5132]/30 ring-offset-1 sm:ring-offset-2 animate-pulse'
+                            : 'bg-[#FAF8F5] text-slate-400 border border-slate-300 group-hover:border-slate-400'
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <Check className="w-2.5 h-2.5 sm:w-4 sm:h-4 stroke-[3]" />
+                        ) : isCurrent ? (
+                          <span>{node.stepNumber}</span>
+                        ) : (
+                          <Lock className="w-2 h-2 sm:w-3.5 sm:h-3.5 text-slate-400" />
+                        )}
+                      </div>
+
+                      {/* Node Text Label Card */}
+                      <div className="mt-0.5 sm:mt-1 text-center pointer-events-none max-w-[56px] xs:max-w-[64px] sm:max-w-[95px] md:max-w-[120px]">
+                        <p
+                          className={`text-[7.5px] xs:text-[8.5px] sm:text-xs font-sans font-bold leading-tight ${
+                            isCurrent
+                              ? 'text-[#0F5132]'
+                              : isCompleted
+                              ? 'text-slate-800'
+                              : 'text-slate-500'
+                          }`}
+                        >
+                          {node.title}
+                        </p>
+                        <p className="text-[6.5px] xs:text-[7.5px] sm:text-[10px] font-sans text-slate-400 mt-0.5 font-medium leading-none">
+                          {node.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Current Lesson Area (Horizontal on Mobile matching reference, Pedestal on Desktop) */}
+          <div className="lg:col-span-5 xl:col-span-4 flex flex-col justify-between rounded-xl sm:rounded-2xl bg-[#FAF8F5] border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 md:p-6 shadow-2xs sm:shadow-xs">
+            {/* Desktop Pedestal Illustration */}
             <div className="hidden sm:flex relative w-full h-32 md:h-42 rounded-xl overflow-hidden bg-gradient-to-br from-[#E8F5EE] via-[#FAF9F5] to-[#E5EFE8] border border-[#D5E6DC] items-center justify-center p-2.5 sm:p-3 shadow-inner">
               <div
                 className="absolute inset-0 pointer-events-none"
@@ -270,59 +269,54 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
               </div>
             </div>
 
-            {/* Lesson Title & Metas */}
-            <div className="flex items-center justify-between gap-2 sm:block sm:space-y-1.5">
-              <div className="space-y-0.5 sm:space-y-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="sm:hidden px-1.5 py-0.5 rounded bg-[#0F5132] text-white font-mono text-[8px] font-bold shrink-0">
-                    Next
-                  </span>
-                  <h3 className="font-serif font-black text-xs xs:text-sm sm:text-lg md:text-xl text-slate-900 tracking-tight leading-snug truncate sm:whitespace-normal">
-                    {data.currentLesson.title}
-                  </h3>
-                </div>
+            {/* Mobile Horizontal Layout with DC Motor on Left */}
+            <div className="flex items-center gap-2.5 sm:block sm:space-y-2">
+              {/* 3D DC Motor model image on Mobile */}
+              <div className="sm:hidden w-12 h-12 xs:w-14 xs:h-14 rounded-lg bg-gradient-to-br from-[#E8F5EE] via-[#FAF9F5] to-[#E5EFE8] border border-[#D5E6DC] p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                <Image
+                  src={data.currentLesson.imageSrc}
+                  alt={data.currentLesson.title}
+                  width={50}
+                  height={50}
+                  className="object-contain"
+                />
+              </div>
 
-                <div className="flex items-center gap-2 text-[10px] sm:text-xs font-sans text-slate-500">
+              {/* Title & Metadata & Description */}
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <h4 className="font-serif font-black text-xs xs:text-sm sm:text-lg md:text-xl text-slate-900 tracking-tight leading-snug truncate sm:whitespace-normal">
+                  {data.currentLesson.title}
+                </h4>
+
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] xs:text-[9.5px] sm:text-xs font-sans text-slate-500">
                   <span className="flex items-center gap-1 font-semibold text-slate-700">
-                    <Clock className="w-3 h-3 text-[#0F5132]" />
+                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#0F5132]" />
                     {data.currentLesson.estimatedMinutes} min
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1 font-mono font-semibold text-slate-700">
-                    <BarChart2 className="w-3 h-3 text-[#0F5132]" />
+                    <BarChart2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#0F5132]" />
                     {data.currentLesson.conceptNumberLabel}
                   </span>
                 </div>
-              </div>
 
-              {/* Small mobile motor thumbnail */}
-              <div className="sm:hidden w-8 h-8 rounded-lg bg-[#E8F5EE] border border-[#C5E6D2] p-0.5 shrink-0 flex items-center justify-center">
-                <Image
-                  src={data.currentLesson.imageSrc}
-                  alt={data.currentLesson.title}
-                  width={28}
-                  height={28}
-                  className="object-contain"
-                />
+                <p className="font-sans text-[8.5px] xs:text-[9.5px] sm:text-sm text-slate-600 leading-tight line-clamp-2 sm:line-clamp-none">
+                  {data.currentLesson.description}
+                </p>
               </div>
             </div>
 
-            {/* Description */}
-            <p className="font-sans text-[10.5px] sm:text-sm text-slate-600 leading-tight line-clamp-1 sm:line-clamp-none">
-              {data.currentLesson.description}
-            </p>
-          </div>
-
-          {/* Primary CTA: "Continue Learning →" */}
-          <div className="pt-1.5 sm:pt-5 mt-auto">
-            <button
-              type="button"
-              onClick={() => handleContinueLesson(data.currentLesson.conceptId)}
-              className="w-full h-8.5 sm:h-12 rounded-lg sm:rounded-xl bg-[#0F5132] hover:bg-[#0B3D26] text-white font-sans font-bold text-xs sm:text-base flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm shadow-[#0F5132]/25 transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5132] focus-visible:ring-offset-2"
-            >
-              <span>Continue Learning</span>
-              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
+            {/* Primary CTA: "Continue Learning →" */}
+            <div className="pt-1.5 sm:pt-4 mt-auto">
+              <button
+                type="button"
+                onClick={() => handleContinueLesson(data.currentLesson.conceptId)}
+                className="w-full h-8 xs:h-8.5 sm:h-12 rounded-lg sm:rounded-xl bg-[#0F5132] hover:bg-[#0B3D26] text-white font-sans font-bold text-xs sm:text-base flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm shadow-[#0F5132]/25 transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5132] focus-visible:ring-offset-2"
+              >
+                <span>Continue Learning</span>
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
