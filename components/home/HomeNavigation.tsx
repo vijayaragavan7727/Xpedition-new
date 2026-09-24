@@ -108,7 +108,7 @@ export const HomeMobileBottomNav: React.FC = () => {
       }}
       aria-label="Mobile Primary Navigation"
     >
-      <div className="h-[62px] flex items-center justify-around px-2 max-w-lg mx-auto">
+      <div className="h-[56px] sm:h-[62px] flex items-center justify-around px-2 max-w-lg mx-auto">
         {HOME_PRIMARY_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -120,19 +120,19 @@ export const HomeMobileBottomNav: React.FC = () => {
               key={item.href}
               href={item.href}
               aria-label={item.label}
-              className={`flex-1 h-full min-h-[44px] min-w-[44px] flex flex-col items-center justify-center gap-1 transition-colors active:scale-95 ${
+              className={`flex-1 h-full min-h-[44px] min-w-[44px] flex flex-col items-center justify-center gap-0.5 sm:gap-1 transition-colors active:scale-95 ${
                 isActive ? 'text-[#184E38]' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <div
-                className={`p-1.5 rounded-lg transition-colors ${
+                className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
                   isActive ? 'bg-[#E3EBE5] text-[#184E38]' : 'text-slate-600'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <span
-                className={`font-sans text-[11px] leading-tight ${
+                className={`font-sans text-[10px] sm:text-[11px] leading-tight ${
                   isActive ? 'font-bold text-[#184E38]' : 'font-medium text-slate-600'
                 }`}
               >

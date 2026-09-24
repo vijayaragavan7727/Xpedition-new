@@ -398,24 +398,24 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
   };
 
   return (
-    <div className="w-full max-w-[390px] sm:max-w-[420px] bg-white rounded-[22px] p-5 sm:p-9 shadow-[0_20px_50px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.04)] border border-slate-200/80 transition-all select-none relative z-20 box-border">
+    <div className="w-full max-w-[390px] sm:max-w-[420px] bg-white rounded-[20px] sm:rounded-[22px] p-4 sm:p-9 shadow-[0_20px_50px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.04)] border border-slate-200/80 transition-all select-none relative z-20 box-border">
       {/* Title & Subtitle */}
-      <div className="mb-3.5 sm:mb-6 text-left">
-        <h2 className="text-[22px] sm:text-[26px] font-bold text-slate-900 tracking-tight leading-tight">
+      <div className="mb-2.5 sm:mb-6 text-left">
+        <h2 className="text-[20px] sm:text-[26px] font-bold text-slate-900 tracking-tight leading-tight">
           {isSignUp ? 'Create Account' : 'Welcome Back'}
         </h2>
-        <p className="text-[12px] sm:text-[13px] text-slate-500 mt-0.5 sm:mt-1 leading-normal font-normal">
+        <p className="text-[11px] sm:text-[13px] text-slate-500 mt-0.5 sm:mt-1 leading-normal font-normal">
           {isSignUp ? 'Sign up to begin your learning journey' : 'Sign in to continue your journey'}
         </p>
       </div>
 
       {/* Configuration Error Banner */}
       {!urlValidation.isValid && urlValidation.message && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-left" role="alert">
-          <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-amber-800 block">
+        <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-amber-50 border border-amber-200 rounded-xl text-left" role="alert">
+          <span className="font-sans text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-800 block">
             Configuration Notice
           </span>
-          <span className="font-sans text-xs text-amber-700 block mt-0.5 leading-tight">
+          <span className="font-sans text-[11px] sm:text-xs text-amber-700 block mt-0.5 leading-tight">
             {urlValidation.message}
           </span>
         </div>
@@ -423,12 +423,12 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
 
       {/* Existing Session Prompt (Returning Authenticated User) */}
       {existingSession && (
-        <div className="mb-5 p-3.5 sm:p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-3" role="region" aria-label="Active session">
+        <div className="mb-3 sm:mb-5 p-3 sm:p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2 sm:space-y-3" role="region" aria-label="Active session">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-sans text-[11px] uppercase tracking-wider text-emerald-800 font-bold">
+            <span className="font-sans text-[10px] sm:text-[11px] uppercase tracking-wider text-emerald-800 font-bold">
               Active Session
             </span>
-            <span className="font-sans text-xs text-emerald-900 font-semibold truncate max-w-[160px] sm:max-w-[180px]">
+            <span className="font-sans text-[11px] sm:text-xs text-emerald-900 font-semibold truncate max-w-[160px] sm:max-w-[180px]">
               {existingSession.email}
             </span>
           </div>
@@ -480,13 +480,13 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} noValidate className="space-y-3 sm:space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-2.5 sm:space-y-4">
             {/* Form Error Alert */}
             {formError && (
               <div
                 id="auth-error-alert"
                 role="alert"
-                className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-sans text-red-700 flex items-start gap-2 text-left"
+                className="p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-sans text-red-700 flex items-start gap-2 text-left"
               >
                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" aria-hidden="true" />
                 <span className="leading-tight">{formError}</span>
@@ -495,7 +495,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
 
             {/* Reset Email Sent Confirmation */}
             {resetSent && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-sans text-emerald-800 text-center flex items-center justify-center gap-1.5">
+              <div className="p-2.5 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-sans text-emerald-800 text-center flex items-center justify-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
                 <span>Password reset instructions have been sent to your email.</span>
               </div>
@@ -503,7 +503,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
 
             {/* Field 1: Email or username */}
             <div className="space-y-1 sm:space-y-1.5 text-left">
-              <label htmlFor="auth-email" className="block font-sans font-semibold text-[13px] text-slate-700">
+              <label htmlFor="auth-email" className="block font-sans font-semibold text-[12px] sm:text-[13px] text-slate-700">
                 Email or username
               </label>
               <input
@@ -519,14 +519,14 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
                   if (formError) setFormError(null);
                 }}
                 aria-describedby={formError ? 'auth-error-alert' : undefined}
-                className="w-full h-11 sm:h-12 px-3.5 rounded-[10px] bg-white border border-slate-200 text-[14px] font-sans text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#184E38] focus:ring-1 focus:ring-[#184E38] disabled:bg-slate-50 disabled:text-slate-500 transition-all"
+                className="w-full h-10 sm:h-12 px-3 sm:px-3.5 rounded-[10px] bg-white border border-slate-200 text-[13px] sm:text-[14px] font-sans text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#184E38] focus:ring-1 focus:ring-[#184E38] disabled:bg-slate-50 disabled:text-slate-500 transition-all"
                 placeholder="you@domain.com"
               />
             </div>
 
             {/* Field 2: Password */}
             <div className="space-y-1 sm:space-y-1.5 text-left">
-              <label htmlFor="auth-password" className="block font-sans font-semibold text-[13px] text-slate-700">
+              <label htmlFor="auth-password" className="block font-sans font-semibold text-[12px] sm:text-[13px] text-slate-700">
                 Password
               </label>
               <div className="relative flex items-center">
@@ -542,7 +542,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
                     if (formError) setFormError(null);
                   }}
                   aria-describedby={formError ? 'auth-error-alert' : undefined}
-                  className="w-full h-11 sm:h-12 pl-3.5 pr-10 rounded-[10px] bg-white border border-slate-200 text-[14px] font-sans text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#184E38] focus:ring-1 focus:ring-[#184E38] disabled:bg-slate-50 disabled:text-slate-500 transition-all"
+                  className="w-full h-10 sm:h-12 pl-3 sm:pl-3.5 pr-10 rounded-[10px] bg-white border border-slate-200 text-[13px] sm:text-[14px] font-sans text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#184E38] focus:ring-1 focus:ring-[#184E38] disabled:bg-slate-50 disabled:text-slate-500 transition-all"
                   placeholder="Enter your password"
                 />
                 <button
@@ -562,7 +562,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
               id="auth-submit-btn"
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-11 sm:h-12 mt-1 sm:mt-2 rounded-[10px] bg-[#184E38] hover:bg-[#133E2D] active:bg-[#0E2E21] text-white font-sans font-semibold text-[15px] flex items-center justify-center transition-all duration-150 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] focus-visible:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full h-11 sm:h-12 mt-1 sm:mt-2 rounded-[10px] bg-[#184E38] hover:bg-[#133E2D] active:bg-[#0E2E21] text-white font-sans font-semibold text-[14px] sm:text-[15px] flex items-center justify-center transition-all duration-150 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] focus-visible:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? (
                 <span className="inline-flex items-center gap-2 font-mono text-xs text-white">
@@ -583,7 +583,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
         )}
 
         {/* Divider: "or" */}
-        <div className="relative flex items-center justify-center my-3 sm:my-4">
+        <div className="relative flex items-center justify-center my-2.5 sm:my-4">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-slate-100" />
           </div>
@@ -600,7 +600,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isGoogleLoading || isSubmitting}
-            className="w-full h-11 sm:h-12 rounded-[10px] bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200/90 text-slate-700 font-sans font-medium text-[14px] flex items-center justify-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+            className="w-full h-11 sm:h-12 rounded-[10px] bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200/90 text-slate-700 font-sans font-medium text-[13px] sm:text-[14px] flex items-center justify-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
           >
             {isGoogleLoading ? (
               <span className="inline-flex items-center gap-2 font-mono text-xs text-slate-600">
@@ -608,7 +608,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
                 <span>Connecting with Google...</span>
               </span>
             ) : (
-              <div className="flex items-center justify-center gap-2.5">
+              <div className="flex items-center justify-center gap-2 sm:gap-2.5">
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="#4285F4"
@@ -639,7 +639,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
               type="button"
               onClick={handleAppleSignIn}
               disabled={isAppleLoading || isSubmitting}
-              className="w-full h-11 sm:h-12 rounded-[10px] bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200/90 text-slate-900 font-sans font-medium text-[14px] flex items-center justify-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+              className="w-full h-11 sm:h-12 rounded-[10px] bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200/90 text-slate-900 font-sans font-medium text-[13px] sm:text-[14px] flex items-center justify-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] focus-visible:ring-offset-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
             >
               {isAppleLoading ? (
                 <span className="inline-flex items-center gap-2 font-mono text-xs text-slate-600">
@@ -647,7 +647,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
                   <span>Connecting with Apple...</span>
                 </span>
               ) : (
-                <div className="flex items-center justify-center gap-2.5">
+                <div className="flex items-center justify-center gap-2 sm:gap-2.5">
                   <svg className="w-4 h-4 shrink-0 fill-current text-slate-900" viewBox="0 0 170 170" aria-hidden="true">
                     <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.85-11.96-14.42-5.77-8.91-10.33-19.16-13.68-30.75-3.35-11.59-5.03-22.75-5.03-33.48 0-14.65 3.59-26.68 10.77-36.08 7.18-9.4 16.32-14.24 27.42-14.52 4.47 0 9.53 1.25 15.18 3.75 5.66 2.5 9.4 3.81 11.23 3.93 1.63 0 5.6-1.37 11.91-4.11 6.31-2.75 11.75-3.95 16.33-3.6 12.33.68 22.08 5.48 29.24 14.42-10.77 6.53-16.03 15.65-15.78 27.37.25 9.17 3.75 16.92 10.5 23.25 6.75 6.33 14.75 10.02 24 11.08-2.12 6.42-4.53 12.75-7.23 18.99zM119.22 31.02c0-7.39 2.66-14.18 7.98-20.36 5.32-6.18 11.83-9.97 19.53-11.37.22 1.3.33 2.5.33 3.6 0 7.28-2.77 14.28-8.31 21-5.54 6.72-12.28 10.54-20.21 11.45-.44-1.41-.66-2.85-.66-4.32z" />
                   </svg>
@@ -659,7 +659,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
         </div>
 
         {/* Bottom Mode Switcher */}
-        <div className="text-center pt-5 font-sans text-[13px] text-slate-600">
+        <div className="text-center pt-3 sm:pt-5 font-sans text-[12px] sm:text-[13px] text-slate-600">
           {!isSignUp ? (
             <span>
               Don&apos;t have an account?{' '}
@@ -685,8 +685,8 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
           )}
         </div>
 
-        {/* Unobtrusive Trust, Terms, & Privacy Links */}
-        <div className="text-center pt-4 mt-3 border-t border-slate-100 font-sans text-[11px] text-slate-400 flex items-center justify-center gap-3">
+        {/* Unobtrusive Trust, Terms, & Privacy Links (Visible on desktop; mobile has page footer) */}
+        <div className="hidden lg:flex text-center pt-4 mt-3 border-t border-slate-100 font-sans text-[11px] text-slate-400 items-center justify-center gap-3">
           <Link href="/privacy" className="hover:text-slate-600 transition-colors">
             Privacy
           </Link>

@@ -44,11 +44,11 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
   const strokeDashoffset = circumference - (progress.percentage / 100) * circumference;
 
   return (
-    <div className="w-full space-y-4 lg:space-y-5">
+    <div className="w-full space-y-2.5 sm:space-y-4 lg:space-y-5">
       {/* =========================================================================
           TOP COMPACT HEADER: SEARCH + NOTIFICATIONS + LEARNER PROFILE
           ========================================================================= */}
-      <header className="w-full flex items-center justify-between gap-4 select-none pt-0.5">
+      <header className="w-full flex items-center justify-between gap-2.5 sm:gap-4 select-none pt-0 sm:pt-0.5">
         {/* Search Bar (Rounded Pill) */}
         <div className="relative flex-1 max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -57,17 +57,17 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
           <input
             type="search"
             placeholder="Search anything..."
-            className="w-full h-10 pl-10 pr-4 rounded-full bg-[#F0EDE6] border border-[#E5E0D5] text-sm font-sans text-slate-800 placeholder:text-slate-500 focus:outline-none focus:border-[#184E38] focus:ring-1 focus:ring-[#184E38] transition-all"
+            className="w-full h-9 sm:h-10 pl-9 sm:pl-10 pr-3 sm:pr-4 rounded-full bg-[#F0EDE6] border border-[#E5E0D5] text-xs sm:text-sm font-sans text-slate-800 placeholder:text-slate-500 focus:outline-none focus:border-[#184E38] focus:ring-1 focus:ring-[#184E38] transition-all"
           />
         </div>
 
         {/* Right Section: Notifications + User Profile */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Notification Bell */}
           <button
             type="button"
             aria-label="Notifications"
-            className="relative w-10 h-10 rounded-full bg-white border border-[#EBE7DF] flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+            className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-[#EBE7DF] flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
           >
             <Bell className="w-4 h-4" />
             {/* Unread indicator */}
@@ -77,9 +77,9 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
           {/* User Profile Pill */}
           <Link
             href="/profile"
-            className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white border border-[#EBE7DF] hover:bg-slate-50 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 sm:gap-2 pl-1 pr-2.5 sm:pr-3 py-0.5 sm:py-1 rounded-full bg-white border border-[#EBE7DF] hover:bg-slate-50 transition-colors shadow-sm"
           >
-            <div className="w-8 h-8 rounded-full bg-[#184E38] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-inner">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#184E38] text-white flex items-center justify-center font-bold text-[11px] sm:text-xs shrink-0 shadow-inner">
               {learnerName.charAt(0).toUpperCase()}
             </div>
             <span className="font-sans text-xs font-semibold text-slate-800 hidden sm:inline">
@@ -93,13 +93,13 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
       {/* =========================================================================
           HERO SECTION: GREETING + QUOTE + SCENIC LEARNING WORLD LANDSCAPE
           ========================================================================= */}
-      <section className="relative w-full rounded-[22px] overflow-hidden bg-gradient-to-r from-[#FAF8F5] via-[#F4F0E8] to-[#EAE4D7] border border-[#EBE7DF] min-h-[140px] sm:min-h-[155px] flex items-center shadow-sm">
+      <section className="relative w-full rounded-[18px] sm:rounded-[22px] overflow-hidden bg-gradient-to-r from-[#FAF8F5] via-[#F4F0E8] to-[#EAE4D7] border border-[#EBE7DF] min-h-[105px] sm:min-h-[155px] flex items-center shadow-sm">
         {/* Left Side: Editorial Greeting & Motivational Quote */}
-        <div className="relative z-10 p-5 sm:p-6 lg:py-5 lg:px-7 max-w-xl">
-          <h1 className="font-['Georgia',serif] text-2xl sm:text-[28px] lg:text-[32px] font-bold text-slate-900 tracking-tight leading-tight">
+        <div className="relative z-10 p-3.5 sm:p-6 lg:py-5 lg:px-7 max-w-xl">
+          <h1 className="font-['Georgia',serif] text-xl sm:text-[28px] lg:text-[32px] font-bold text-slate-900 tracking-tight leading-tight">
             {greetingTitle}
           </h1>
-          <p className="font-sans text-xs sm:text-sm text-slate-600 font-normal mt-1.5 leading-relaxed max-w-md">
+          <p className="font-sans text-[11px] sm:text-sm text-slate-600 font-normal mt-1 sm:mt-1.5 leading-relaxed max-w-md">
             {quoteSubtitle}
           </p>
         </div>
@@ -124,38 +124,38 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
       {/* =========================================================================
           LEARNING CARDS ROW: CONTINUE LEARNING (62%) + NEXT UP (38%)
           ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-4.5 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-4 lg:gap-4.5 items-stretch">
         {/* CARD 1: CONTINUE LEARNING */}
-        <div className="lg:col-span-7 bg-white rounded-[20px] p-5 sm:p-5.5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+        <div className="lg:col-span-7 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5.5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
           <div>
             {/* Pill Badge */}
-            <span className="inline-block px-3 py-0.5 rounded-full bg-[#E3EBE5] text-[#184E38] font-sans text-xs font-semibold mb-2.5">
+            <span className="inline-block px-2.5 sm:px-3 py-0.5 rounded-full bg-[#E3EBE5] text-[#184E38] font-sans text-[10px] sm:text-xs font-semibold mb-1.5 sm:mb-2.5">
               {continueLearning.badgeLabel}
             </span>
 
             {/* Concept Title */}
-            <h2 className="font-['Georgia',serif] text-xl sm:text-[22px] font-bold text-slate-900 leading-snug tracking-tight">
+            <h2 className="font-['Georgia',serif] text-lg sm:text-[22px] font-bold text-slate-900 leading-snug tracking-tight">
               {continueLearning.title}
             </h2>
 
             {/* Metadata (Subject · Topic · Duration) */}
-            <p className="font-sans text-xs text-slate-500 font-medium mt-1">
+            <p className="font-sans text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5 sm:mt-1">
               {continueLearning.subject} · {continueLearning.topic} · {continueLearning.durationLabel}
             </p>
           </div>
 
-          <div className="flex items-center justify-between mt-4 pt-1">
+          <div className="flex items-center justify-between mt-2.5 sm:mt-4 pt-0 sm:pt-1">
             {/* CTA Button: Resume Lesson */}
             <Link
               href={continueLearning.route}
-              className="h-10 px-5 rounded-full bg-[#184E38] hover:bg-[#133E2D] active:bg-[#0E2E21] text-white font-sans text-sm font-semibold inline-flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
+              className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-[#184E38] hover:bg-[#133E2D] active:bg-[#0E2E21] text-white font-sans text-xs sm:text-sm font-semibold inline-flex items-center gap-1.5 sm:gap-2 shadow-sm transition-colors cursor-pointer"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               <span>{continueLearning.buttonLabel}</span>
             </Link>
 
             {/* Concept Visual Asset */}
-            <div className="shrink-0 -mr-2 -my-3">
+            <div className="shrink-0 -mr-1 -my-2 sm:-mr-2 sm:-my-3">
               <ConceptVisual
                 conceptId={continueLearning.conceptId}
                 title={continueLearning.title}
@@ -168,42 +168,42 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
         </div>
 
         {/* CARD 2: NEXT UP */}
-        <div className="lg:col-span-5 bg-white rounded-[20px] p-5 sm:p-5.5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
+        <div className="lg:col-span-5 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5.5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
           <div>
             {/* Pill Badge */}
-            <span className="inline-block px-3 py-0.5 rounded-full bg-[#E3EBE5] text-[#184E38] font-sans text-xs font-semibold mb-2.5">
+            <span className="inline-block px-2.5 sm:px-3 py-0.5 rounded-full bg-[#E3EBE5] text-[#184E38] font-sans text-[10px] sm:text-xs font-semibold mb-1.5 sm:mb-2.5">
               {nextUp.badgeLabel}
             </span>
 
-            <div className="flex items-start gap-3 mt-0.5">
+            <div className="flex items-start gap-2.5 sm:gap-3 mt-0.5">
               {/* U-Shape / Magnet Icon Badge */}
-              <div className="w-9 h-9 rounded-full bg-[#184E38] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                <span className="font-mono text-sm font-bold">🧲</span>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#184E38] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                <span className="font-mono text-xs sm:text-sm font-bold">🧲</span>
               </div>
 
               <div>
-                <h3 className="font-['Georgia',serif] text-lg sm:text-[19px] font-bold text-slate-900 leading-snug">
+                <h3 className="font-['Georgia',serif] text-[15px] sm:text-[19px] font-bold text-slate-900 leading-snug">
                   {nextUp.title}
                 </h3>
-                <p className="font-sans text-xs text-slate-500 font-medium mt-0.5">
+                <p className="font-sans text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5">
                   {nextUp.subject} · {nextUp.durationLabel}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between mt-4 pt-1">
+          <div className="flex items-center justify-between mt-2.5 sm:mt-4 pt-0 sm:pt-1">
             {/* Start CTA Button */}
             <Link
               href={nextUp.route}
-              className="h-10 px-5 rounded-full bg-[#184E38] hover:bg-[#133E2D] active:bg-[#0E2E21] text-white font-sans text-xs sm:text-sm font-semibold inline-flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+              className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-[#184E38] hover:bg-[#133E2D] active:bg-[#0E2E21] text-white font-sans text-xs sm:text-sm font-semibold inline-flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
               <span>{nextUp.buttonLabel}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
 
             {/* Concept Visual Asset */}
-            <div className="shrink-0 -mr-2 -my-2">
+            <div className="shrink-0 -mr-1 -my-1 sm:-mr-2 sm:-my-2">
               <ConceptVisual
                 conceptId={nextUp.conceptId}
                 title={nextUp.title}
@@ -219,15 +219,15 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
       {/* =========================================================================
           MIDDLE ROW: YOUR PROGRESS (30%) + TODAY'S FOCUS (38%) + YOUR PASSPORTS (32%)
           ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2.5 sm:gap-4 lg:gap-5 items-stretch">
         {/* CARD 3: YOUR PROGRESS */}
-        <div className="lg:col-span-4 bg-white rounded-[20px] p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-          <h3 className="font-sans font-bold text-sm sm:text-base text-slate-900">Your Progress</h3>
+        <div className="lg:col-span-4 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+          <h3 className="font-sans font-bold text-xs sm:text-base text-slate-900">Your Progress</h3>
 
-          <div className="flex items-center gap-5 my-3">
+          <div className="flex items-center gap-3.5 sm:gap-5 my-1.5 sm:my-3">
             {/* Circular Progress Indicator */}
-            <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
-              <svg className="w-20 h-20 -rotate-90" viewBox="0 0 88 88">
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+              <svg className="w-16 h-16 sm:w-20 sm:h-20 -rotate-90" viewBox="0 0 88 88">
                 {/* Track Circle */}
                 <circle
                   cx="44"
@@ -251,25 +251,25 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
                   className="transition-all duration-700 ease-out"
                 />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center font-sans font-bold text-lg text-slate-900">
+              <div className="absolute inset-0 flex items-center justify-center font-sans font-bold text-base sm:text-lg text-slate-900">
                 {progress.percentage}%
               </div>
             </div>
 
             {/* Level & Rank Details */}
-            <div className="space-y-1">
-              <span className="font-sans text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+            <div className="space-y-0.5 sm:space-y-1">
+              <span className="font-sans text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
                 Level {progress.level}
               </span>
-              <div className="flex items-center gap-1.5 font-sans font-bold text-sm text-slate-900">
-                <Mountain className="w-4 h-4 text-[#184E38]" />
+              <div className="flex items-center gap-1.5 font-sans font-bold text-xs sm:text-sm text-slate-900">
+                <Mountain className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#184E38]" />
                 <span>{progress.levelTitle}</span>
               </div>
-              <div className="pt-1.5 space-y-1">
-                <div className="flex items-center justify-between text-[11px] font-sans font-medium text-slate-600">
+              <div className="pt-1 sm:pt-1.5 space-y-0.5 sm:space-y-1">
+                <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-sans font-medium text-slate-600">
                   <span>XP: {progress.currentXp.toLocaleString()} / {progress.targetXp.toLocaleString()}</span>
                 </div>
-                <div className="w-28 h-1.5 bg-[#E8ECE9] rounded-full overflow-hidden">
+                <div className="w-24 sm:w-28 h-1.5 bg-[#E8ECE9] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#184E38] rounded-full"
                     style={{ width: `${Math.min(100, Math.round((progress.currentXp / progress.targetXp) * 100))}%` }}
@@ -281,21 +281,21 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
         </div>
 
         {/* CARD 4: TODAY'S FOCUS */}
-        <div className="lg:col-span-4 bg-white rounded-[20px] p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:col-span-4 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between relative overflow-hidden">
           <div>
-            <div className="flex items-center gap-2 mb-2.5">
-              <Target className="w-4 h-4 text-[#184E38]" />
-              <h3 className="font-sans font-bold text-sm sm:text-base text-slate-900">Today&apos;s Focus</h3>
+            <div className="flex items-center gap-2 mb-1.5 sm:mb-2.5">
+              <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#184E38]" />
+              <h3 className="font-sans font-bold text-xs sm:text-base text-slate-900">Today&apos;s Focus</h3>
             </div>
 
             {/* Checklist */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {todaysFocus.map((item) => (
-                <div key={item.id} className="flex items-center gap-2.5 text-left">
-                  <div className="w-4 h-4 rounded-full bg-[#184E38] text-white flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
+                <div key={item.id} className="flex items-center gap-2 sm:gap-2.5 text-left">
+                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#184E38] text-white flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </div>
-                  <span className="font-sans text-xs text-slate-700 font-medium">
+                  <span className="font-sans text-[11px] sm:text-xs text-slate-700 font-medium">
                     {item.label}
                   </span>
                 </div>
@@ -304,23 +304,23 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
           </div>
 
           {/* Decorative Sticky Note ("Small steps Big dreams") */}
-          <div className="absolute -bottom-2 right-2 w-28 h-28 pointer-events-none select-none rotate-2">
-            <div className="w-full h-full bg-[#FDF8E7] rounded-md shadow-sm border border-[#EFE5C6] p-2.5 flex flex-col justify-center items-center text-center">
-              <span className="font-caveat font-bold text-[15px] text-amber-900 leading-tight">
+          <div className="absolute -bottom-1 right-1 w-20 h-20 sm:w-28 sm:h-28 pointer-events-none select-none rotate-2">
+            <div className="w-full h-full bg-[#FDF8E7] rounded-md shadow-sm border border-[#EFE5C6] p-1.5 sm:p-2.5 flex flex-col justify-center items-center text-center">
+              <span className="font-caveat font-bold text-[12px] sm:text-[15px] text-amber-900 leading-tight">
                 Small steps <br /> Big dreams
               </span>
-              <span className="text-[10px] text-amber-700 mt-1">✦</span>
+              <span className="text-[9px] sm:text-[10px] text-amber-700 mt-0.5 sm:mt-1">✦</span>
             </div>
           </div>
         </div>
 
         {/* CARD 5: YOUR PASSPORTS */}
-        <div className="lg:col-span-4 bg-white rounded-[20px] p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-sans font-bold text-sm sm:text-base text-slate-900">Your Passports</h3>
-                <p className="font-sans text-[11px] text-slate-500 mt-0.5">
+                <h3 className="font-sans font-bold text-xs sm:text-base text-slate-900">Your Passports</h3>
+                <p className="font-sans text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
                   Track your skills. Build your future.
                 </p>
               </div>
@@ -330,20 +330,20 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
             </div>
 
             {/* Passport Book Item */}
-            <div className="mt-3.5 p-2.5 sm:p-3 rounded-xl bg-[#FAF8F5] border border-[#EBE7DF] flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+            <div className="mt-2 sm:mt-3.5 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-[#FAF8F5] border border-[#EBE7DF] flex items-center justify-between gap-2.5 sm:gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 {/* Green Passport Cover Book */}
-                <div className="w-10 h-14 rounded bg-[#184E38] border border-[#133E2D] p-1 flex flex-col items-center justify-between text-white shadow-sm shrink-0">
-                  <span className="text-[7px] font-mono tracking-tighter">✦</span>
-                  <Award className="w-4 h-4" />
-                  <span className="text-[6px] font-sans font-bold uppercase tracking-wider">Pass</span>
+                <div className="w-8 h-11 sm:w-10 sm:h-14 rounded bg-[#184E38] border border-[#133E2D] p-0.5 sm:p-1 flex flex-col items-center justify-between text-white shadow-sm shrink-0">
+                  <span className="text-[6px] sm:text-[7px] font-mono tracking-tighter">✦</span>
+                  <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="text-[5px] sm:text-[6px] font-sans font-bold uppercase tracking-wider">Pass</span>
                 </div>
 
                 <div>
-                  <div className="font-sans font-bold text-sm text-slate-900">
+                  <div className="font-sans font-bold text-xs sm:text-sm text-slate-900">
                     {passports.subjectTitle}
                   </div>
-                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-[#E3EBE5] text-[#184E38] font-sans text-[10px] font-semibold">
+                  <span className="inline-block mt-0.5 px-2 py-0.2 sm:py-0.5 rounded-full bg-[#E3EBE5] text-[#184E38] font-sans text-[9px] sm:text-[10px] font-semibold">
                     {passports.statusBadge}
                   </span>
                 </div>
@@ -351,7 +351,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
 
               <Link
                 href={passports.route}
-                className="px-3 py-1.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-sans text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+                className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-sans text-[11px] sm:text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
               >
                 View Passport
               </Link>
@@ -359,11 +359,11 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
           </div>
 
           {/* Carousel Pagination Dots */}
-          <div className="flex items-center justify-center gap-1.5 pt-2.5">
-            <span className="w-2 h-2 rounded-full bg-[#184E38]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+          <div className="flex items-center justify-center gap-1.5 pt-1.5 sm:pt-2.5">
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#184E38]" />
+            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-slate-300" />
+            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-slate-300" />
+            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-slate-300" />
           </div>
         </div>
       </div>
@@ -371,7 +371,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
       {/* =========================================================================
           BOTTOM BANNER: EXPLORE THE WORLD (PIXEL-PERFECT ASSET ON DESKTOP, RESPONSIVE ON MOBILE)
           ========================================================================= */}
-      <section className="relative w-full rounded-[20px] overflow-hidden border border-[#EBE7DF] shadow-sm hover:shadow-md transition-shadow mb-2 md:mb-0">
+      <section className="relative w-full rounded-[18px] sm:rounded-[20px] overflow-hidden border border-[#EBE7DF] shadow-sm hover:shadow-md transition-shadow mb-1 md:mb-0">
         {/* Desktop / Tablet View (>= 768px): Display complete supplied asset seamlessly */}
         <Link
           href={worldCta.route}
@@ -389,7 +389,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
         </Link>
 
         {/* Mobile View (< 768px): Optimized mobile layout with high-contrast text and 44px+ touch target */}
-        <div className="md:hidden relative w-full bg-[#FAF7F2] p-4 flex flex-col items-start gap-3 overflow-hidden">
+        <div className="md:hidden relative w-full bg-[#FAF7F2] p-3 sm:p-4 flex flex-col items-start gap-2 sm:gap-3 overflow-hidden rounded-[18px]">
           {/* Subtle scenic mountain artwork on the far left edge only */}
           <div className="absolute inset-y-0 left-0 w-24 pointer-events-none select-none overflow-hidden opacity-40">
             <Image
@@ -402,17 +402,17 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
           </div>
 
           <div className="relative z-10">
-            <h3 className="font-['Georgia',serif] text-base font-bold text-[#184E38]">
+            <h3 className="font-['Georgia',serif] text-sm sm:text-base font-bold text-[#184E38]">
               {worldCta.title}
             </h3>
-            <p className="font-sans text-xs text-slate-600 mt-0.5">
+            <p className="font-sans text-[11px] sm:text-xs text-slate-600 mt-0.5">
               {worldCta.description}
             </p>
           </div>
 
           <Link
             href={worldCta.route}
-            className="relative z-10 w-full min-h-[44px] px-5 rounded-full bg-[#184E38] hover:bg-[#133E2D] active:bg-[#0E2E21] text-white font-sans text-xs font-semibold inline-flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+            className="relative z-10 w-full min-h-[40px] h-10 px-4 rounded-full bg-[#184E38] hover:bg-[#133E2D] active:bg-[#0E2E21] text-white font-sans text-xs font-semibold inline-flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
           >
             <Globe className="w-4 h-4" />
             <span>{worldCta.buttonLabel}</span>
