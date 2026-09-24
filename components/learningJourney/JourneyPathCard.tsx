@@ -118,8 +118,32 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
 
         {/* Desktop Grid Layout: Map (Left) + Current Lesson (Right) | Mobile Stack */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-6 pt-1.5 sm:pt-4 items-stretch">
-          {/* Illustrated Winding Journey Trail */}
-          <div className="lg:col-span-7 xl:col-span-8 relative h-[210px] xs:h-[220px] sm:h-[400px] md:min-h-[440px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-1.5 sm:p-4 flex flex-col justify-between">
+          {/* Mobile: Exact Illustrated Map Canvas from Reference */}
+          <div className="sm:hidden relative w-full h-[208px] xs:h-[218px] rounded-xl overflow-hidden border border-[#EBE7DF] shadow-2xs">
+            <Image
+              src="/images/learning-journey/map-canvas-exact.png"
+              alt="Learning Journey Map"
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center"
+            />
+            {/* Transparent Interactive Hotspots over the 8 Checkpoints */}
+            {data.nodes.map((node) => (
+              <button
+                key={node.id}
+                type="button"
+                tabIndex={0}
+                aria-label={`Concept ${node.stepNumber}: ${node.title} - ${node.status}`}
+                onClick={() => handleNodeClick(node)}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5132]"
+                style={{ left: `${node.coords.x}%`, top: `${node.coords.y}%` }}
+              />
+            ))}
+          </div>
+
+          {/* Desktop (>= 640px): Interactive Vector Trail Canvas */}
+          <div className="hidden sm:flex lg:col-span-7 xl:col-span-8 relative sm:h-[400px] md:min-h-[440px] rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-4 flex-col justify-between">
             {/* Soft illustrated landscape terrain background */}
             <div className="absolute inset-0 opacity-25 pointer-events-none">
               <Image
@@ -169,7 +193,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
             </svg>
 
             {/* 8 Nodes Positioned on the Trail */}
-            <div className="relative w-full h-full min-h-[195px] xs:min-h-[205px] sm:min-h-[360px] md:min-h-[400px]">
+            <div className="relative w-full h-full min-h-[360px] md:min-h-[400px]">
               {data.nodes.map((node) => {
                 const isCompleted = node.status === 'completed';
                 const isCurrent = node.status === 'current';
@@ -195,9 +219,9 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
                     <div className="relative flex flex-col items-center">
                       {/* Current Node Beacon Flag */}
                       {isCurrent && (
-                        <div className="absolute -top-5 sm:-top-11 flex flex-col items-center animate-bounce duration-[2000ms] pointer-events-none z-20">
-                          <div className="px-1.5 sm:px-2.5 py-0.5 rounded-full bg-[#0F5132] text-white text-[7.5px] sm:text-[10px] font-sans font-bold shadow-md whitespace-nowrap flex items-center gap-1">
-                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-emerald-300 animate-ping" />
+                        <div className="absolute -top-11 flex flex-col items-center animate-bounce duration-[2000ms] pointer-events-none z-20">
+                          <div className="px-2.5 py-0.5 rounded-full bg-[#0F5132] text-white text-[10px] font-sans font-bold shadow-md whitespace-nowrap flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
                             <span>Current Lesson</span>
                           </div>
                           <div className="w-1.5 h-1.5 bg-[#0F5132] rotate-45 -mt-0.5" />
@@ -206,27 +230,27 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
 
                       {/* Node Circle */}
                       <div
-                        className={`relative w-6 h-6 xs:w-6.5 xs:h-6.5 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center font-sans font-bold text-[10px] sm:text-sm shadow-sm transition-all ${
+                        className={`relative w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center font-sans font-bold text-sm shadow-sm transition-all ${
                           isCompleted
-                            ? 'bg-[#0F5132] text-white ring-2 sm:ring-4 ring-[#E8F5EE] group-hover:ring-[#C5E6D2]'
+                            ? 'bg-[#0F5132] text-white ring-4 ring-[#E8F5EE] group-hover:ring-[#C5E6D2]'
                             : isCurrent
-                            ? 'bg-[#0F5132] text-white ring-2 sm:ring-4 ring-[#0F5132]/30 ring-offset-1 sm:ring-offset-2 animate-pulse'
+                            ? 'bg-[#0F5132] text-white ring-4 ring-[#0F5132]/30 ring-offset-2 animate-pulse'
                             : 'bg-[#FAF8F5] text-slate-400 border border-slate-300 group-hover:border-slate-400'
                         }`}
                       >
                         {isCompleted ? (
-                          <Check className="w-2.5 h-2.5 sm:w-4 sm:h-4 stroke-[3]" />
+                          <Check className="w-4 h-4 stroke-[3]" />
                         ) : isCurrent ? (
                           <span>{node.stepNumber}</span>
                         ) : (
-                          <Lock className="w-2 h-2 sm:w-3.5 sm:h-3.5 text-slate-400" />
+                          <Lock className="w-3.5 h-3.5 text-slate-400" />
                         )}
                       </div>
 
                       {/* Node Text Label Card */}
-                      <div className="mt-0.5 sm:mt-1 text-center pointer-events-none max-w-[56px] xs:max-w-[64px] sm:max-w-[95px] md:max-w-[120px]">
+                      <div className="mt-1 text-center pointer-events-none max-w-[95px] md:max-w-[120px]">
                         <p
-                          className={`text-[7.5px] xs:text-[8.5px] sm:text-xs font-sans font-bold leading-tight ${
+                          className={`text-xs font-sans font-bold leading-tight ${
                             isCurrent
                               ? 'text-[#0F5132]'
                               : isCompleted
@@ -236,7 +260,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
                         >
                           {node.title}
                         </p>
-                        <p className="text-[6.5px] xs:text-[7.5px] sm:text-[10px] font-sans text-slate-400 mt-0.5 font-medium leading-none">
+                        <p className="text-[10px] font-sans text-slate-400 mt-0.5 font-medium leading-none">
                           {node.subtitle}
                         </p>
                       </div>
