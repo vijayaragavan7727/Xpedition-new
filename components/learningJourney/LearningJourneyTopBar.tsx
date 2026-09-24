@@ -15,29 +15,29 @@ export const LearningJourneyTopBar: React.FC<LearningJourneyTopBarProps> = ({ le
   const initial = learnerName ? learnerName.charAt(0).toUpperCase() : 'V';
 
   return (
-    <header className="w-full h-14 md:h-16 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#EBE7DF] px-4 sm:px-6 md:px-8 flex items-center justify-between select-none z-20 sticky top-0">
+    <header className="w-full h-11 sm:h-14 md:h-16 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#EBE7DF] px-3 sm:px-6 md:px-8 flex items-center justify-between select-none z-20 shrink-0 sticky top-0">
       {/* Left: Breadcrumb / Section Title */}
-      <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-[#E8F5EE] text-[#0F5132] flex items-center justify-center">
-          <BookOpen className="w-4 h-4" />
+      <div className="flex items-center gap-2">
+        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-[#E8F5EE] text-[#0F5132] flex items-center justify-center">
+          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </div>
-        <span className="font-sans font-bold text-sm sm:text-base text-slate-800">
+        <span className="font-sans font-bold text-xs sm:text-base text-slate-800">
           Learn / Class
         </span>
       </div>
 
       {/* Right: Search, Notifications, Avatar */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         {/* Search Toggle / Input */}
         <div className="relative">
           {showSearch ? (
-            <div className="flex items-center bg-white border border-[#D5CFBF] rounded-full px-3 py-1 shadow-sm animate-fadeIn">
-              <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+            <div className="flex items-center bg-white border border-[#D5CFBF] rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 shadow-sm animate-fadeIn">
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 mr-1.5 sm:mr-2 shrink-0" />
               <input
                 type="text"
                 autoFocus
                 placeholder="Search concepts..."
-                className="w-32 sm:w-48 text-xs font-sans text-slate-800 placeholder-slate-400 outline-none bg-transparent"
+                className="w-28 sm:w-48 text-[11px] sm:text-xs font-sans text-slate-800 placeholder-slate-400 outline-none bg-transparent"
                 onBlur={() => setShowSearch(false)}
               />
             </div>
@@ -46,9 +46,9 @@ export const LearningJourneyTopBar: React.FC<LearningJourneyTopBarProps> = ({ le
               type="button"
               onClick={() => setShowSearch(true)}
               aria-label="Search concepts"
-              className="w-9 h-9 rounded-full hover:bg-[#EFECE3] text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors"
+              className="w-7 h-7 sm:w-9 sm:h-9 rounded-full hover:bg-[#EFECE3] text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors"
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           )}
         </div>
@@ -57,10 +57,10 @@ export const LearningJourneyTopBar: React.FC<LearningJourneyTopBarProps> = ({ le
         <button
           type="button"
           aria-label="Notifications"
-          className="relative w-9 h-9 rounded-full hover:bg-[#EFECE3] text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors"
+          className="relative w-7 h-7 sm:w-9 sm:h-9 rounded-full hover:bg-[#EFECE3] text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors"
         >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#FAF8F5]" />
+          <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-500 ring-2 ring-[#FAF8F5]" />
         </button>
 
         {/* User Avatar & Dropdown */}
@@ -69,9 +69,9 @@ export const LearningJourneyTopBar: React.FC<LearningJourneyTopBarProps> = ({ le
             type="button"
             onClick={() => setShowMenu(!showMenu)}
             aria-label="User profile menu"
-            className="flex items-center gap-1.5 p-1 rounded-full hover:bg-[#EFECE3] transition-colors"
+            className="flex items-center gap-1 p-0.5 sm:p-1 rounded-full hover:bg-[#EFECE3] transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-[#184E38] text-white flex items-center justify-center font-sans font-bold text-xs shadow-sm">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#184E38] text-white flex items-center justify-center font-sans font-bold text-[11px] sm:text-xs shadow-xs">
               {initial}
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-500 hidden sm:block" />
