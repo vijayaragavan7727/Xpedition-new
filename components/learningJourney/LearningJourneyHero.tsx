@@ -37,25 +37,14 @@ export const LearningJourneyHero: React.FC<LearningJourneyHeroProps> = ({ learne
           />
         </div>
 
-        {/* Exploration wooden signpost (desktop & tablet only) */}
-        <div className="hidden sm:block absolute top-1.5 sm:top-3 right-2 sm:right-6 md:right-10 w-20 sm:w-28 md:w-36 h-24 sm:h-32 md:h-40 drop-shadow-md pointer-events-none transition-transform hover:rotate-1">
+        {/* Exploration wooden signpost ("EXPLORE LEARN PRACTICE GROW") */}
+        <div className="absolute top-1.5 sm:top-3 right-2 sm:right-6 md:right-10 w-16 xs:w-20 sm:w-28 md:w-36 h-20 xs:h-24 sm:h-32 md:h-40 drop-shadow-md pointer-events-none transition-transform hover:rotate-1">
           <Image
             src="/images/learning-journey/explorer-sign.svg"
             alt="Explore Learn Practice Grow"
             fill
             sizes="(max-width: 640px) 80px, 144px"
             className="object-contain"
-          />
-        </div>
-
-        {/* Mobile Buddy mascot inside Hero right corner (~70px height) */}
-        <div className="sm:hidden absolute bottom-0 right-2 w-14 xs:w-16 h-18 xs:h-20 pointer-events-none drop-shadow-md z-20 flex items-end">
-          <Image
-            src="/images/learning-journey/buddy-wave.png"
-            alt="Buddy"
-            width={64}
-            height={80}
-            className="object-contain object-bottom h-full w-auto"
           />
         </div>
 

@@ -8,6 +8,7 @@ import { LearningJourneyHero } from './LearningJourneyHero';
 import { JourneyPathCard } from './JourneyPathCard';
 import { JourneyProgressSidebar } from './JourneyProgressSidebar';
 import { LearningJourneyCompanion } from './LearningJourneyCompanion';
+import { MobileLearningDesk } from './MobileLearningDesk';
 
 interface LearningJourneyViewProps {
   data: LearningJourneyData;
@@ -26,7 +27,7 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
 
         {/* Mobile One-Screen Viewport (< 768px) / Spacious Scrollable Page Body (>= 768px) */}
         <main className="flex-1 min-h-0 flex flex-col justify-start md:justify-start overflow-hidden md:overflow-y-auto px-2 sm:px-6 md:px-8 lg:px-10 py-1.5 sm:py-4 md:py-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-12 max-w-[1440px] w-full mx-auto box-border">
-          {/* Main Hero Landscape Banner with Signpost (Mobile has integrated Buddy mascot) */}
+          {/* Main Hero Landscape Banner with Signpost */}
           <LearningJourneyHero learnerName={data.learnerName} />
 
           {/* Core Content Grid: Path Card (Left) + Sidebar (Right) */}
@@ -40,6 +41,11 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
             <div className="hidden md:block xl:col-span-4 w-full space-y-3 sm:space-y-5">
               <JourneyProgressSidebar data={data} />
             </div>
+          </div>
+
+          {/* Mobile Only: Learning Desk / Explorer Desk physical study composition */}
+          <div className="block md:hidden w-full mt-1.5 xs:mt-2">
+            <MobileLearningDesk data={data} />
           </div>
 
           {/* Lower Section: Large Buddy Companion with Speech Bubble & Vintage Books (Desktop only) */}
