@@ -44,7 +44,7 @@ export const StateHud: React.FC<StateHudProps> = ({
   const getFlowStateBadge = (state: FlowState) => {
     switch (state) {
       case 'flow':
-        return { label: 'FLOW STATE', variant: 'success' as const };
+        return { label: 'FLOW STATE', variant: 'teal' as const };
       case 'frustrated':
         return { label: 'FRICTION DETECTED', variant: 'danger' as const };
       case 'bored':
@@ -59,16 +59,16 @@ export const StateHud: React.FC<StateHudProps> = ({
   const badge = getFlowStateBadge(flowState);
 
   return (
-    <aside className="w-full lg:w-[280px] bg-[#121524]/90 border border-white/[0.08] rounded-2xl overflow-hidden backdrop-blur-xl shadow-lg transition-all">
+    <aside className="w-full lg:w-[280px] bg-[#151B1B] border border-[#263130] rounded-xl overflow-hidden shadow-sm transition-colors">
       {/* Header Row */}
       <button
         type="button"
         onClick={() => setIsOpenMobile(!isOpenMobile)}
-        className="w-full p-3.5 flex items-center justify-between bg-[#181C2E]/60 border-b border-white/[0.06] lg:cursor-default"
+        className="w-full p-3.5 flex items-center justify-between bg-[#0F1415] border-b border-[#263130] lg:cursor-default"
       >
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-cyan-400" />
-          <span className="font-mono text-[10px] tracking-wider uppercase text-slate-400 font-bold">
+          <Activity className="w-4 h-4 text-[#0B7066]" />
+          <span className="font-mono text-[10px] tracking-wider uppercase text-[#8E9693] font-bold">
             ADAPTIVE ENGINE
           </span>
           <Badge variant={badge.variant} size="sm">
@@ -77,10 +77,10 @@ export const StateHud: React.FC<StateHudProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-bold text-cyan-400">
+          <span className="font-mono text-xs font-bold text-[#0B7066]">
             {targetSuccessRate}% Target
           </span>
-          <span className="lg:hidden text-slate-400">
+          <span className="lg:hidden text-[#8E9693]">
             {isOpenMobile ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </span>
         </div>
@@ -90,19 +90,19 @@ export const StateHud: React.FC<StateHudProps> = ({
       <div className={`${isOpenMobile ? 'block' : 'hidden lg:block'} p-4 space-y-3.5`}>
         {/* Row 1: Hesitation & Time-on-Item */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-[#181C2E] p-2.5 rounded-xl border border-white/[0.06] space-y-0.5">
-            <div className="flex items-center gap-1 text-slate-400 font-mono text-[9px] uppercase">
-              <Clock className="w-3 h-3 text-cyan-400" />
+          <div className="bg-[#080B0D] p-2.5 rounded-lg border border-[#263130] space-y-0.5">
+            <div className="flex items-center gap-1 text-[#8E9693] font-mono text-[9px] uppercase">
+              <Clock className="w-3 h-3 text-[#0B7066]" />
               <span>HESITATION</span>
             </div>
-            <span className="block font-mono text-sm font-bold text-cyan-300">
+            <span className="block font-mono text-sm font-bold text-[#E5E0D5]">
               {formatTime(hesitationSeconds)}
             </span>
           </div>
 
-          <div className="bg-[#181C2E] p-2.5 rounded-xl border border-white/[0.06] space-y-0.5">
-            <div className="flex items-center gap-1 text-slate-400 font-mono text-[9px] uppercase">
-              <Clock className="w-3 h-3 text-slate-400" />
+          <div className="bg-[#080B0D] p-2.5 rounded-lg border border-[#263130] space-y-0.5">
+            <div className="flex items-center gap-1 text-[#8E9693] font-mono text-[9px] uppercase">
+              <Clock className="w-3 h-3 text-[#8E9693]" />
               <span>ITEM TIME</span>
             </div>
             <span className="block font-mono text-sm font-bold text-white">
@@ -113,31 +113,31 @@ export const StateHud: React.FC<StateHudProps> = ({
 
         {/* Row 2: Retries, Hints, Tab Switches */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-[#181C2E] p-2 rounded-xl border border-white/[0.06] text-center space-y-0.5">
-            <span className="block font-mono text-[8px] uppercase text-slate-400">RETRIES</span>
+          <div className="bg-[#080B0D] p-2 rounded-lg border border-[#263130] text-center space-y-0.5">
+            <span className="block font-mono text-[8px] uppercase text-[#8E9693]">RETRIES</span>
             <span className="block font-mono text-xs font-bold text-white">{retryCount}</span>
           </div>
 
-          <div className="bg-[#181C2E] p-2 rounded-xl border border-white/[0.06] text-center space-y-0.5">
-            <span className="block font-mono text-[8px] uppercase text-slate-400">HINTS</span>
-            <span className="block font-mono text-xs font-bold text-purple-400">{hintCount}</span>
+          <div className="bg-[#080B0D] p-2 rounded-lg border border-[#263130] text-center space-y-0.5">
+            <span className="block font-mono text-[8px] uppercase text-[#8E9693]">HINTS</span>
+            <span className="block font-mono text-xs font-bold text-[#E5E0D5]">{hintCount}</span>
           </div>
 
-          <div className="bg-[#181C2E] p-2 rounded-xl border border-white/[0.06] text-center space-y-0.5">
-            <span className="block font-mono text-[8px] uppercase text-slate-400">SWITCHES</span>
-            <span className="block font-mono text-xs font-bold text-slate-400">{tabSwitchCount}</span>
+          <div className="bg-[#080B0D] p-2 rounded-lg border border-[#263130] text-center space-y-0.5">
+            <span className="block font-mono text-[8px] uppercase text-[#8E9693]">SWITCHES</span>
+            <span className="block font-mono text-xs font-bold text-[#8E9693]">{tabSwitchCount}</span>
           </div>
         </div>
 
         {/* Row 3: Ability & Difficulty */}
-        <div className="bg-[#181C2E]/80 p-2.5 rounded-xl border border-white/[0.06] space-y-1">
+        <div className="bg-[#080B0D] p-2.5 rounded-lg border border-[#263130] space-y-1">
           <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-slate-400">LATENCY BASELINE</span>
+            <span className="text-[#8E9693]">LATENCY BASELINE</span>
             <span className="text-white font-bold">{latencyBaselineSeconds}s</span>
           </div>
           <div className="flex justify-between font-mono text-[10px]">
-            <span className="text-slate-400">ABILITY / DIFFICULTY</span>
-            <span className="text-cyan-400 font-bold">
+            <span className="text-[#8E9693]">ABILITY / DIFFICULTY</span>
+            <span className="text-[#0B7066] font-bold">
               θ={abilityTheta >= 0 ? `+${abilityTheta}` : abilityTheta} / b={nextDifficultyB >= 0 ? `+${nextDifficultyB}` : nextDifficultyB}
             </span>
           </div>
@@ -147,19 +147,19 @@ export const StateHud: React.FC<StateHudProps> = ({
         <ProgressBar
           value={targetSuccessRate}
           label="Target Success Rate"
-          variant="cyan"
+          variant="teal"
           size="sm"
         />
 
         {/* Row 5: Telemetry Signals */}
-        <div className="space-y-1.5 pt-2 border-t border-white/[0.06]">
-          <span className="font-mono text-[10px] tracking-wider uppercase text-slate-400 font-bold block">
+        <div className="space-y-1.5 pt-2 border-t border-[#263130]">
+          <span className="font-mono text-[10px] tracking-wider uppercase text-[#8E9693] font-bold block">
             TELEMETRY SIGNALS
           </span>
           <ul className="space-y-1">
             {whySignals.map((signal, idx) => (
-              <li key={idx} className="flex items-center gap-2 font-sans text-xs text-slate-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+              <li key={idx} className="flex items-center gap-2 font-sans text-xs text-[#E5E0D5]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0B7066] shrink-0" />
                 <span className="leading-snug">{signal}</span>
               </li>
             ))}

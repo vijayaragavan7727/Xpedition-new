@@ -28,12 +28,12 @@ export const Toggle: React.FC<ToggleProps> = ({
       {(label || description) && (
         <div className="flex flex-col">
           {label && (
-            <span className="font-sans font-semibold text-xs sm:text-sm text-slate-200">
+            <span className="font-sans font-semibold text-xs sm:text-sm text-white">
               {label}
             </span>
           )}
           {description && (
-            <span className="font-sans text-xs text-slate-400 font-normal">
+            <span className="font-sans text-xs text-[#8E9693] font-normal">
               {description}
             </span>
           )}
@@ -46,8 +46,8 @@ export const Toggle: React.FC<ToggleProps> = ({
         aria-checked={checked}
         disabled={disabled}
         onClick={() => !disabled && onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${
-          checked ? 'bg-indigo-600' : 'bg-white/[0.12]'
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7066]/50 ${
+          checked ? 'bg-[#004741]' : 'bg-[#263130]'
         }`}
       >
         <span

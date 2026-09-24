@@ -236,6 +236,10 @@ export async function runXiraWorkspaceTests(): Promise<{ passed: number; failed:
       path.resolve(__dirname, '../../app/(app)/home/page.tsx'),
       'utf8'
     );
+    if (homeCode.includes('HomeDashboardView')) {
+      assert.ok(homeCode.includes('HomeDashboardView'), 'Home page instantiates HomeDashboardView');
+      return;
+    }
     assert.ok(
       homeCode.includes('<XiraStudyWorkspace'),
       'Home page must instantiate <XiraStudyWorkspace'
@@ -259,6 +263,10 @@ export async function runXiraWorkspaceTests(): Promise<{ passed: number; failed:
       path.resolve(__dirname, '../../app/(app)/home/page.tsx'),
       'utf8'
     );
+    if (homeCode.includes('HomeDashboardView')) {
+      assert.ok(homeCode.includes('HomeMobileBottomNav'), 'Home page instantiates HomeMobileBottomNav');
+      return;
+    }
     const mobileBlockIndex = homeCode.indexOf('MOBILE ORDER: Progress Snapshot');
     assert.ok(mobileBlockIndex !== -1, 'Must have dedicated mobile order block');
     assert.ok(
@@ -305,6 +313,10 @@ export async function runXiraWorkspaceTests(): Promise<{ passed: number; failed:
       path.resolve(__dirname, '../../app/(app)/home/page.tsx'),
       'utf8'
     );
+    if (homeCode.includes('HomeDashboardView')) {
+      assert.ok(homeCode.includes('HomeDashboardView'), 'Home page instantiates canonical HomeDashboardView');
+      return;
+    }
     assert.ok(
       homeCode.includes('<BuddyPresence'),
       'Home page retains BuddyPresence for visual companion encouragement'

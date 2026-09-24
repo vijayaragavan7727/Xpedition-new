@@ -31,6 +31,17 @@ const config: Config = {
             hover: 'var(--xp-secondary-hover)',
             soft: 'var(--xp-secondary-soft)',
           },
+          teal: {
+            DEFAULT: '#004741',
+            dark: '#00332E',
+            secondary: '#075C55',
+            light: '#0B7066',
+          },
+          cream: {
+            DEFAULT: '#F0EDE4',
+            secondary: '#E5E0D5',
+            dark: '#D4CEBF',
+          },
           accent: {
             purple: 'var(--xp-accent-purple)',
             'purple-soft': 'var(--xp-accent-purple-soft)',
@@ -82,8 +93,12 @@ const config: Config = {
             muted: 'var(--xp-text-muted)',
             disabled: 'var(--xp-text-disabled)',
             inverse: 'var(--xp-text-inverse)',
+            dark: '#080B0D',
           },
           border: {
+            DEFAULT: '#263130',
+            dark: '#263130',
+            teal: '#17655E',
             subtle: 'var(--xp-border-subtle)',
             medium: 'var(--xp-border-medium)',
             strong: 'var(--xp-border-strong)',
@@ -118,8 +133,6 @@ const config: Config = {
         'xp-elevated': 'var(--xp-shadow-elevated)',
         'xp-glass': 'var(--xp-shadow-glass)',
         'xp-primary-cta': 'var(--xp-shadow-primary-cta)',
-        'xp-buddy': '0 0 24px -2px var(--xp-buddy-glow)',
-        'xp-xira': '0 0 24px -2px var(--xp-xira-glow)',
       },
       transitionDuration: {
         'xp-instant': 'var(--xp-motion-instant)',
@@ -142,11 +155,6 @@ const config: Config = {
         wordmark: '0.16em',
         subtitle: '0.42em',
         eyebrow: '0.22em',
-      },
-      backgroundImage: {
-        'signature-gradient': 'linear-gradient(96deg, var(--cyan), var(--violet) 55%, #F472F6)',
-        'card-gradient': 'linear-gradient(135deg, rgba(20, 29, 61, 0.75) 0%, rgba(10, 16, 36, 0.85) 100%)',
-        'highlight-gradient': 'linear-gradient(135deg, rgba(99, 102, 241, 0.18) 0%, rgba(14, 165, 233, 0.12) 100%)',
       },
     },
   },

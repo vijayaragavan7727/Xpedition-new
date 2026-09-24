@@ -4,90 +4,96 @@
 
 :root {
   /* =======================================================================
-     XPEDITION DESIGN 1 TOKENS: Dark, Immersive, 3D Focus
+     XPEDITION PHASE 1 VISUAL SYSTEM: Black + Teal + Cream + White
      ======================================================================= */
   
-  /* Surface & Background (Deep Midnight / Obsidian Palette) */
-  --xp-bg-base: #060B18;              /* Root viewport midnight blue */
-  --xp-bg-subtle: #0A1024;            /* Inset areas & deep wells */
-  --xp-surface: #0E152E;              /* Primary card surface */
-  --xp-surface-elevated: #141D3D;     /* Raised elements, popovers, headers */
-  --xp-surface-interactive: #1A254D;  /* Hover / active interactive states */
-  --xp-surface-glass: rgba(14, 21, 46, 0.78); /* Glassmorphic backdrops */
-  --xp-surface-glass-border: rgba(255, 255, 255, 0.08);
+  /* Surface & Background (Near-black and Dark Surfaces) */
+  --xp-bg-base: #080B0D;              /* Primary background (near-black) */
+  --xp-bg-subtle: #0F1415;            /* Secondary background */
+  --xp-surface: #151B1B;              /* Dark surface */
+  --xp-surface-elevated: #1B2221;     /* Muted surface / raised elements */
+  --xp-surface-interactive: #263130;  /* Interactive hover & active states */
+  --xp-surface-glass: rgba(21, 27, 27, 0.94);
+  --xp-surface-glass-border: #263130;
 
-  /* Primary Brand (Luminous Indigo-Violet) */
-  --xp-primary: #6366F1;
-  --xp-primary-hover: #4F46E5;
-  --xp-primary-active: #4338CA;
-  --xp-primary-soft: rgba(99, 102, 241, 0.15);
-  --xp-primary-glow: 0 0 24px -2px rgba(99, 102, 241, 0.45);
+  /* Brand Palette (Teal Identity + Cream Highlights) */
+  --xp-primary: #004741;              /* Teal primary */
+  --xp-primary-hover: #075C55;        /* Teal secondary */
+  --xp-primary-active: #0B7066;       /* Teal light */
+  --xp-primary-soft: rgba(7, 92, 85, 0.20);
+  --xp-primary-glow: none;
 
-  /* Secondary Brand (Atmospheric Cyan / Sky) */
-  --xp-secondary: #0EA5E9;
-  --xp-secondary-hover: #0284C7;
-  --xp-secondary-soft: rgba(14, 165, 233, 0.15);
-  --xp-secondary-glow: 0 0 24px -2px rgba(14, 165, 233, 0.4);
+  --xp-secondary: #075C55;            /* Teal secondary */
+  --xp-secondary-hover: #0B7066;      /* Teal light */
+  --xp-secondary-soft: rgba(11, 112, 102, 0.18);
+  --xp-secondary-glow: none;
 
-  /* Accent Tints */
-  --xp-accent-purple: #8B5CF6;
-  --xp-accent-purple-soft: rgba(139, 92, 246, 0.15);
-  --xp-accent-warm: #F59E0B;
-  --xp-accent-warm-soft: rgba(245, 158, 11, 0.14);
-  --xp-accent-sage: #10B981;
-  --xp-accent-sage-soft: rgba(16, 185, 129, 0.14);
-  --xp-accent-rose: #F43F5E;
-  --xp-accent-rose-soft: rgba(244, 63, 94, 0.14);
+  /* Brand Highlights & Warm Surfaces */
+  --xp-cream: #F0EDE4;                /* Warm cream */
+  --xp-cream-secondary: #E5E0D5;      /* Cream secondary */
+
+  /* Semantic Accent Normalization */
+  --xp-accent-purple: #075C55;
+  --xp-accent-purple-soft: rgba(7, 92, 85, 0.15);
+  --xp-accent-warm: #E5E0D5;
+  --xp-accent-warm-soft: rgba(240, 237, 228, 0.15);
+  --xp-accent-sage: #0B7066;
+  --xp-accent-sage-soft: rgba(11, 112, 102, 0.15);
+  --xp-accent-rose: #A83232;
+  --xp-accent-rose-soft: rgba(168, 50, 50, 0.15);
 
   /* Typography Hierarchy */
-  --xp-text-primary: #F8FAFC;         /* High-contrast headings and active text */
-  --xp-text-secondary: #94A3B8;       /* Readable body text, secondary labels */
-  --xp-text-muted: #64748B;           /* Subtext, timestamps, disabled indicators */
-  --xp-text-disabled: #475569;        /* Non-interactive disabled items */
-  --xp-text-inverse: #020617;         /* Dark text over glowing/white buttons */
+  --xp-text-primary: #FFFFFF;         /* Pure white */
+  --xp-text-secondary: #8E9693;       /* Secondary muted text */
+  --xp-text-muted: #636C69;           /* Subtext, timestamps, disabled indicators */
+  --xp-text-disabled: #3D4645;        /* Non-interactive disabled items */
+  --xp-text-inverse: #080B0D;         /* Primary dark text */
+  --xp-text-dark: #080B0D;
 
   /* Semantic Learning Class Stages */
-  --xp-stage-intro: #38BDF8;          /* Light Sky */
-  --xp-stage-explain: #818CF8;        /* Soft Indigo */
-  --xp-stage-explore: #06B6D4;        /* Cyan */
-  --xp-stage-predict: #F59E0B;        /* Warm Amber */
-  --xp-stage-interact: #6366F1;       /* Indigo */
-  --xp-stage-observe: #14B8A6;        /* Teal */
-  --xp-stage-check: #10B981;          /* Emerald */
-  --xp-stage-mission: #F59E0B;        /* Gold / Quest */
-  --xp-stage-challenge: #EC4899;      /* Hot Rose / Challenge */
-  --xp-stage-assessment: #8B5CF6;     /* Purple / Mastery Evaluative */
-  --xp-stage-feedback: #0EA5E9;       /* Sky Feedback */
-  --xp-stage-reward: #FBBF24;         /* Trophy Amber */
-  --xp-stage-next: #6366F1;           /* Forward Indigo */
+  --xp-stage-intro: #0B7066;
+  --xp-stage-explain: #E5E0D5;
+  --xp-stage-explore: #075C55;
+  --xp-stage-predict: #F0EDE4;
+  --xp-stage-interact: #0B7066;
+  --xp-stage-observe: #075C55;
+  --xp-stage-check: #0B7066;
+  --xp-stage-mission: #E5E0D5;
+  --xp-stage-challenge: #F0EDE4;
+  --xp-stage-assessment: #075C55;
+  --xp-stage-feedback: #0B7066;
+  --xp-stage-reward: #F0EDE4;
+  --xp-stage-next: #075C55;
 
-  /* AI Personalities: Buddy (Embodiment) & Xira (Cognitive Brain) */
-  --xp-buddy-accent: #38BDF8;
-  --xp-buddy-glow: rgba(56, 189, 248, 0.25);
-  --xp-buddy-bubble: rgba(15, 23, 42, 0.88);
-  --xp-xira-accent: #818CF8;
-  --xp-xira-glow: rgba(129, 140, 248, 0.25);
-  --xp-xira-card: rgba(19, 26, 54, 0.85);
+  /* AI Personalities: Buddy & Xira */
+  --xp-buddy-accent: #075C55;
+  --xp-buddy-glow: none;
+  --xp-buddy-bubble: #151B1B;
+  --xp-xira-accent: #004741;
+  --xp-xira-glow: none;
+  --xp-xira-card: #151B1B;
 
   /* Border System */
-  --xp-border-subtle: rgba(255, 255, 255, 0.07);
+  --xp-border-subtle: #263130;
   --xp-border-medium: rgba(255, 255, 255, 0.12);
-  --xp-border-strong: rgba(255, 255, 255, 0.18);
-  --xp-border-focus: rgba(99, 102, 241, 0.55);
-  --xp-border-interactive: rgba(99, 102, 241, 0.3);
+  --xp-border-strong: #17655E;
+  --xp-border-focus: #0B7066;
+  --xp-border-interactive: #17655E;
+  --xp-border-dark: #263130;
+  --xp-border-teal: #17655E;
 
   /* Shape & Radius Tokens */
   --xp-radius-sm: 0.5rem;             /* 8px */
-  --xp-radius-control: 0.75rem;       /* 12px */
-  --xp-radius-card: 1rem;             /* 16px */
-  --xp-radius-modal: 1.5rem;          /* 24px */
+  --xp-radius-control: 0.625rem;       /* 10px */
+  --xp-radius-card: 0.75rem;          /* 12px */
+  --xp-radius-modal: 1rem;            /* 16px */
   --xp-radius-pill: 9999px;
 
-  /* Elevation Shadows */
-  --xp-shadow-subtle: 0 4px 20px -4px rgba(0, 0, 0, 0.4);
-  --xp-shadow-elevated: 0 12px 36px -6px rgba(0, 0, 0, 0.6);
-  --xp-shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
-  --xp-shadow-primary-cta: 0 6px 24px -2px rgba(99, 102, 241, 0.45);
+  /* Elevation Shadows (Restrained, No Neon Glow) */
+  --xp-shadow-subtle: 0 2px 8px 0 rgba(0, 0, 0, 0.35);
+  --xp-shadow-elevated: 0 8px 24px -4px rgba(0, 0, 0, 0.55);
+  --xp-shadow-glass: 0 4px 16px 0 rgba(0, 0, 0, 0.40);
+  --xp-shadow-primary-cta: 0 2px 10px 0 rgba(0, 0, 0, 0.45);
 
   /* Motion & Animation Timings */
   --xp-motion-instant: 75ms;
@@ -112,7 +118,7 @@
   --accent-cyan: var(--xp-secondary);
   --accent-purple: var(--xp-accent-purple);
   --success: var(--xp-accent-sage);
-  --warning: var(--xp-accent-warm);
+  --warning: #C29B38;
   --danger: var(--xp-accent-rose);
   --ink: var(--xp-bg-base);
   --panel: var(--xp-surface);
@@ -121,7 +127,7 @@
   --violet: var(--xp-primary);
   --violet-hot: var(--xp-accent-purple);
   --cyan: var(--xp-secondary);
-  --magenta: #EC4899;
+  --magenta: #0B7066;
   --text: var(--xp-text-primary);
   --muted: var(--xp-text-secondary);
 }
@@ -135,36 +141,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Atmospheric Gradients & Ambient Effects */
-.bg-signature-gradient {
-  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #0EA5E9 100%);
-}
-
-.text-gradient {
-  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 55%, #93C5FD 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.text-gradient-purple {
-  background: linear-gradient(135deg, #C084FC 0%, #818CF8 50%, #38BDF8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
 /* Glass Surface Utility */
 .glass-panel {
   background: var(--xp-surface-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--xp-surface-glass-border);
+  border: 1px solid var(--xp-border-subtle);
 }
 
 .glass-panel-elevated {
-  background: rgba(20, 29, 61, 0.85);
+  background: var(--xp-surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--xp-border-subtle);
   box-shadow: var(--xp-shadow-elevated);
 }
 
@@ -179,12 +168,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--xp-border-dark);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--xp-border-teal);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -206,4 +195,3 @@ body {
     scroll-behavior: auto !important;
   }
 }
-

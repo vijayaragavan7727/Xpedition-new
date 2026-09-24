@@ -11,7 +11,7 @@ export interface ProgressBarProps {
   sublabel?: string;
   showPercent?: boolean;
   size?: 'xs' | 'sm' | 'md' | 'lg';
-  variant?: 'indigo' | 'cyan' | 'emerald' | 'amber' | 'purple' | 'gradient';
+  variant?: 'indigo' | 'cyan' | 'emerald' | 'amber' | 'purple' | 'gradient' | 'teal' | 'cream';
   glowing?: boolean;
   className?: string;
 }
@@ -25,7 +25,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   sublabel,
   showPercent = true,
   size = 'md',
-  variant = 'indigo',
+  variant = 'teal',
   glowing = false,
   className = '',
 }) => {
@@ -38,14 +38,18 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     lg: 'h-3',
   };
 
-  const fillStyles = {
-    indigo: 'bg-gradient-to-r from-indigo-500 to-indigo-400',
-    cyan: 'bg-gradient-to-r from-sky-500 to-cyan-400',
-    emerald: 'bg-gradient-to-r from-emerald-500 to-emerald-400',
-    amber: 'bg-gradient-to-r from-amber-500 to-amber-400',
-    purple: 'bg-gradient-to-r from-purple-500 to-indigo-400',
-    gradient: 'bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500',
+  const fillStyles: Record<string, string> = {
+    teal: 'bg-[#0B7066]',
+    cream: 'bg-[#F0EDE4]',
+    indigo: 'bg-[#0B7066]',
+    cyan: 'bg-[#075C55]',
+    emerald: 'bg-[#0B7066]',
+    amber: 'bg-[#E5E0D5]',
+    purple: 'bg-[#0B7066]',
+    gradient: 'bg-[#0B7066]',
   };
+
+  const activeFill = fillStyles[variant] || fillStyles.teal;
 
   // Segmented Bar Mode (for Class Header & Multi-stage flows)
   if (segments && segments > 0) {
@@ -54,8 +58,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       <div className={`w-full space-y-1.5 ${className}`}>
         {(label || sublabel) && (
           <div className="flex justify-between items-center text-xs">
-            {label && <span className="font-sans font-semibold text-slate-200">{label}</span>}
-            {sublabel && <span className="font-mono text-slate-400 text-[11px]">{sublabel}</span>}
+            {label && <span className="font-sans font-semibold text-white">{label}</span>}
+            {sublabel && <span className="font-mono text-[#8E9693] text-[11px]">{sublabel}</span>}
           </div>
         )}
         <div className="flex items-center gap-1.5 w-full">
@@ -66,12 +70,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             return (
               <div
                 key={i}
-                className={`flex-1 rounded-full transition-all duration-300 ${sizeStyles[size]} ${
+                className={`flex-1 rounded-full transition-colors duration-200 ${sizeStyles[size]} ${
                   isCompleted
-                    ? fillStyles[variant]
+                    ? activeFill
                     : isCurrent
-                    ? `${fillStyles[variant]} ring-2 ring-indigo-400/40 animate-pulse`
-                    : 'bg-white/[0.08]'
+                    ? `${activeFill} ring-2 ring-[#0B7066]/50`
+                    : 'bg-[#263130]'
                 }`}
               />
             );
@@ -86,22 +90,20 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     <div className={`w-full space-y-1.5 ${className}`}>
       {(label || showPercent || sublabel) && (
         <div className="flex justify-between items-center text-xs">
-          {label && <span className="font-sans font-medium text-slate-300">{label}</span>}
+          {label && <span className="font-sans font-medium text-[#8E9693]">{label}</span>}
           <div className="flex items-center gap-2">
-            {sublabel && <span className="font-sans text-slate-400 text-[11px]">{sublabel}</span>}
+            {sublabel && <span className="font-sans text-[#8E9693] text-[11px]">{sublabel}</span>}
             {showPercent && (
-              <span className="font-mono text-slate-300 font-bold">{percentage}%</span>
+              <span className="font-mono text-white font-bold">{percentage}%</span>
             )}
           </div>
         </div>
       )}
       <div
-        className={`w-full bg-white/[0.06] border border-white/[0.04] rounded-full overflow-hidden ${sizeStyles[size]}`}
+        className={`w-full bg-[#151B1B] border border-[#263130] rounded-full overflow-hidden ${sizeStyles[size]}`}
       >
         <div
-          className={`h-full rounded-full transition-all duration-500 ease-out ${fillStyles[variant]} ${
-            glowing ? 'shadow-[0_0_12px_rgba(99,102,241,0.5)]' : ''
-          }`}
+          className={`h-full rounded-full transition-all duration-300 ease-out ${activeFill}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -110,4 +112,3 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 };
 
 export default ProgressBar;
-

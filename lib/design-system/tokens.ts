@@ -1,158 +1,181 @@
 /**
  * XPEDITION DESIGN SYSTEM TOKENS
- * Design Direction: "Design 1 — Dark, Immersive, 3D Focus"
- * Centralized, typed single source of truth for design tokens.
+ * Brand Identity: Black + Teal + Cream + White
+ * Canonical, typed single source of truth for design tokens.
  */
 
 export const XP_COLORS = {
-  // Viewport & Surfaces
+  // Viewport & Surfaces (Foundation: Near-black and Dark Surfaces)
   bg: {
-    base: '#060B18',
-    subtle: '#0A1024',
-    surface: '#0E152E',
-    elevated: '#141D3D',
-    interactive: '#1A254D',
-    glass: 'rgba(14, 21, 46, 0.78)',
-    glassBorder: 'rgba(255, 255, 255, 0.08)',
+    base: '#080B0D',             // Primary background (near-black)
+    subtle: '#0F1415',           // Secondary background
+    surface: '#151B1B',          // Dark surface
+    elevated: '#1B2221',         // Muted surface / raised elements
+    interactive: '#263130',      // Interactive hover / subtle border
+    cream: '#F0EDE4',            // Warm cream content highlight
+    creamSecondary: '#E5E0D5',   // Cream secondary surface
+    glass: 'rgba(21, 27, 27, 0.92)',
+    glassBorder: '#263130',
   },
 
-  // Brand Palette
+  // Brand Palette (Teal Identity + Cream Highlights)
   brand: {
-    primary: '#6366F1',
-    primaryHover: '#4F46E5',
-    primaryActive: '#4338CA',
-    primarySoft: 'rgba(99, 102, 241, 0.15)',
-    primaryGlow: 'rgba(99, 102, 241, 0.45)',
+    primary: '#004741',          // Teal primary
+    primaryHover: '#075C55',     // Teal secondary
+    primaryActive: '#0B7066',    // Teal light
+    primarySoft: 'rgba(7, 92, 85, 0.20)',
+    primaryGlow: 'transparent',
 
-    secondary: '#0EA5E9',
-    secondaryHover: '#0284C7',
-    secondarySoft: 'rgba(14, 165, 233, 0.15)',
-    secondaryGlow: 'rgba(14, 165, 233, 0.4)',
+    secondary: '#075C55',        // Teal secondary
+    secondaryHover: '#0B7066',   // Teal light
+    secondarySoft: 'rgba(11, 112, 102, 0.18)',
+    secondaryGlow: 'transparent',
 
-    purple: '#8B5CF6',
-    purpleSoft: 'rgba(139, 92, 246, 0.15)',
-    warm: '#F59E0B',
-    warmSoft: 'rgba(245, 158, 11, 0.14)',
-    sage: '#10B981',
-    sageSoft: 'rgba(16, 185, 129, 0.14)',
-    rose: '#F43F5E',
-    roseSoft: 'rgba(244, 63, 94, 0.14)',
+    teal: '#004741',
+    tealDark: '#00332E',
+    tealSecondary: '#075C55',
+    tealLight: '#0B7066',
+
+    cream: '#F0EDE4',
+    creamSecondary: '#E5E0D5',
+    creamDark: '#D4CEBF',
+
+    purple: '#075C55',           // Normalized to Teal Secondary
+    purpleSoft: 'rgba(7, 92, 85, 0.15)',
+    warm: '#E5E0D5',             // Normalized to Cream Secondary
+    warmSoft: 'rgba(240, 237, 228, 0.15)',
+    sage: '#0B7066',             // Normalized to Teal Light
+    sageSoft: 'rgba(11, 112, 102, 0.15)',
+    rose: '#A83232',             // Restrained muted rose for danger/errors
+    roseSoft: 'rgba(168, 50, 50, 0.15)',
   },
 
-  // Text Hierarchy
+  // Typography Hierarchy
   text: {
-    primary: '#F8FAFC',
-    secondary: '#94A3B8',
-    muted: '#64748B',
-    disabled: '#475569',
-    inverse: '#020617',
+    primary: '#FFFFFF',          // Pure white for dark surfaces
+    secondary: '#8E9693',        // Secondary muted text
+    muted: '#636C69',            // Dim text & disabled indicators
+    disabled: '#3D4645',         // Inactive items
+    inverse: '#080B0D',          // Primary dark text over cream/white surfaces
+    dark: '#080B0D',             // Explicit dark text token
+    cream: '#F0EDE4',            // Cream text accent
   },
 
-  // Class Stages (Unified Learning Session)
+  // Borders
+  border: {
+    dark: '#263130',
+    subtle: '#263130',
+    medium: 'rgba(255, 255, 255, 0.12)',
+    strong: '#17655E',
+    teal: '#17655E',
+    focus: '#0B7066',
+  },
+
+  // Class Stages (Unified Learning Session - Normalized Palette)
   stage: {
     intro: {
-      color: '#38BDF8',
-      soft: 'rgba(56, 189, 248, 0.14)',
+      color: '#0B7066',
+      soft: 'rgba(11, 112, 102, 0.15)',
       label: 'Introduce',
       defaultCta: 'Explore Hook →',
     },
     explain: {
-      color: '#818CF8',
-      soft: 'rgba(129, 140, 248, 0.14)',
+      color: '#E5E0D5',
+      soft: 'rgba(240, 237, 228, 0.12)',
       label: 'Explain',
       defaultCta: 'See How It Works →',
     },
     explore: {
-      color: '#06B6D4',
-      soft: 'rgba(6, 182, 212, 0.14)',
+      color: '#075C55',
+      soft: 'rgba(7, 92, 85, 0.18)',
       label: 'Explore',
       defaultCta: 'Got it → Predict',
     },
     predict: {
-      color: '#F59E0B',
-      soft: 'rgba(245, 158, 11, 0.14)',
+      color: '#F0EDE4',
+      soft: 'rgba(240, 237, 228, 0.15)',
       label: 'Predict',
       defaultCta: 'Confirm Prediction',
     },
     interact: {
-      color: '#6366F1',
-      soft: 'rgba(99, 102, 241, 0.15)',
+      color: '#0B7066',
+      soft: 'rgba(11, 112, 102, 0.18)',
       label: 'Interact',
       defaultCta: 'Test Parameters',
     },
     observe: {
-      color: '#14B8A6',
-      soft: 'rgba(20, 184, 166, 0.14)',
+      color: '#075C55',
+      soft: 'rgba(7, 92, 85, 0.16)',
       label: 'Observe',
       defaultCta: 'Continue to Check →',
     },
     check: {
-      color: '#10B981',
-      soft: 'rgba(16, 185, 129, 0.14)',
+      color: '#0B7066',
+      soft: 'rgba(11, 112, 102, 0.16)',
       label: 'Quick Check',
       defaultCta: 'Submit Answer',
     },
     mission: {
-      color: '#F59E0B',
-      soft: 'rgba(245, 158, 11, 0.14)',
+      color: '#E5E0D5',
+      soft: 'rgba(240, 237, 228, 0.15)',
       label: 'Mission',
       defaultCta: 'Start Mission',
     },
     challenge: {
-      color: '#EC4899',
-      soft: 'rgba(236, 72, 153, 0.14)',
+      color: '#F0EDE4',
+      soft: 'rgba(240, 237, 228, 0.18)',
       label: 'Challenge',
       defaultCta: 'Try Now',
     },
     assessment: {
-      color: '#8B5CF6',
-      soft: 'rgba(139, 92, 246, 0.14)',
+      color: '#075C55',
+      soft: 'rgba(7, 92, 85, 0.18)',
       label: 'Assessment',
       defaultCta: 'Submit Evaluation',
     },
     feedback: {
-      color: '#0EA5E9',
-      soft: 'rgba(14, 165, 233, 0.14)',
+      color: '#0B7066',
+      soft: 'rgba(11, 112, 102, 0.15)',
       label: 'Feedback',
       defaultCta: 'Claim Rewards →',
     },
     reward: {
-      color: '#FBBF24',
-      soft: 'rgba(251, 191, 36, 0.16)',
+      color: '#F0EDE4',
+      soft: 'rgba(240, 237, 228, 0.20)',
       label: 'Reward',
       defaultCta: 'Next Class →',
     },
     next: {
-      color: '#6366F1',
-      soft: 'rgba(99, 102, 241, 0.15)',
+      color: '#075C55',
+      soft: 'rgba(7, 92, 85, 0.18)',
       label: 'Next Class',
       defaultCta: 'Start Next Class',
     },
   },
 
-  // AI Entities
+  // AI Entities (Unified Xpedition System)
   ai: {
     buddy: {
       accent: '#38BDF8',
-      glow: 'rgba(56, 189, 248, 0.25)',
-      bubbleBg: 'rgba(15, 23, 42, 0.88)',
-      bubbleBorder: 'rgba(56, 189, 248, 0.3)',
+      glow: 'transparent',
+      bubbleBg: '#151B1B',
+      bubbleBorder: '#263130',
     },
     xira: {
-      accent: '#818CF8',
-      glow: 'rgba(129, 140, 248, 0.25)',
-      cardBg: 'rgba(19, 26, 54, 0.85)',
-      cardBorder: 'rgba(129, 140, 248, 0.35)',
+      accent: '#004741',
+      glow: 'transparent',
+      cardBg: '#151B1B',
+      cardBorder: '#17655E',
     },
   },
 
-  // Status Colors
+  // Semantic Status Colors (Harmonized)
   status: {
-    success: '#10B981',
-    warning: '#F59E0B',
-    error: '#F43F5E',
-    info: '#38BDF8',
-    skipped: '#64748B',
+    success: '#075C55',
+    warning: '#C29B38',
+    error: '#A83232',
+    info: '#0B7066',
+    skipped: '#636C69',
   },
 } as const;
 
@@ -171,19 +194,19 @@ export const XP_SPACING = {
 
 export const XP_RADII = {
   sm: '0.5rem',      // 8px
-  control: '0.75rem',// 12px
-  card: '1rem',      // 16px
-  modal: '1.5rem',   // 24px
+  control: '0.625rem', // 10px
+  card: '0.75rem',   // 12px
+  modal: '1rem',     // 16px
   pill: '9999px',
 } as const;
 
 export const XP_SHADOWS = {
-  subtle: '0 4px 20px -4px rgba(0, 0, 0, 0.4)',
-  elevated: '0 12px 36px -6px rgba(0, 0, 0, 0.6)',
-  glass: '0 8px 32px 0 rgba(0, 0, 0, 0.45)',
-  primaryCta: '0 6px 24px -2px rgba(99, 102, 241, 0.45)',
-  buddyGlow: '0 0 24px -2px rgba(56, 189, 248, 0.25)',
-  xiraGlow: '0 0 24px -2px rgba(129, 140, 248, 0.25)',
+  subtle: '0 2px 8px 0 rgba(0, 0, 0, 0.35)',
+  elevated: '0 8px 24px -4px rgba(0, 0, 0, 0.55)',
+  glass: '0 4px 16px 0 rgba(0, 0, 0, 0.40)',
+  primaryCta: '0 2px 10px 0 rgba(0, 0, 0, 0.45)',
+  buddyGlow: 'none',
+  xiraGlow: 'none',
 } as const;
 
 export const XP_MOTION = {

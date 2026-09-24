@@ -19,14 +19,14 @@ export default function AppLayout({
   const [step, setStep] = useState<OnboardingStep | null>(null);
   const [loopBrokenNotice, setLoopBrokenNotice] = useState<boolean>(false);
   const isWorldPage = pathname === '/world';
-  const isBypassedPage = pathname === '/world' || pathname === '/profile';
+  const isBypassedPage = pathname === '/home' || pathname === '/world' || pathname === '/profile';
 
   useEffect(() => {
     const data = getStoreData();
     setStoreData(data);
 
-    // Bypass gate for World and Profile pages directly
-    if (pathname === '/world' || pathname === '/profile') {
+    // Bypass gate for Home, World and Profile pages directly
+    if (pathname === '/home' || pathname === '/world' || pathname === '/profile') {
       setStep('ready');
       return;
     }
@@ -97,6 +97,11 @@ export default function AppLayout({
         </nav>
       </div>
     );
+  }
+
+  // Home page renders its canonical dashboard layout
+  if (pathname === '/home') {
+    return <>{children}</>;
   }
 
   return (

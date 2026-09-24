@@ -63,7 +63,7 @@ export const ClassStageIndicator: React.FC<ClassStageIndicatorProps> = ({
   if (compact) {
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${className}`}
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold border transition-all ${className}`}
         style={{
           backgroundColor: stageConfig.soft,
           borderColor: `${stageConfig.color}40`,
@@ -79,7 +79,7 @@ export const ClassStageIndicator: React.FC<ClassStageIndicatorProps> = ({
 
   return (
     <div
-      className={`flex items-center justify-between px-3 py-1.5 rounded-full bg-[#0E152E]/90 border border-white/[0.08] backdrop-blur-md shadow-sm select-none ${className}`}
+      className={`flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#151B1B] border border-[#263130] shadow-sm select-none ${className}`}
     >
       {/* Previous Step Button */}
       <button
@@ -87,18 +87,18 @@ export const ClassStageIndicator: React.FC<ClassStageIndicatorProps> = ({
         onClick={onPrevious}
         disabled={!canPrevious || !onPrevious}
         aria-label="Previous stage"
-        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8E9693] hover:text-white hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none transition-colors"
       >
         ‹
       </button>
 
       {/* Stage Badge & Step Count */}
       <div className="flex items-center gap-2 px-2">
-        <span className="font-mono text-xs font-bold text-slate-300">
+        <span className="font-mono text-xs font-bold text-white">
           {stageIndex}/{totalStages}
         </span>
         <div
-          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider"
+          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wider"
           style={{
             backgroundColor: stageConfig.soft,
             color: stageConfig.color,
@@ -116,7 +116,7 @@ export const ClassStageIndicator: React.FC<ClassStageIndicatorProps> = ({
         onClick={onNext}
         disabled={!canNext || !onNext}
         aria-label="Next stage"
-        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8E9693] hover:text-white hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none transition-colors"
       >
         ›
       </button>

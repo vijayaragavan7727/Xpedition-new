@@ -48,20 +48,20 @@ export const Slider: React.FC<SliderProps> = ({
 
   return (
     <div
-      className={`p-3 sm:p-4 rounded-2xl bg-[#0E152E]/92 backdrop-blur-xl border border-white/[0.09] shadow-[0_8px_30px_rgba(0,0,0,0.5)] select-none transition-all ${
+      className={`p-3 sm:p-4 rounded-xl bg-[#151B1B] border border-[#263130] shadow-sm select-none transition-colors ${
         disabled ? 'opacity-50 pointer-events-none' : ''
       } ${className}`}
     >
       {/* Label and Value readout */}
       <div className="flex items-center justify-between mb-2">
         {label && (
-          <span className="font-sans font-semibold text-xs text-slate-300">
+          <span className="font-sans font-semibold text-xs text-[#E5E0D5]">
             {label}
           </span>
         )}
         <div className="flex items-baseline gap-1 font-mono font-bold text-sm text-white">
           <span>{value}</span>
-          {unit && <span className="text-slate-400 text-xs">{unit}</span>}
+          {unit && <span className="text-[#8E9693] text-xs">{unit}</span>}
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export const Slider: React.FC<SliderProps> = ({
             onClick={handleDecrement}
             disabled={disabled || value <= min}
             aria-label="Decrease value"
-            className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer border border-[#263130]"
           >
             <Minus className="w-4 h-4" />
           </button>
@@ -89,9 +89,9 @@ export const Slider: React.FC<SliderProps> = ({
             value={value}
             disabled={disabled}
             onChange={handleInputChange}
-            className="w-full h-2 rounded-lg appearance-none bg-white/[0.08] cursor-pointer focus:outline-none accent-indigo-500"
+            className="w-full h-2 rounded-lg appearance-none bg-[#263130] cursor-pointer focus:outline-none accent-[#0B7066]"
             style={{
-              background: `linear-gradient(to right, #6366F1 0%, #818CF8 ${percentage}%, rgba(255,255,255,0.08) ${percentage}%, rgba(255,255,255,0.08) 100%)`,
+              background: `linear-gradient(to right, #004741 0%, #0B7066 ${percentage}%, #263130 ${percentage}%, #263130 100%)`,
             }}
           />
         </div>
@@ -102,7 +102,7 @@ export const Slider: React.FC<SliderProps> = ({
             onClick={handleIncrement}
             disabled={disabled || value >= max}
             aria-label="Increase value"
-            className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white flex items-center justify-center transition-colors disabled:opacity-30 disabled:pointer-events-none cursor-pointer border border-[#263130]"
           >
             <Plus className="w-4 h-4" />
           </button>

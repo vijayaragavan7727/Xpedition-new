@@ -33,46 +33,46 @@ const TYPE_CONFIG: Record<
   }
 > = {
   suggestion: {
-    icon: <Brain className="w-4 h-4 text-indigo-400" />,
+    icon: <Brain className="w-4 h-4 text-[#0B7066]" />,
     title: 'Xira Suggests',
-    border: 'border-indigo-500/35',
-    badgeBg: 'bg-indigo-500/15',
-    badgeText: 'text-indigo-300',
+    border: 'border-[#17655E]',
+    badgeBg: 'bg-[#004741]/30',
+    badgeText: 'text-[#E5E0D5]',
   },
   hint: {
-    icon: <Lightbulb className="w-4 h-4 text-amber-400" />,
+    icon: <Lightbulb className="w-4 h-4 text-[#E5E0D5]" />,
     title: 'Xira Hint',
-    border: 'border-amber-500/35',
-    badgeBg: 'bg-amber-500/15',
-    badgeText: 'text-amber-300',
+    border: 'border-[#263130]',
+    badgeBg: 'bg-[#1B2221]',
+    badgeText: 'text-[#E5E0D5]',
   },
   explanation: {
-    icon: <Sparkles className="w-4 h-4 text-sky-400" />,
+    icon: <Sparkles className="w-4 h-4 text-[#0B7066]" />,
     title: 'Xira Concept Breakdown',
-    border: 'border-sky-500/35',
-    badgeBg: 'bg-sky-500/15',
-    badgeText: 'text-sky-300',
+    border: 'border-[#17655E]',
+    badgeBg: 'bg-[#075C55]/30',
+    badgeText: 'text-white',
   },
   observation: {
-    icon: <Compass className="w-4 h-4 text-teal-400" />,
+    icon: <Compass className="w-4 h-4 text-[#0B7066]" />,
     title: 'Xira Observed',
-    border: 'border-teal-500/35',
-    badgeBg: 'bg-teal-500/15',
-    badgeText: 'text-teal-300',
+    border: 'border-[#17655E]',
+    badgeBg: 'bg-[#004741]/30',
+    badgeText: 'text-[#E5E0D5]',
   },
   feedback: {
-    icon: <Sparkles className="w-4 h-4 text-purple-400" />,
+    icon: <Sparkles className="w-4 h-4 text-[#0B7066]" />,
     title: 'Xira Assessment Feedback',
-    border: 'border-purple-500/35',
-    badgeBg: 'bg-purple-500/15',
-    badgeText: 'text-purple-300',
+    border: 'border-[#17655E]',
+    badgeBg: 'bg-[#004741]/40',
+    badgeText: 'text-white',
   },
   intervention: {
     icon: <AlertCircle className="w-4 h-4 text-rose-400" />,
     title: 'Need a hand?',
-    border: 'border-rose-500/35',
-    badgeBg: 'bg-rose-500/15',
-    badgeText: 'text-rose-300',
+    border: 'border-[#A83232]/50',
+    badgeBg: 'bg-[#A83232]/20',
+    badgeText: 'text-rose-200',
   },
 };
 
@@ -90,12 +90,12 @@ export const XiraCard: React.FC<XiraCardProps> = ({
 
   return (
     <div
-      className={`relative p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0E152E]/95 to-[#141D3D]/95 backdrop-blur-xl border ${currentConfig.border} shadow-[0_8px_24px_rgba(99,102,241,0.18)] space-y-3 transition-all ${className}`}
+      className={`relative p-4 sm:p-5 rounded-xl bg-[#151B1B] border ${currentConfig.border} shadow-sm space-y-3 transition-colors ${className}`}
     >
       {/* Header with Icon, Title, and Dismiss */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-[#080B0D] border border-[#263130] flex items-center justify-center shrink-0">
             {currentConfig.icon}
           </div>
           <span className="font-sans font-bold text-xs sm:text-sm text-white tracking-tight">
@@ -108,7 +108,7 @@ export const XiraCard: React.FC<XiraCardProps> = ({
             type="button"
             onClick={onDismiss}
             aria-label="Dismiss suggestion"
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+            className="p-1 rounded-lg text-[#8E9693] hover:text-white hover:bg-white/[0.08] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -116,7 +116,7 @@ export const XiraCard: React.FC<XiraCardProps> = ({
       </div>
 
       {/* Message Body */}
-      <p className="font-sans text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+      <p className="font-sans text-xs sm:text-sm text-[#E5E0D5] leading-relaxed font-normal">
         {message}
       </p>
 

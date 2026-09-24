@@ -6,7 +6,7 @@ export interface CircularProgressProps {
   value: number; // 0 to 100
   size?: number; // width/height in px (default: 80)
   strokeWidth?: number; // stroke width (default: 8)
-  variant?: 'indigo' | 'cyan' | 'emerald' | 'amber' | 'purple';
+  variant?: 'indigo' | 'cyan' | 'emerald' | 'amber' | 'purple' | 'teal';
   label?: string;
   sublabel?: string;
   showPercent?: boolean;
@@ -17,7 +17,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   value,
   size = 80,
   strokeWidth = 7,
-  variant = 'indigo',
+  variant = 'teal',
   label,
   sublabel,
   showPercent = true,
@@ -30,15 +30,16 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
 
   const gradientId = `circular-grad-${variant}-${size}`;
 
-  const colors = {
-    indigo: { start: '#6366F1', end: '#818CF8' },
-    cyan: { start: '#0EA5E9', end: '#38BDF8' },
-    emerald: { start: '#10B981', end: '#34D399' },
-    amber: { start: '#F59E0B', end: '#FBBF24' },
-    purple: { start: '#8B5CF6', end: '#C084FC' },
+  const colors: Record<string, { start: string; end: string }> = {
+    teal: { start: '#075C55', end: '#0B7066' },
+    indigo: { start: '#075C55', end: '#0B7066' },
+    cyan: { start: '#004741', end: '#075C55' },
+    emerald: { start: '#075C55', end: '#0B7066' },
+    amber: { start: '#E5E0D5', end: '#F0EDE4' },
+    purple: { start: '#075C55', end: '#0B7066' },
   };
 
-  const activeColor = colors[variant];
+  const activeColor = colors[variant] || colors.teal;
 
   return (
     <div className={`inline-flex flex-col items-center justify-center ${className}`}>
@@ -57,7 +58,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
             cy={size / 2}
             r={radius}
             fill="transparent"
-            stroke="rgba(255, 255, 255, 0.08)"
+            stroke="#263130"
             strokeWidth={strokeWidth}
           />
 
@@ -72,7 +73,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className="transition-all duration-700 ease-out"
+            className="transition-all duration-500 ease-out"
           />
         </svg>
 
@@ -87,12 +88,12 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
       </div>
 
       {label && (
-        <span className="mt-2 text-xs font-sans font-semibold text-slate-200 text-center">
+        <span className="mt-2 text-xs font-sans font-semibold text-white text-center">
           {label}
         </span>
       )}
       {sublabel && (
-        <span className="text-[11px] font-mono text-slate-400 text-center">
+        <span className="text-[11px] font-mono text-[#8E9693] text-center">
           {sublabel}
         </span>
       )}

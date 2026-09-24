@@ -7,6 +7,8 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
     | 'default'
     | 'indigo'
     | 'cyan'
+    | 'teal'
+    | 'cream'
     | 'success'
     | 'warning'
     | 'danger'
@@ -33,7 +35,7 @@ export const Badge: React.FC<BadgeProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center gap-1.5 font-sans font-semibold uppercase tracking-wider rounded-lg transition-colors select-none';
+    'inline-flex items-center gap-1.5 font-sans font-semibold uppercase tracking-wider rounded-md transition-colors select-none';
 
   const sizeStyles = {
     sm: 'text-[10px] px-2 py-0.5 leading-tight',
@@ -42,19 +44,21 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const variantStyles: Record<NonNullable<BadgeProps['variant']>, string> = {
-    default: 'bg-white/[0.06] text-slate-300 border border-white/[0.08]',
-    indigo: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30',
-    cyan: 'bg-sky-500/15 text-sky-300 border border-sky-500/30',
-    success: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
-    warning: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',
-    danger: 'bg-rose-500/15 text-rose-300 border border-rose-500/30',
-    level: 'bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono',
-    streak: 'bg-orange-500/15 text-orange-300 border border-orange-500/30 font-mono',
-    '3d': 'bg-indigo-500/20 text-indigo-200 border border-indigo-400/40 font-mono font-bold shadow-[0_0_12px_rgba(99,102,241,0.25)]',
-    stage: 'bg-white/[0.08] text-slate-200 border border-white/[0.12]',
-    mastered: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-[0_0_12px_rgba(16,185,129,0.2)]',
-    review: 'bg-amber-500/20 text-amber-300 border border-amber-400/40',
-    skipped: 'bg-slate-800/80 text-slate-400 border border-slate-700/50',
+    default: 'bg-white/[0.05] text-[#8E9693] border border-[#263130]',
+    indigo: 'bg-[#004741]/40 text-[#E5E0D5] border border-[#17655E]',
+    cyan: 'bg-[#075C55]/30 text-[#E5E0D5] border border-[#17655E]',
+    teal: 'bg-[#004741]/40 text-[#E5E0D5] border border-[#17655E]',
+    cream: 'bg-[#F0EDE4] text-[#080B0D] font-bold border border-[#E5E0D5]',
+    success: 'bg-[#075C55]/30 text-[#E5E0D5] border border-[#17655E]',
+    warning: 'bg-[#C29B38]/20 text-[#E5E0D5] border border-[#C29B38]/40',
+    danger: 'bg-[#A83232]/20 text-rose-300 border border-[#A83232]/40',
+    level: 'bg-[#1B2221] text-[#E5E0D5] border border-[#263130] font-mono',
+    streak: 'bg-[#1B2221] text-[#E5E0D5] border border-[#263130] font-mono',
+    '3d': 'bg-[#004741]/50 text-white border border-[#17655E] font-mono font-bold',
+    stage: 'bg-[#151B1B] text-white border border-[#263130]',
+    mastered: 'bg-[#075C55]/40 text-white border border-[#17655E]',
+    review: 'bg-[#1B2221] text-[#E5E0D5] border border-[#263130]',
+    skipped: 'bg-[#151B1B] text-[#8E9693] border border-[#263130]',
   };
 
   const dynamicStyle = stageColor
@@ -79,4 +83,3 @@ export const Badge: React.FC<BadgeProps> = ({
 };
 
 export default Badge;
-

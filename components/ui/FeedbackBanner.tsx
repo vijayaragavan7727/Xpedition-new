@@ -48,92 +48,92 @@ const FEEDBACK_CONFIG: Record<
   }
 > = {
   correct: {
-    icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
+    icon: <CheckCircle2 className="w-4 h-4 text-[#0B7066]" />,
     title: 'Correct!',
-    border: 'border-emerald-500/35',
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-300',
-    badgeText: 'text-emerald-200',
+    border: 'border-[#17655E]',
+    bg: 'bg-[#004741]/20',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
   incorrect: {
     icon: <XCircle className="w-4 h-4 text-rose-400" />,
     title: 'Not quite yet',
-    border: 'border-rose-500/30',
-    bg: 'bg-rose-500/10',
-    text: 'text-rose-300',
-    badgeText: 'text-rose-200',
+    border: 'border-rose-900/50',
+    bg: 'bg-rose-950/20',
+    text: 'text-rose-200',
+    badgeText: 'text-rose-100',
   },
   hint: {
-    icon: <HelpCircle className="w-4 h-4 text-amber-400" />,
+    icon: <HelpCircle className="w-4 h-4 text-[#E5E0D5]" />,
     title: 'Concept Hint',
-    border: 'border-amber-500/35',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-300',
-    badgeText: 'text-amber-200',
+    border: 'border-[#263130]',
+    bg: 'bg-[#151B1B]',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
   tryAgain: {
-    icon: <RotateCcw className="w-4 h-4 text-sky-400" />,
+    icon: <RotateCcw className="w-4 h-4 text-[#0B7066]" />,
     title: 'Try Again',
-    border: 'border-sky-500/30',
-    bg: 'bg-sky-500/10',
-    text: 'text-sky-300',
-    badgeText: 'text-sky-200',
+    border: 'border-[#17655E]',
+    bg: 'bg-[#004741]/15',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
   almostThere: {
-    icon: <Sparkles className="w-4 h-4 text-amber-400" />,
+    icon: <Sparkles className="w-4 h-4 text-[#E5E0D5]" />,
     title: 'Almost there!',
-    border: 'border-amber-500/35',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-300',
-    badgeText: 'text-amber-200',
+    border: 'border-[#263130]',
+    bg: 'bg-[#151B1B]',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
   mastered: {
-    icon: <Award className="w-4 h-4 text-emerald-400" />,
+    icon: <Award className="w-4 h-4 text-[#0B7066]" />,
     title: 'Concept Mastered',
-    border: 'border-emerald-500/40',
-    bg: 'bg-emerald-500/15',
-    text: 'text-emerald-300',
-    badgeText: 'text-emerald-200',
+    border: 'border-[#17655E]',
+    bg: 'bg-[#004741]/25',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
   needsReview: {
-    icon: <AlertTriangle className="w-4 h-4 text-amber-400" />,
+    icon: <AlertTriangle className="w-4 h-4 text-[#C29B38]" />,
     title: 'Needs Review',
-    border: 'border-amber-500/35',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-300',
-    badgeText: 'text-amber-200',
+    border: 'border-[#C29B38]/40',
+    bg: 'bg-[#C29B38]/10',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
   skipped: {
-    icon: <SkipForward className="w-4 h-4 text-slate-400" />,
+    icon: <SkipForward className="w-4 h-4 text-[#8E9693]" />,
     title: 'Skipped for now',
-    border: 'border-slate-600/30',
-    bg: 'bg-slate-800/40',
-    text: 'text-slate-300',
-    badgeText: 'text-slate-400',
+    border: 'border-[#263130]',
+    bg: 'bg-[#151B1B]',
+    text: 'text-[#8E9693]',
+    badgeText: 'text-[#8E9693]',
   },
   loading: {
-    icon: <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />,
+    icon: <Loader2 className="w-4 h-4 text-[#0B7066] animate-spin" />,
     title: 'Evaluating...',
-    border: 'border-indigo-500/30',
-    bg: 'bg-indigo-500/10',
-    text: 'text-indigo-300',
-    badgeText: 'text-indigo-200',
+    border: 'border-[#17655E]',
+    bg: 'bg-[#004741]/20',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
   saved: {
-    icon: <Check className="w-4 h-4 text-emerald-400" />,
+    icon: <Check className="w-4 h-4 text-[#0B7066]" />,
     title: 'Progress Saved',
-    border: 'border-emerald-500/30',
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-300',
-    badgeText: 'text-emerald-200',
+    border: 'border-[#17655E]',
+    bg: 'bg-[#004741]/15',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
   completed: {
-    icon: <Award className="w-4 h-4 text-amber-400" />,
+    icon: <Award className="w-4 h-4 text-[#0B7066]" />,
     title: 'Activity Completed',
-    border: 'border-amber-500/35',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-300',
-    badgeText: 'text-amber-200',
+    border: 'border-[#17655E]',
+    bg: 'bg-[#004741]/20',
+    text: 'text-[#E5E0D5]',
+    badgeText: 'text-white',
   },
 };
 
@@ -150,20 +150,20 @@ export const FeedbackBanner: React.FC<FeedbackBannerProps> = ({
 
   return (
     <div
-      className={`p-3.5 sm:p-4 rounded-xl ${config.bg} border ${config.border} backdrop-blur-md flex items-start gap-3 transition-all ${className}`}
+      className={`p-3.5 sm:p-4 rounded-xl ${config.bg} border ${config.border} flex items-start gap-3 transition-colors ${className}`}
     >
       <div className="mt-0.5 shrink-0">{config.icon}</div>
       <div className="flex-1 min-w-0 space-y-0.5">
         <h4 className={`font-sans font-bold text-xs sm:text-sm ${config.badgeText}`}>
           {displayTitle}
         </h4>
-        <p className="font-sans text-xs text-slate-300 leading-relaxed">{message}</p>
+        <p className="font-sans text-xs text-[#E5E0D5] leading-relaxed">{message}</p>
       </div>
       {actionLabel && onAction && (
         <button
           type="button"
           onClick={onAction}
-          className="shrink-0 px-2.5 py-1 text-xs font-sans font-semibold rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-white transition-colors"
+          className="shrink-0 px-2.5 py-1 text-xs font-sans font-semibold rounded-lg bg-[#F0EDE4] hover:bg-[#E5E0D5] text-[#080B0D] transition-colors"
         >
           {actionLabel}
         </button>

@@ -22,37 +22,37 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Card: React.FC<CardProps> = ({
   children,
   variant = 'default',
-  glowColor = 'indigo',
+  glowColor,
   className = '',
   ...props
 }) => {
-  const baseStyles = 'relative rounded-2xl transition-all duration-200 overflow-hidden';
+  const baseStyles = 'relative rounded-xl transition-colors duration-150 overflow-hidden';
 
   const variantStyles: Record<NonNullable<CardProps['variant']>, string> = {
     default:
-      'bg-[#0E152E]/90 border border-white/[0.07] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4)]',
+      'bg-[#151B1B] border border-[#263130] shadow-sm',
     elevated:
-      'bg-[#141D3D]/95 border border-white/[0.11] shadow-[0_12px_36px_-6px_rgba(0,0,0,0.6)]',
+      'bg-[#1B2221] border border-[#263130] shadow-md',
     glass:
-      'bg-[#0E152E]/75 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.45)]',
+      'bg-[#151B1B]/95 backdrop-blur-xl border border-[#263130] shadow-sm',
     interactive:
-      'bg-[#0E152E]/90 border border-white/[0.07] hover:border-indigo-500/35 hover:bg-[#141D3D] cursor-pointer hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.45)] active:scale-[0.99]',
+      'bg-[#151B1B] border border-[#263130] hover:border-[#17655E] hover:bg-[#1B2221] cursor-pointer shadow-sm active:scale-[0.99]',
     highlight:
-      'bg-gradient-to-br from-[#141D3D] to-[#0A1024] border border-indigo-500/40 shadow-[0_8px_30px_rgba(0,0,0,0.5)]',
+      'bg-[#151B1B] border border-[#17655E] shadow-sm',
     learning:
-      'bg-gradient-to-b from-[#141D3D]/95 via-[#0E152E]/90 to-[#0A1024]/95 border border-indigo-500/30 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.55)]',
+      'bg-[#151B1B] border border-[#17655E] shadow-sm',
     mission:
-      'bg-[#0E152E]/90 border border-amber-500/30 shadow-[0_8px_24px_-4px_rgba(245,158,11,0.15)]',
+      'bg-[#151B1B] border border-[#17655E] shadow-sm',
     xira:
-      'bg-[#0E152E]/95 border border-indigo-500/35 shadow-[0_8px_28px_rgba(99,102,241,0.2)]',
+      'bg-[#151B1B] border border-[#17655E] shadow-sm',
     buddy:
-      'bg-[#0E152E]/95 border border-sky-500/30 shadow-[0_8px_28px_rgba(14,165,233,0.15)]',
+      'bg-[#151B1B] border border-[#263130] shadow-sm',
     reward:
-      'bg-gradient-to-b from-[#1E192B] to-[#0E152E] border border-amber-400/40 shadow-[0_12px_36px_rgba(245,158,11,0.25)]',
+      'bg-[#1B2221] border border-[#263130] shadow-sm',
     resource:
-      'bg-[#0E152E]/80 border border-white/[0.08] hover:border-white/[0.16] hover:bg-[#141D3D]/70 transition-all',
+      'bg-[#151B1B] border border-[#263130] hover:border-[#17655E] hover:bg-[#1B2221] transition-colors',
     subject:
-      'bg-[#0E152E]/85 border border-white/[0.08] hover:border-indigo-400/40 hover:bg-[#141D3D]/90 transition-all cursor-pointer active:scale-[0.98]',
+      'bg-[#151B1B] border border-[#263130] hover:border-[#17655E] hover:bg-[#1B2221] transition-colors cursor-pointer active:scale-[0.99]',
   };
 
   return (
@@ -66,4 +66,3 @@ export const Card: React.FC<CardProps> = ({
 };
 
 export default Card;
-

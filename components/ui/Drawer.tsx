@@ -53,7 +53,7 @@ export const Drawer: React.FC<DrawerProps> = ({
     <div className="fixed inset-0 z-50 flex select-none">
       {/* Backdrop overlay */}
       <div
-        className="fixed inset-0 bg-[#060B18]/70 backdrop-blur-md transition-opacity duration-300 animate-fadeIn"
+        className="fixed inset-0 bg-[#080B0D]/80 backdrop-blur-sm transition-opacity duration-200"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -64,18 +64,18 @@ export const Drawer: React.FC<DrawerProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className={`relative mt-auto w-full max-w-2xl mx-auto rounded-t-3xl bg-[#0E152E]/95 border-t border-x border-white/[0.1] backdrop-blur-2xl shadow-[0_-12px_40px_rgba(0,0,0,0.7)] flex flex-col max-h-[85vh] z-10 transition-transform duration-300 ease-out transform translate-y-0 ${className}`}
+          className={`relative mt-auto w-full max-w-2xl mx-auto rounded-t-2xl bg-[#151B1B] border-t border-x border-[#263130] shadow-2xl flex flex-col max-h-[85vh] z-10 transition-transform duration-200 ease-out transform translate-y-0 ${className}`}
         >
           {/* Swipe / drag indicator pill */}
           <div className="w-full flex justify-center pt-3 pb-1 shrink-0 cursor-grab active:cursor-grabbing">
-            <div className="w-12 h-1.5 rounded-full bg-white/[0.2] hover:bg-white/[0.3] transition-colors" />
+            <div className="w-12 h-1.5 rounded-full bg-white/[0.2]" />
           </div>
 
           {/* Drawer Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.07] shrink-0">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[#263130] shrink-0">
             <div className="flex items-center gap-2.5">
               {icon && (
-                <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-indigo-300">
+                <div className="w-8 h-8 rounded-lg bg-[#080B0D] border border-[#263130] flex items-center justify-center text-[#0B7066]">
                   {icon}
                 </div>
               )}
@@ -84,7 +84,7 @@ export const Drawer: React.FC<DrawerProps> = ({
                   {title}
                 </h3>
                 {subtitle && (
-                  <p className="font-sans text-xs text-slate-400 font-normal">{subtitle}</p>
+                  <p className="font-sans text-xs text-[#8E9693] font-normal">{subtitle}</p>
                 )}
               </div>
             </div>
@@ -93,14 +93,14 @@ export const Drawer: React.FC<DrawerProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close drawer"
-              className="w-8 h-8 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white flex items-center justify-center transition-colors cursor-pointer border border-[#263130]"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Drawer Scrollable Content */}
-          <div className="p-5 overflow-y-auto flex-1 text-slate-200 select-text">
+          <div className="p-5 overflow-y-auto flex-1 text-[#E5E0D5] select-text">
             {children}
           </div>
         </div>
@@ -109,13 +109,13 @@ export const Drawer: React.FC<DrawerProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className={`relative ml-auto w-full max-w-md h-full bg-[#0E152E]/95 border-l border-white/[0.1] backdrop-blur-2xl shadow-[-12px_0_40px_rgba(0,0,0,0.7)] flex flex-col z-10 transition-transform duration-300 ease-out ${className}`}
+          className={`relative ml-auto w-full max-w-md h-full bg-[#151B1B] border-l border-[#263130] shadow-2xl flex flex-col z-10 transition-transform duration-200 ease-out ${className}`}
         >
           {/* Right Drawer Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] shrink-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#263130] shrink-0">
             <div className="flex items-center gap-2.5">
               {icon && (
-                <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-indigo-300">
+                <div className="w-8 h-8 rounded-lg bg-[#080B0D] border border-[#263130] flex items-center justify-center text-[#0B7066]">
                   {icon}
                 </div>
               )}
@@ -124,7 +124,7 @@ export const Drawer: React.FC<DrawerProps> = ({
                   {title}
                 </h3>
                 {subtitle && (
-                  <p className="font-sans text-xs text-slate-400 font-normal">{subtitle}</p>
+                  <p className="font-sans text-xs text-[#8E9693] font-normal">{subtitle}</p>
                 )}
               </div>
             </div>
@@ -133,14 +133,14 @@ export const Drawer: React.FC<DrawerProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close drawer"
-              className="w-8 h-8 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white flex items-center justify-center transition-colors cursor-pointer border border-[#263130]"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Drawer Content */}
-          <div className="p-5 overflow-y-auto flex-1 text-slate-200 select-text">
+          <div className="p-5 overflow-y-auto flex-1 text-[#E5E0D5] select-text">
             {children}
           </div>
         </div>

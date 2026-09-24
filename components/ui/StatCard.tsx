@@ -26,25 +26,25 @@ export const StatCard: React.FC<StatCardProps> = ({
   className = '',
 }) => {
   const variantStyles = {
-    default: 'bg-[#0E152E]/90 border border-white/[0.08] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.4)]',
-    streak: 'bg-[#0E152E]/90 border border-amber-500/25 shadow-[0_4px_20px_-4px_rgba(245,158,11,0.15)]',
-    xp: 'bg-[#0E152E]/90 border border-indigo-500/25 shadow-[0_4px_20px_-4px_rgba(99,102,241,0.15)]',
-    achievement: 'bg-[#0E152E]/90 border border-sky-500/25 shadow-[0_4px_20px_-4px_rgba(14,165,233,0.15)]',
-    elevated: 'bg-[#141D3D]/95 border border-white/[0.12] shadow-[0_12px_36px_-6px_rgba(0,0,0,0.6)]',
+    default: 'bg-[#151B1B] border border-[#263130] shadow-sm',
+    streak: 'bg-[#151B1B] border border-[#263130] shadow-sm',
+    xp: 'bg-[#151B1B] border border-[#17655E] shadow-sm',
+    achievement: 'bg-[#151B1B] border border-[#17655E] shadow-sm',
+    elevated: 'bg-[#1B2221] border border-[#263130] shadow-sm',
   };
 
   if (compact) {
     return (
       <div
-        className={`p-3 sm:p-3.5 rounded-2xl ${variantStyles[variant]} flex flex-col items-center justify-center text-center space-y-1 transition-all select-none ${className}`}
+        className={`p-3 sm:p-3.5 rounded-xl ${variantStyles[variant]} flex flex-col items-center justify-center text-center space-y-1 select-none ${className}`}
       >
         <div className="flex items-center gap-1.5">
-          {icon && <span className="text-base shrink-0">{icon}</span>}
+          {icon && <span className="text-base shrink-0 text-[#0B7066]">{icon}</span>}
           <span className="font-mono font-bold text-lg sm:text-xl text-white tracking-tight">
             {value}
           </span>
         </div>
-        <span className="font-sans text-[11px] font-medium text-slate-400 leading-tight">
+        <span className="font-sans text-[11px] font-medium text-[#8E9693] leading-tight">
           {label}
         </span>
       </div>
@@ -53,28 +53,27 @@ export const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <div
-      className={`p-4 rounded-2xl ${variantStyles[variant]} space-y-1.5 transition-all select-none ${className}`}
+      className={`p-4 rounded-xl ${variantStyles[variant]} space-y-1.5 select-none ${className}`}
     >
-      <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
+      <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-[#8E9693] font-bold">
         <span>{label}</span>
-        {icon && <span className="text-indigo-400">{icon}</span>}
+        {icon && <span className="text-[#0B7066]">{icon}</span>}
       </div>
       <div className="flex items-baseline gap-2">
         <span className="font-mono font-bold text-2xl text-white tracking-tight">{value}</span>
         {trend && (
           <span
             className={`text-xs font-mono font-bold ${
-              trendPositive ? 'text-emerald-400' : 'text-rose-400'
+              trendPositive ? 'text-[#0B7066]' : 'text-rose-400'
             }`}
           >
             {trend}
           </span>
         )}
       </div>
-      {subtext && <p className="font-sans text-xs text-slate-400">{subtext}</p>}
+      {subtext && <p className="font-sans text-xs text-[#8E9693]">{subtext}</p>}
     </div>
   );
 };
 
 export default StatCard;
-
