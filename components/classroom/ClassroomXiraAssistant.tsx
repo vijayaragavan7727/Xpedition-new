@@ -117,9 +117,9 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = ({
 
   return (
     <div
-      className={`flex flex-col rounded-3xl bg-[#090F24]/90 border border-indigo-500/25 shadow-2xl backdrop-blur-xl overflow-hidden select-none ${className}`}
+      className={`flex flex-col rounded-3xl bg-[#090F24]/80 border border-cyan-500/30 shadow-2xl backdrop-blur-xl overflow-hidden select-none ${className}`}
       style={{
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
       }}
     >
       {/* =====================================================================

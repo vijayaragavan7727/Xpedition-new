@@ -9,7 +9,8 @@ import {
   FileText,
   Calculator,
   Layers,
-  Bookmark,
+  Link2,
+  Calendar,
 } from 'lucide-react';
 import { ClassroomToolType } from './types';
 
@@ -111,7 +112,7 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = ({
           {
             id: 'sources' as ClassroomToolType,
             label: 'Sources',
-            icon: <Bookmark className="w-4 h-4 sm:w-5 sm:h-5" />,
+            icon: <Link2 className="w-4 h-4 sm:w-5 sm:h-5" />,
           },
         ]
       : []),

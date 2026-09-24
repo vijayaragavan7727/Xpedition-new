@@ -72,9 +72,9 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
 
   return (
     <div
-      className={`relative flex flex-col justify-between rounded-3xl bg-[#060B1E]/95 border-2 border-indigo-500/30 shadow-[0_12px_48px_rgba(0,0,0,0.8)] backdrop-blur-2xl overflow-hidden ${className}`}
+      className={`relative flex flex-col justify-between rounded-3xl bg-[#060B1E]/80 border-2 border-cyan-500/40 shadow-[0_12px_48px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden ${className}`}
       style={{
-        boxShadow: '0 0 35px -5px rgba(59,130,246,0.25), inset 0 1px 0 rgba(255,255,255,0.1)',
+        boxShadow: '0 0 35px -5px rgba(6,182,212,0.3), inset 0 1px 0 rgba(255,255,255,0.12)',
       }}
     >
       {/* Outer Smart Board Metal Frame Highlights */}
