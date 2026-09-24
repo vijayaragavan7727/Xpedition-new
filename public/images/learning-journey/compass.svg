@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Outer Brass Ring -->
+  <circle cx="50" cy="50" r="46" fill="#C59B27" stroke="#8C6D1F" stroke-width="3"/>
+  <circle cx="50" cy="50" r="42" fill="#FAF6E9" stroke="#B38B22" stroke-width="1.5"/>
+  
+  <!-- Compass Needle Rose Marks -->
+  <circle cx="50" cy="50" r="38" stroke="#D1C7A5" stroke-width="1" stroke-dasharray="2 4"/>
+  
+  <!-- Cardinal Points -->
+  <text x="50" y="22" font-family="serif" font-size="10" font-weight="bold" fill="#8C2D19" text-anchor="middle">N</text>
+  <text x="82" y="53" font-family="serif" font-size="9" font-weight="bold" fill="#3D3A2A" text-anchor="middle">E</text>
+  <text x="50" y="84" font-family="serif" font-size="9" font-weight="bold" fill="#3D3A2A" text-anchor="middle">S</text>
+  <text x="18" y="53" font-family="serif" font-size="9" font-weight="bold" fill="#3D3A2A" text-anchor="middle">W</text>
+  
+  <!-- Needle (North = Red, South = Blue-Grey) -->
+  <polygon points="50,18 45,50 50,47" fill="#C93B2B"/>
+  <polygon points="50,18 55,50 50,47" fill="#A92617"/>
+  <polygon points="50,82 45,50 50,53" fill="#4B6584"/>
+  <polygon points="50,82 55,50 50,53" fill="#2D3A4B"/>
+  
+  <!-- Center Brass Pivot Pin -->
+  <circle cx="50" cy="50" r="4" fill="#E5C158" stroke="#8C6D1F" stroke-width="1.5"/>
+  <circle cx="50" cy="50" r="1.5" fill="#4A3018"/>
+</svg>

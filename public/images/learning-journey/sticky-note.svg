@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" fill="none">
+  <!-- Soft drop shadow -->
+  <filter id="stickyShadow" x="-10%" y="-10%" width="130%" height="130%">
+    <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.12"/>
+  </filter>
+
+  <!-- Sticky Note Paper -->
+  <g filter="url(#stickyShadow)" transform="rotate(3 70 60)">
+    <path d="M10 10C10 6.68629 12.6863 4 16 4H124C127.314 4 130 6.68629 130 10V106C130 109.314 127.314 112 124 112H16C12.6863 112 10 109.314 10 106V10Z" fill="#FBF39C"/>
+    
+    <!-- Paper clip on top right -->
+    <path d="M100 2V22C100 24.2 98.2 26 96 26C93.8 26 92 24.2 92 22V6C92 3.8 93.8 2 96 2C98.2 2 100 3.8 100 6V20" stroke="#78716C" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    
+    <!-- Handwriting text -->
+    <text x="70" y="44" font-family="'Caveat', cursive, Inter, sans-serif" font-size="15" font-weight="700" fill="#44403C" text-anchor="middle">Small steps</text>
+    <text x="70" y="66" font-family="'Caveat', cursive, Inter, sans-serif" font-size="15" font-weight="700" fill="#44403C" text-anchor="middle">Big dreams</text>
+    
+    <!-- Friendly smiley -->
+    <path d="M62 82C64 85 76 85 78 82" stroke="#44403C" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <circle cx="63" cy="76" r="1.5" fill="#44403C"/>
+    <circle cx="77" cy="76" r="1.5" fill="#44403C"/>
+  </g>
+</svg>

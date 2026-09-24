@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 90" fill="none">
+  <path d="M16 8C16 4.68629 18.6863 2 22 2H186C189.314 2 192 4.68629 192 8V64C192 67.3137 189.314 70 186 70H50L30 84V70H22C18.6863 70 16 67.3137 16 64V8Z" fill="#E8F5EE" stroke="#A7D7B9" stroke-width="2"/>
+  <text x="104" y="32" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#0F5132" text-anchor="middle">Ready to continue?</text>
+  <text x="104" y="52" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#2E7D58" text-anchor="middle">You're doing great!</text>
+</svg>

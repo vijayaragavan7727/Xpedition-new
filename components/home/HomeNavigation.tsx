@@ -17,7 +17,7 @@ export interface NavItem {
 
 export const HOME_PRIMARY_NAV_ITEMS: NavItem[] = [
   { label: 'Home', href: '/home', icon: Home, matchPrefixes: ['/home'] },
-  { label: 'Learn / Class', mobileLabel: 'Learn', href: '/class', icon: BookOpen, matchPrefixes: ['/class', '/learn', '/tutor'] },
+  { label: 'Learn / Class', mobileLabel: 'Learn', href: '/learn', icon: BookOpen, matchPrefixes: ['/class', '/learn', '/tutor'] },
   { label: 'World', href: '/world', icon: Globe, matchPrefixes: ['/world'] },
   { label: 'Passports', href: '/passport', icon: Award, matchPrefixes: ['/passport'] },
   { label: 'Profile', href: '/profile', icon: User, matchPrefixes: ['/profile'] },

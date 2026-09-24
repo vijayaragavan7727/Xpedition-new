@@ -19,14 +19,14 @@ export default function AppLayout({
   const [step, setStep] = useState<OnboardingStep | null>(null);
   const [loopBrokenNotice, setLoopBrokenNotice] = useState<boolean>(false);
   const isWorldPage = pathname === '/world';
-  const isBypassedPage = pathname === '/home' || pathname === '/world' || pathname === '/profile';
+  const isBypassedPage = pathname === '/home' || pathname === '/learn' || pathname === '/world' || pathname === '/profile';
 
   useEffect(() => {
     const data = getStoreData();
     setStoreData(data);
 
-    // Bypass gate for Home, World and Profile pages directly
-    if (pathname === '/home' || pathname === '/world' || pathname === '/profile') {
+    // Bypass gate for Home, Learn, World and Profile pages directly
+    if (pathname === '/home' || pathname === '/learn' || pathname === '/world' || pathname === '/profile') {
       setStep('ready');
       return;
     }
@@ -99,8 +99,8 @@ export default function AppLayout({
     );
   }
 
-  // Home page renders its canonical dashboard layout
-  if (pathname === '/home') {
+  // Home and Learn pages render their canonical dashboard / journey layout directly
+  if (pathname === '/home' || pathname === '/learn') {
     return <>{children}</>;
   }
 

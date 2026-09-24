@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Card Background -->
+  <rect x="8" y="8" width="104" height="104" rx="8" fill="#F4FAF6" stroke="#C3E6D0" stroke-width="2"/>
+  
+  <!-- Spiral notebook punch holes -->
+  <circle cx="20" cy="18" r="3" fill="#A8D5BA"/>
+  <circle cx="40" cy="18" r="3" fill="#A8D5BA"/>
+  <circle cx="60" cy="18" r="3" fill="#A8D5BA"/>
+  <circle cx="80" cy="18" r="3" fill="#A8D5BA"/>
+  <circle cx="100" cy="18" r="3" fill="#A8D5BA"/>
+  
+  <!-- Right Triangle Diagram -->
+  <polygon points="26,80 26,45 68,80" fill="#E1F2E8" stroke="#2E7D58" stroke-width="2"/>
+  <rect x="26" y="72" width="8" height="8" fill="none" stroke="#2E7D58" stroke-width="1.5"/>
+  
+  <!-- Formula Text -->
+  <text x="74" y="55" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="13" font-weight="bold" fill="#0F5132" text-anchor="middle">a² + b² = c²</text>
+  <text x="60" y="102" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#6B7280" text-anchor="middle">Mathematics</text>
+</svg>

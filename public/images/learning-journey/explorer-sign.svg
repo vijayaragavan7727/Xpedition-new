@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 180" fill="none">
+  <!-- Wooden Stilts / Posts -->
+  <rect x="36" y="80" width="12" height="96" rx="2" fill="#8B5A2B"/>
+  <rect x="112" y="80" width="12" height="96" rx="2" fill="#8B5A2B"/>
+  <rect x="34" y="80" width="4" height="96" rx="1" fill="#6F441D"/>
+  <rect x="110" y="80" width="4" height="96" rx="1" fill="#6F441D"/>
+
+  <!-- Little green pennant flag on top right stilt -->
+  <polygon points="124,55 142,62 124,70" fill="#2E7D58"/>
+  <line x1="124" y1="52" x2="124" y2="80" stroke="#4A3018" stroke-width="2.5"/>
+
+  <!-- Wooden Board Planks -->
+  <!-- Shadow -->
+  <rect x="14" y="14" width="132" height="114" rx="8" fill="#000000" fill-opacity="0.12"/>
+  
+  <!-- Main Wood Board -->
+  <rect x="12" y="10" width="136" height="116" rx="8" fill="#D2A679" stroke="#5C3A21" stroke-width="3"/>
+  <rect x="16" y="14" width="128" height="108" rx="6" fill="#DEB887"/>
+  
+  <!-- Wood grain plank lines -->
+  <line x1="16" y1="41" x2="144" y2="41" stroke="#BC8F8F" stroke-width="1.5" stroke-dasharray="8 4"/>
+  <line x1="16" y1="68" x2="144" y2="68" stroke="#BC8F8F" stroke-width="1.5" stroke-dasharray="10 3"/>
+  <line x1="16" y1="95" x2="144" y2="95" stroke="#BC8F8F" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- Metal bolts in 4 corners -->
+  <circle cx="24" cy="22" r="3" fill="#4A3B32"/>
+  <circle cx="136" cy="22" r="3" fill="#4A3B32"/>
+  <circle cx="24" cy="114" r="3" fill="#4A3B32"/>
+  <circle cx="136" cy="114" r="3" fill="#4A3B32"/>
+
+  <!-- Embossed Text -->
+  <text x="80" y="38" font-family="'Cinzel', 'Trebuchet MS', Inter, sans-serif" font-size="14" font-weight="900" fill="#4A2E16" text-anchor="middle" letter-spacing="0.08em">EXPLORE</text>
+  <text x="80" y="62" font-family="'Cinzel', 'Trebuchet MS', Inter, sans-serif" font-size="14" font-weight="900" fill="#4A2E16" text-anchor="middle" letter-spacing="0.08em">LEARN</text>
+  <text x="80" y="86" font-family="'Cinzel', 'Trebuchet MS', Inter, sans-serif" font-size="13" font-weight="900" fill="#4A2E16" text-anchor="middle" letter-spacing="0.08em">PRACTICE</text>
+  <text x="80" y="110" font-family="'Cinzel', 'Trebuchet MS', Inter, sans-serif" font-size="14" font-weight="900" fill="#2E7D58" text-anchor="middle" letter-spacing="0.08em">GROW</text>
+</svg>
