@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { ClassroomLessonStep, ClassroomToolType } from './types';
 import { AdaptiveDirective } from '@/lib/classroom/classroomIntelligence';
 import {
@@ -151,107 +152,80 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         )}
 
         {/* Main Stage: Large Centered Visual + Clean Side Callouts */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center flex-1 min-h-0 my-1">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 xl:gap-4 items-center flex-1 min-h-0 my-1">
           {/* Hero Visual Schematic (Dominant: 8 cols) */}
-          <div className="md:col-span-8 relative w-full h-full flex items-center justify-center overflow-hidden">
-            {/* Assembly matching reference: sits directly on board */}
-            <div className="relative w-full max-w-lg h-full max-h-[300px] flex items-center justify-center select-none">
-              {/* Central Axle Steel Rod with Metallic Highlights */}
-              <div className="absolute w-[92%] h-3 bg-gradient-to-b from-slate-200 via-slate-400 to-slate-700 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.9)]" />
+          <div className="md:col-span-8 relative w-full h-full flex flex-col items-center justify-center overflow-hidden">
+            <div className="relative w-full max-w-xl h-full max-h-[310px] flex items-center justify-center select-none group">
+              {/* DC Motor 3D Production Diagram Render */}
+              <div className="relative w-full h-full flex items-center justify-center">
+                <Image
+                  src="/images/classroom/dc-motor-diagram-clean.png"
+                  alt="DC Motor & Commutation 3D Interactive Diagram"
+                  width={600}
+                  height={320}
+                  priority
+                  className={`w-full max-h-[280px] object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.9)] transition-all duration-500 ${
+                    isRotating ? 'filter brightness-105' : 'filter brightness-95'
+                  }`}
+                />
 
-              {/* Left Stator Magnet: 3D Beveled Red North Pole (N) */}
-              <div className="absolute left-2 sm:left-6 flex flex-col items-center z-10">
-                <div className="relative w-20 sm:w-24 lg:w-28 h-32 sm:h-36 lg:h-40 rounded-2xl bg-gradient-to-br from-rose-500 via-red-600 to-red-950 border-2 border-rose-400/80 shadow-[0_0_35px_rgba(239,68,68,0.55),inset_0_3px_6px_rgba(255,255,255,0.4)] flex items-center justify-center transform -skew-y-1 overflow-hidden">
-                  {/* Top Bevel Highlight */}
-                  <div className="absolute top-0 inset-x-0 h-3.5 bg-gradient-to-b from-white/30 to-transparent" />
-                  {/* Inner Concave Curve for Rotor */}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-24 rounded-l-full bg-red-950/80" />
-                  <span className="font-sans font-black text-4xl sm:text-5xl text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]">
-                    N
-                  </span>
-                </div>
-                <span className="text-[10px] sm:text-[11px] font-mono font-black text-rose-400 mt-1.5 uppercase tracking-wider drop-shadow-sm">
+                {/* Animated Rotational Glow Field when active */}
+                {isRotating && (
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-x-1/4 inset-y-6 rounded-full bg-cyan-400/10 blur-2xl pointer-events-none animate-pulse"
+                  />
+                )}
+
+                {/* Interactive Hotspot Pills (Armature Coil, Commutator, Brushes, North & South Poles) */}
+                <button
+                  type="button"
+                  onClick={() => onOpenTool?.('lesson')}
+                  title="Armature Coil: High-conductivity copper windings that carry rotor current"
+                  aria-label="Armature Coil detail"
+                  className="absolute top-2 left-[20%] sm:left-[24%] bg-[#080E24]/95 hover:bg-[#0E1738] border border-cyan-400/50 hover:border-cyan-300 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 shadow-[0_2px_10px_rgba(0,0,0,0.8)] flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                  <span>Armature Coil</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenTool?.('lesson')}
+                  title="Split-Ring Commutator: Inverts current polarity every 180° for continuous rotation"
+                  aria-label="Commutator detail"
+                  className="absolute top-2 right-[20%] sm:right-[24%] bg-[#080E24]/95 hover:bg-[#0E1738] border border-cyan-400/50 hover:border-cyan-300 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 shadow-[0_2px_10px_rgba(0,0,0,0.8)] flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  <span>Commutator</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenTool?.('lesson')}
+                  title="Carbon Brushes: Sliding stationary graphite contacts that feed current into the spinning commutator"
+                  aria-label="Brushes detail"
+                  className="absolute bottom-2 right-[24%] sm:right-[28%] bg-[#080E24]/95 hover:bg-[#0E1738] border border-slate-400/50 hover:border-slate-300 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-slate-300 shadow-[0_2px_10px_rgba(0,0,0,0.8)] flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                  <span>Brushes</span>
+                </button>
+
+                <div className="absolute bottom-2 left-[12%] sm:left-[16%] text-[10px] font-mono font-bold text-rose-400/90 bg-[#080E24]/90 px-2 py-0.5 rounded-full border border-rose-500/30">
                   North Pole
-                </span>
-              </div>
-
-              {/* Central Rotating Armature Coil & Commutator Assembly */}
-              <div className="relative z-20 flex items-center justify-center">
-                {/* Armature Rotor Cylinder */}
-                <div className={`relative flex items-center justify-center ${isRotating ? 'animate-pulse' : ''}`}>
-                  {/* High-fidelity Copper Armature Core (Wider & Chunky matching reference) */}
-                  <div className="w-32 sm:w-36 lg:w-42 h-34 sm:h-38 lg:h-42 rounded-2xl bg-gradient-to-r from-amber-700 via-amber-400 to-amber-900 border-2 border-amber-300/80 shadow-[0_0_40px_rgba(245,158,11,0.55),inset_0_2px_5px_rgba(255,255,255,0.7)] flex flex-col justify-between p-2">
-                    {/* Winding Segments */}
-                    <div className="w-full h-1.5 bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 rounded-full" />
-                    <div className="w-full h-1.5 bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 rounded-full" />
-                    <div className="w-full h-1.5 bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 rounded-full" />
-                    <div className="w-full h-1.5 bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 rounded-full" />
-                    <div className="w-full h-1.5 bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 rounded-full" />
-                    <div className="w-full h-1.5 bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 rounded-full" />
-                    <div className="w-full h-1.5 bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 rounded-full" />
-                  </div>
-
-                  {/* Split-Ring Commutator (Brass Segment) */}
-                  <div className="absolute -right-9 sm:-right-10 w-10 sm:w-11 h-22 sm:h-24 rounded-xl bg-gradient-to-b from-amber-300 via-yellow-500 to-amber-800 border-2 border-amber-200 shadow-lg flex items-center justify-center">
-                    <div className="w-full h-1.5 bg-slate-950 shadow-sm" />
-                  </div>
-
-                  {/* Carbon Contact Brushes (Top and Bottom) */}
-                  <div className="absolute -right-12 sm:-right-13 -top-1 w-4 h-8 rounded bg-slate-950 border border-slate-500 shadow-md flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-cyan-400/80 rounded-full animate-ping" />
-                  </div>
-                  <div className="absolute -right-12 sm:-right-13 -bottom-1 w-4 h-8 rounded bg-slate-950 border border-slate-500 shadow-md flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-cyan-400/80 rounded-full animate-ping" />
-                  </div>
-
-                  {/* Rotational Torque Dynamic Curved Vectors (Cyan & Magenta) */}
-                  <div className="absolute -top-6 left-2 text-cyan-300 text-xs sm:text-sm font-mono font-black flex items-center gap-1">
-                    <span className="text-xl text-cyan-400 animate-pulse">↶</span>
-                    <span className="text-[9px] uppercase tracking-wider bg-[#060C22]/90 px-1.5 py-0.5 rounded border border-cyan-500/40 shadow-sm">Torque</span>
-                  </div>
-                  <div className="absolute -bottom-6 right-2 text-fuchsia-300 text-xs sm:text-sm font-mono font-black flex items-center gap-1">
-                    <span className="text-xl text-fuchsia-400 animate-pulse">↷</span>
-                    <span className="text-[9px] uppercase tracking-wider bg-[#060C22]/90 px-1.5 py-0.5 rounded border border-fuchsia-500/40 shadow-sm">Force</span>
-                  </div>
                 </div>
-              </div>
 
-              {/* Right Stator Magnet: 3D Beveled Blue South Pole (S) */}
-              <div className="absolute right-2 sm:right-6 flex flex-col items-center z-10">
-                <div className="relative w-20 sm:w-24 lg:w-28 h-32 sm:h-36 lg:h-40 rounded-2xl bg-gradient-to-br from-sky-400 via-blue-600 to-blue-950 border-2 border-sky-400/80 shadow-[0_0_35px_rgba(14,165,233,0.55),inset_0_3px_6px_rgba(255,255,255,0.4)] flex items-center justify-center transform skew-y-1 overflow-hidden">
-                  {/* Top Bevel Highlight */}
-                  <div className="absolute top-0 inset-x-0 h-3.5 bg-gradient-to-b from-white/30 to-transparent" />
-                  {/* Inner Concave Curve for Rotor */}
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-24 rounded-r-full bg-blue-950/80" />
-                  <span className="font-sans font-black text-4xl sm:text-5xl text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]">
-                    S
-                  </span>
-                </div>
-                <span className="text-[10px] sm:text-[11px] font-mono font-black text-sky-400 mt-1.5 uppercase tracking-wider drop-shadow-sm">
+                <div className="absolute bottom-2 right-[12%] sm:right-[16%] text-[10px] font-mono font-bold text-sky-400/90 bg-[#080E24]/90 px-2 py-0.5 rounded-full border border-sky-500/30">
                   South Pole
-                </span>
-              </div>
-
-              {/* Crisp Component Callout Tags matching reference */}
-              <div className="absolute top-2 left-28 sm:left-40 bg-[#080E24]/95 border border-amber-400/40 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-amber-300 shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex items-center gap-1 z-30">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                <span>Armature Coil</span>
-              </div>
-              <div className="absolute top-2 right-20 sm:right-28 bg-[#080E24]/95 border border-cyan-400/40 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex items-center gap-1 z-30">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <span>Commutator</span>
-              </div>
-              <div className="absolute bottom-2 right-16 sm:right-24 bg-[#080E24]/95 border border-slate-400/40 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-slate-300 shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex items-center gap-1 z-30">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                <span>Brushes</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Contextual Side Callouts (Spacious & Clean: 4 cols) */}
+          {/* Contextual Side Callouts (Matching Reference: 4 cols) */}
           <div className="md:col-span-4 flex flex-col justify-center gap-2.5 sm:gap-3">
             {/* 1. Key Principle Card */}
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-[#090F26]/90 border border-amber-500/25 space-y-1 shadow-md">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-[#090F26]/90 border border-amber-500/25 space-y-1 shadow-md hover:border-amber-500/40 transition-colors">
               <div className="flex items-center gap-1.5 text-amber-300 font-sans font-bold text-xs">
                 <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
                 <span>Key Principle</span>
@@ -263,13 +237,21 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
             </div>
 
             {/* 2. Student Action / Try This Callout */}
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-[#080E24]/90 border border-sky-500/25 space-y-1 shadow-md">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-[#080E24]/90 border border-sky-500/25 space-y-1 shadow-md hover:border-sky-500/40 transition-colors">
               <div className="flex items-center gap-1.5 text-sky-300 font-sans font-bold text-xs">
                 <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
                 <span>Try This</span>
               </div>
               <p className="font-sans text-[11px] sm:text-xs text-slate-200 leading-relaxed font-normal">
-                Predict what happens when the current reverses direction?
+                {step.stepNumber === 1
+                  ? 'Predict what happens when the current reverses direction?'
+                  : step.stepNumber === 2
+                  ? 'Click on the component callouts to inspect their electromagnetic functions.'
+                  : step.stepNumber === 3
+                  ? 'Use Fleming’s Left Hand Rule: align Thumb (Force), Index (Field), Middle (Current).'
+                  : step.stepNumber === 4
+                  ? 'Observe how the commutator inverts contacts exactly as the coil passes vertical.'
+                  : 'Test your understanding: will changing magnetic polarity reverse rotational direction?'}
               </p>
             </div>
           </div>

@@ -734,110 +734,121 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
         )}
 
         {/* ===================================================================
-            4. NOTES TOOL (STUDENT SCRATCHPAD WITH LOCAL PERSISTENCE)
+            4. NOTES TOOL (PHYSICAL STICKY NOTE OBJECT)
            =================================================================== */}
         {toolType === 'notes' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="classroom-scratchpad"
-                className="font-mono text-xs font-bold text-slate-300 uppercase tracking-wider"
-              >
-                Personal Scratchpad • {lesson.topicTitle}
-              </label>
+          <div className="space-y-4 flex flex-col items-center">
+            {/* Physical Sticky Note Object */}
+            <div className="relative w-full max-w-xl p-5 rounded-2xl bg-[#FEF9C3] text-slate-900 border border-amber-300 shadow-[0_16px_36px_rgba(0,0,0,0.5)] transform -rotate-0.5 transition-transform hover:rotate-0">
+              {/* Tape Strip / Sticky strip at top */}
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-white/40 border border-amber-200/50 rounded-sm shadow-inner backdrop-blur-sm pointer-events-none" />
 
-              <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-                <span>{noteWordCount} words</span>
-                <span>•</span>
-                <span>{noteCharCount} chars</span>
-              </div>
-            </div>
-
-            <textarea
-              id="classroom-scratchpad"
-              value={studentNotes}
-              onChange={(e) => setStudentNotes(e.target.value)}
-              rows={7}
-              placeholder="Jot down notes, equations, questions to ask Buddy, or key takeaways..."
-              className="w-full min-h-[160px] p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs sm:text-sm font-sans text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 leading-relaxed resize-y"
-            />
-
-            {/* Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleClearNotes}
-                  disabled={!studentNotes}
-                  className="p-2 min-h-[44px] rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-1.5 text-xs font-mono disabled:opacity-30 cursor-pointer"
+              <div className="flex items-center justify-between border-b border-amber-200/60 pb-2 mb-3">
+                <label
+                  htmlFor="classroom-scratchpad"
+                  className="font-mono text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Clear</span>
-                </button>
+                  <span>📌</span>
+                  <span>Study Sticky Note • {lesson.topicTitle}</span>
+                </label>
 
-                <button
-                  type="button"
-                  onClick={handleCopyNotes}
-                  disabled={!studentNotes}
-                  className="p-2 min-h-[44px] rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-white/[0.05] transition-colors flex items-center gap-1.5 text-xs font-mono disabled:opacity-30 cursor-pointer"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>{isCopied ? 'Copied!' : 'Copy'}</span>
-                </button>
+                <div className="flex items-center gap-2 text-[11px] font-mono text-amber-800/80">
+                  <span>{noteWordCount} words</span>
+                  <span>•</span>
+                  <span>{noteCharCount} chars</span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                {lastSavedTime && (
-                  <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
-                    Saved at {lastSavedTime}
-                  </span>
-                )}
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleSaveNotes}
-                  leftIcon={isSaved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-                  className="min-h-[44px] min-w-[100px]"
-                >
-                  {isSaved ? 'Saved!' : 'Save Note'}
-                </Button>
+              <textarea
+                id="classroom-scratchpad"
+                value={studentNotes}
+                onChange={(e) => setStudentNotes(e.target.value)}
+                rows={6}
+                placeholder="Jot down notes, equations, questions to ask Buddy, or key takeaways..."
+                className="w-full min-h-[140px] p-2 bg-transparent text-xs sm:text-sm font-sans text-slate-900 placeholder-amber-800/50 focus:outline-none leading-relaxed resize-y border-none"
+              />
+
+              {/* Action Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-amber-200/60">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClearNotes}
+                    disabled={!studentNotes}
+                    className="p-1.5 rounded-lg text-amber-900 hover:text-rose-600 hover:bg-amber-200/50 transition-colors flex items-center gap-1 text-xs font-mono disabled:opacity-30 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Clear</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyNotes}
+                    disabled={!studentNotes}
+                    className="p-1.5 rounded-lg text-amber-900 hover:text-slate-900 hover:bg-amber-200/50 transition-colors flex items-center gap-1 text-xs font-mono disabled:opacity-30 cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{isCopied ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {lastSavedTime && (
+                    <span className="text-[10px] font-mono text-amber-800/70 hidden sm:inline">
+                      Saved at {lastSavedTime}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleSaveNotes}
+                    className="px-3 py-1.5 rounded-xl bg-amber-900 hover:bg-amber-800 text-amber-100 font-sans text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isSaved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>{isSaved ? 'Saved!' : 'Save Note'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {/* ===================================================================
-            5. FORMULA SHEET TOOL (CONDITIONAL & STRUCTURED)
+            5. FORMULA SHEET TOOL (PHYSICAL STUDY FORMULA CARD)
            =================================================================== */}
         {toolType === 'formula' && (
           <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
             {lesson.formulas && lesson.formulas.length > 0 ? (
-              lesson.formulas.map((f) => (
+              lesson.formulas.map((f, idx) => (
                 <div
                   key={f.id}
-                  className="p-4 rounded-2xl bg-gradient-to-b from-[#11172E] to-[#0A0E21] border border-indigo-500/25 space-y-3 shadow-md"
+                  className={`p-4 rounded-2xl bg-gradient-to-br from-[#0D1530] via-[#090F24] to-[#060B1C] border border-cyan-500/30 space-y-3 shadow-xl transition-all hover:border-cyan-400/50 ${
+                    idx % 2 === 0 ? 'transform rotate-[0.3deg]' : 'transform -rotate-[0.3deg]'
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-sans font-bold text-xs sm:text-sm text-white">
-                      {f.name}
-                    </span>
+                  <div className="flex items-center justify-between border-b border-white/[0.08] pb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-serif font-black text-cyan-400 text-base">∑</span>
+                      <span className="font-sans font-bold text-xs sm:text-sm text-white">
+                        {f.name}
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleCopyFormula(f.formula, f.id)}
-                      className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 flex items-center gap-1 bg-indigo-500/15 px-2 py-1 rounded border border-indigo-500/30 transition-colors"
+                      className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 bg-cyan-950/60 px-2.5 py-1 rounded-lg border border-cyan-500/30 transition-colors"
                     >
                       <Copy className="w-3 h-3" />
                       <span>{copiedFormulaId === f.id ? 'Copied!' : 'Copy'}</span>
                     </button>
                   </div>
 
-                  {/* Formula Mono Box */}
-                  <div className="p-3 rounded-xl bg-[#050814] border border-indigo-500/30 font-mono text-sm sm:text-base text-cyan-300 font-bold tracking-wide text-center">
+                  {/* Physical Formula Chalkboard / Card Display */}
+                  <div className="p-3 rounded-xl bg-[#040816] border border-cyan-500/25 font-mono text-sm sm:text-base text-cyan-300 font-bold tracking-wide text-center shadow-inner">
                     {f.formula}
                   </div>
 
                   {/* Description */}
-                  <p className="font-sans text-xs text-slate-300 leading-relaxed">
+                  <p className="font-sans text-xs text-slate-300 leading-relaxed font-medium">
                     {f.description}
                   </p>
 
@@ -854,7 +865,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                   {/* Worked Example */}
                   {f.example && (
                     <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[11px] font-sans text-slate-300">
-                      <span className="font-mono text-indigo-400 font-bold mr-1">Example:</span>
+                      <span className="font-mono text-cyan-400 font-bold mr-1">Example:</span>
                       {f.example}
                     </div>
                   )}
@@ -874,7 +885,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
         )}
 
         {/* ===================================================================
-            6. FLASHCARDS TOOL (REVERSIBLE DECK + KNOWN / REVIEW TRACKING)
+            6. FLASHCARDS TOOL (PHYSICAL STUDY CARDS WITH 3D DEPTH)
            =================================================================== */}
         {toolType === 'flashcards' && (
           <div className="space-y-4">
@@ -899,7 +910,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
 
             {currentCard ? (
               <div className="space-y-3">
-                {/* 3D Flip Card Container */}
+                {/* 3D Flip Physical Study Card Container */}
                 <div
                   role="button"
                   tabIndex={0}
@@ -911,25 +922,30 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                       setIsFlipped(!isFlipped);
                     }
                   }}
-                  className="w-full min-h-[180px] p-6 rounded-2xl bg-gradient-to-br from-[#131A38] to-[#0A1024] border border-purple-500/30 flex flex-col items-center justify-between text-center cursor-pointer select-none shadow-xl hover:border-purple-400/50 transition-all focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full min-h-[190px] p-6 rounded-2xl bg-gradient-to-br from-[#121936] via-[#0D132A] to-[#070B18] border border-cyan-500/35 flex flex-col items-center justify-between text-center cursor-pointer select-none shadow-[0_16px_36px_rgba(0,0,0,0.8)] hover:border-cyan-400/60 transform rotate-[0.4deg] hover:rotate-0 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-400"
                 >
                   {/* Card Header */}
-                  <div className="w-full flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-purple-400 font-bold">
-                    <span>{currentCard.category || 'Term'}</span>
-                    <span>{isFlipped ? 'Answer (Click to Flip)' : 'Prompt (Click to Flip)'}</span>
+                  <div className="w-full flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold border-b border-white/[0.06] pb-2">
+                    <span className="flex items-center gap-1">
+                      <span>🏷️</span>
+                      <span>{currentCard.category || 'Term'}</span>
+                    </span>
+                    <span className="text-slate-400 font-normal">
+                      {isFlipped ? 'Answer (Click to Flip)' : 'Prompt (Click to Flip)'}
+                    </span>
                   </div>
 
                   {/* Card Content */}
-                  <div className="my-auto py-2">
+                  <div className="my-auto py-3">
                     <p className="font-sans text-sm sm:text-base font-bold text-white leading-relaxed">
                       {isFlipped ? currentCard.back : currentCard.front}
                     </p>
                   </div>
 
                   {/* Card Footer Badge */}
-                  <div className="w-full flex items-center justify-center">
-                    <span className="text-[10px] font-mono text-slate-500">
-                      Card {cardIndex + 1} of {initialCards.length}
+                  <div className="w-full flex items-center justify-center pt-2 border-t border-white/[0.06]">
+                    <span className="text-[10px] font-mono text-slate-400">
+                      Card {cardIndex + 1} of {initialCards.length} • Tap space or card to flip
                     </span>
                   </div>
                 </div>

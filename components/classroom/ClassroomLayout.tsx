@@ -102,6 +102,12 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
           FUTURISTIC OBSERVATORY CLASSROOM ENVIRONMENT BACKDROP
          =================================================================== */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
+        {/* Photographic Master Reference Room Backdrop (Blend Screen) */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-25 lg:opacity-30 mix-blend-screen filter saturate-125 pointer-events-none"
+          style={{ backgroundImage: `url('/images/classroom/classroom-master-reference.png')` }}
+        />
+
         {/* Deep Space Observatory Window on the Left (behind Buddy) */}
         <div className="absolute top-0 left-0 w-full sm:w-[480px] lg:w-[560px] h-full opacity-60">
           {/* Orbital Horizon Curve Glow */}
@@ -139,10 +145,10 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
          =================================================================== */}
       <header className="sticky top-0 z-40 h-13 sm:h-14 border-b border-white/[0.08] bg-[#060A18]/90 backdrop-blur-2xl flex items-center justify-between px-3 sm:px-6 select-none shrink-0 shadow-lg">
         {/* Left: XPEDITION Brand + [Classroom] Badge + Breadcrumb */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-[0_0_12px_rgba(6,182,212,0.6)]">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-400 via-sky-500 to-indigo-600 flex items-center justify-center shadow-[0_0_12px_rgba(6,182,212,0.6)]">
               <span className="font-sans font-black text-white text-xs tracking-tighter">XP</span>
             </div>
             <span className="hidden sm:inline font-sans font-black text-sm text-white tracking-widest uppercase">
@@ -150,49 +156,59 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
             </span>
           </div>
 
-          {/* Classroom Mode Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-sans text-xs font-semibold shadow-[0_0_10px_rgba(6,182,212,0.15)] shrink-0">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          {/* Classroom Mode Badge matching reference */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-sans text-xs font-semibold shadow-[0_0_10px_rgba(6,182,212,0.15)] shrink-0">
+            <span className="text-cyan-400 text-xs">⊞</span>
             <span>Classroom</span>
           </div>
 
           {/* Breadcrumb Hierarchy */}
           <div className="hidden md:flex items-center gap-2 font-sans text-xs min-w-0">
-            <span className="text-slate-400 font-medium truncate">
-              ⚛ {lesson.subject}
+            <span className="text-slate-400 font-medium truncate flex items-center gap-1">
+              <span>⚛</span>
+              <span>{lesson.subject} • Mechanics</span>
             </span>
             <span className="text-slate-600">›</span>
-            <span className="text-slate-200 font-semibold truncate max-w-[240px]">
-              {lesson.topicTitle}
+            <span className="text-slate-200 font-semibold truncate max-w-[240px] flex items-center gap-1">
+              <span className="text-slate-400 text-[10px]">🗔</span>
+              <span>{lesson.topicTitle}</span>
             </span>
           </div>
         </div>
 
-        {/* Right: Step Indicator Dots + Exit Button */}
+        {/* Right: Step Indicator Dots connected by line + Exit Button */}
         <div className="flex items-center gap-3 sm:gap-5 shrink-0">
-          {/* Step Progress Dots: Step 1 / 5 ● ○ ○ ○ ○ */}
-          <div className="flex items-center gap-2 font-sans text-xs">
-            <span className="text-slate-300 font-mono font-medium text-[11px]">
+          {/* Connected Step Track: Step 1 / 5 ● ⎯ ○ ⎯ ○ ⎯ ○ ⎯ ○ */}
+          <div className="flex items-center gap-2.5 font-sans text-xs">
+            <span className="text-slate-300 font-mono font-medium text-[11px] whitespace-nowrap">
               Step {currentStepIndex + 1} / {totalSteps}
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center">
               {Array.from({ length: totalSteps }).map((_, idx) => {
                 const isActive = idx === currentStepIndex;
                 const isPassed = idx < currentStepIndex;
                 return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setCurrentStepIndex(idx)}
-                    aria-label={`Jump to step ${idx + 1}`}
-                    className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
-                      isActive
-                        ? 'w-2.5 h-2.5 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)] scale-110'
-                        : isPassed
-                        ? 'bg-sky-600'
-                        : 'bg-slate-700 hover:bg-slate-600'
-                    }`}
-                  />
+                  <React.Fragment key={idx}>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStepIndex(idx)}
+                      aria-label={`Jump to step ${idx + 1}`}
+                      className={`rounded-full transition-all cursor-pointer relative z-10 ${
+                        isActive
+                          ? 'w-2.5 h-2.5 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)] scale-110'
+                          : isPassed
+                          ? 'w-2 h-2 bg-sky-500 hover:bg-sky-400'
+                          : 'w-2 h-2 bg-slate-700 hover:bg-slate-600'
+                      }`}
+                    />
+                    {idx < totalSteps - 1 && (
+                      <div
+                        className={`w-3.5 sm:w-4 h-0.5 transition-colors ${
+                          idx < currentStepIndex ? 'bg-sky-500' : 'bg-slate-800'
+                        }`}
+                      />
+                    )}
+                  </React.Fragment>
                 );
               })}
             </div>
@@ -208,13 +224,13 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
             <span>Ask Xira</span>
           </button>
 
-          {/* Exit Class Button */}
+          {/* Exit Class Button matching reference */}
           <Link
             href={backHref}
             aria-label="Exit Classroom"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-slate-300 hover:text-white border border-white/[0.12] transition-colors font-sans text-xs font-semibold shrink-0"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="text-xs">⎋</span>
             <span className="hidden sm:inline">Exit Class</span>
           </Link>
         </div>
@@ -225,8 +241,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
          =================================================================== */}
       <main className="flex-1 min-h-0 w-full max-w-[1700px] mx-auto px-2 sm:px-4 lg:px-6 py-1.5 sm:py-2 flex flex-col justify-center relative z-10 overflow-visible lg:overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[23%_57%_20%] gap-3 xl:gap-4 items-stretch h-full max-h-full min-h-0">
-          {/* Left: 🤖 3D Buddy Robot Teacher (approx 23%) */}
-          <div className="h-full min-h-0 flex flex-col justify-end items-center overflow-hidden">
+          {/* Left on Desktop, Lower on Mobile: 🤖 3D Buddy Robot Teacher (approx 23%) */}
+          <div className="order-2 lg:order-1 h-auto lg:h-full min-h-0 flex flex-col justify-end items-center overflow-hidden py-1 lg:py-0">
             <BuddyTeacherStage
               dialogue={activeDirective?.buddyDirective?.dialogueQuote || currentStep.buddyDialogue}
               state={activeDirective?.buddyDirective?.state || currentStep.buddyState}
@@ -236,8 +252,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
             />
           </div>
 
-          {/* Center: 🖥️ Smart Teaching Board (HERO DOMINANT: 57%) */}
-          <div className="h-full min-h-0 flex flex-col overflow-hidden">
+          {/* Center on Desktop, Middle on Mobile: 🖥️ Smart Teaching Board (HERO DOMINANT: 57%) */}
+          <div className="order-1 lg:order-2 h-full min-h-0 flex flex-col overflow-hidden">
             <SmartBoard
               step={currentStep}
               totalSteps={totalSteps}
@@ -253,7 +269,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
           </div>
 
           {/* Right: ✨ Contextual Xira Assistant (COMPACT: 20%) */}
-          <div className="hidden lg:flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="order-3 hidden lg:flex h-full min-h-0 flex-col overflow-hidden">
             <ClassroomXiraAssistant
               topicTitle={lesson.topicTitle}
               subject={lesson.subject}

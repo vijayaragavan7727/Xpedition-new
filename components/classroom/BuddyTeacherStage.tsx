@@ -137,57 +137,55 @@ export const BuddyTeacherStage: React.FC<BuddyTeacherStageProps> = ({
           2. PHYSICAL BUDDY TEACHER & COMPACT PEDESTAL (Never Clipped)
          ===================================================================== */}
       <div className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-end overflow-hidden pb-1">
-        {/* Ambient Floor Glow */}
+        {/* Ambient Floor Glow behind Buddy */}
         <div
-          className="absolute bottom-4 w-48 sm:w-56 h-16 rounded-[100%] blur-xl pointer-events-none opacity-50"
+          className="absolute bottom-2 w-52 sm:w-64 h-16 rounded-[100%] blur-xl pointer-events-none opacity-60"
           style={{
-            background: `radial-gradient(circle, ${config.visorColor}40 0%, rgba(14,165,233,0.15) 50%, transparent 70%)`,
+            background: `radial-gradient(circle, ${config.visorColor}40 0%, rgba(14,165,233,0.2) 50%, transparent 75%)`,
           }}
         />
 
         {/* Buddy Body: Production Asset or 3D Scene */}
         <div className="relative z-10 flex-1 min-h-0 w-full flex items-end justify-center transition-transform duration-300">
           {use3DView ? (
-            <div className="h-full max-h-[44vh] w-full flex items-center justify-center">
-              <BuddyScene state={state} size="lg" interactive={true} />
+            <div className="h-full max-h-[46vh] w-full flex flex-col items-center justify-end">
+              <div className="h-[36vh] w-full flex items-center justify-center">
+                <BuddyScene state={state} size="lg" interactive={true} />
+              </div>
+              {/* Holographic Circular Pedestal Dais for 3D View */}
+              <div className="relative z-0 -mt-4 flex flex-col items-center shrink-0">
+                <div className="relative w-44 sm:w-52 h-8 rounded-[100%] bg-gradient-to-b from-[#18244D] via-[#0E1530] to-[#080D20] border-2 border-cyan-400/60 shadow-[0_0_24px_rgba(6,182,212,0.4)] flex items-center justify-center">
+                  <div className="w-[88%] h-[80%] rounded-[100%] border border-cyan-300/40 shadow-inner flex items-center justify-center">
+                    <div className="w-[75%] h-[70%] rounded-[100%] bg-cyan-400/15 blur-[1px]" />
+                  </div>
+                </div>
+                <div className="relative -mt-3.5 w-40 sm:w-48 h-5 rounded-b-xl bg-gradient-to-b from-[#0B1126] to-[#040712] border border-cyan-500/30 flex items-center justify-center shadow-lg">
+                  <span className="font-mono text-[9px] sm:text-[10px] font-black tracking-[0.25em] text-cyan-300 uppercase drop-shadow-[0_0_6px_rgba(6,182,212,0.8)]">
+                    BUDDY
+                  </span>
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="relative h-full max-h-[44vh] w-full max-w-[240px] sm:max-w-[280px] flex items-end justify-center">
+            <div className="relative h-full max-h-[50vh] w-full max-w-[280px] sm:max-w-[320px] flex items-end justify-center">
               <Image
-                src="/robot.png"
+                src="/images/classroom/buddy-teacher-clean.png"
                 alt="Buddy - AI Robot Teacher"
-                width={360}
-                height={500}
+                width={320}
+                height={420}
                 priority
-                className="w-auto h-full max-h-[44vh] object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.8)] filter brightness-105 contrast-105 transform -rotate-1 hover:scale-105 transition-all duration-300"
+                className="w-auto h-full max-h-[50vh] object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.9)] filter brightness-105 contrast-105 transition-all duration-300 hover:scale-[1.02]"
                 style={{
                   filter:
                     state === 'CORRECT' || state === 'CELEBRATING'
                       ? 'drop-shadow(0 0 20px rgba(16,185,129,0.5))'
                       : state === 'INCORRECT'
                       ? 'drop-shadow(0 0 20px rgba(245,158,11,0.5))'
-                      : 'drop-shadow(0 0 25px rgba(6,182,212,0.4))',
+                      : 'drop-shadow(0 0 25px rgba(6,182,212,0.35))',
                 }}
               />
             </div>
           )}
-        </div>
-
-        {/* Holographic Circular Pedestal Dais (Compact & Viewport-Safe) */}
-        <div className="relative z-0 -mt-5 flex flex-col items-center shrink-0">
-          {/* Upper Stage Glowing Ring */}
-          <div className="relative w-44 sm:w-52 h-8 sm:h-9 rounded-[100%] bg-gradient-to-b from-[#18244D] via-[#0E1530] to-[#080D20] border-2 border-cyan-400/60 shadow-[0_0_24px_rgba(6,182,212,0.4)] flex items-center justify-center">
-            <div className="w-[88%] h-[80%] rounded-[100%] border border-cyan-300/40 shadow-inner flex items-center justify-center">
-              <div className="w-[75%] h-[70%] rounded-[100%] bg-cyan-400/15 blur-[1px]" />
-            </div>
-          </div>
-
-          {/* Pedestal Base with 'BUDDY' Nameplate */}
-          <div className="relative -mt-3.5 w-40 sm:w-48 h-5 sm:h-6 rounded-b-xl bg-gradient-to-b from-[#0B1126] to-[#040712] border border-cyan-500/30 flex items-center justify-center shadow-lg">
-            <span className="font-mono text-[9px] sm:text-[10px] font-black tracking-[0.25em] text-cyan-300 uppercase drop-shadow-[0_0_6px_rgba(6,182,212,0.8)]">
-              BUDDY
-            </span>
-          </div>
         </div>
       </div>
     </div>
@@ -195,3 +193,4 @@ export const BuddyTeacherStage: React.FC<BuddyTeacherStageProps> = ({
 };
 
 export default BuddyTeacherStage;
+
