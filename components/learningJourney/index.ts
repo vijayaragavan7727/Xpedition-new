@@ -4,3 +4,4 @@ export * from './JourneyPathCard';
 export * from './JourneyProgressSidebar';
 export * from './LearningJourneyTopBar';
 export * from './LearningJourneyCompanion';
+export * from './TopicExplorer';

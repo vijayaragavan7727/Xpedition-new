@@ -49,6 +49,8 @@ export class VisualRequirementEngine {
   private readonly assetResolver: IVisualAssetResolver;
   private readonly promptPlanner: PromptPlanner;
   private readonly generationEngine: VisualGenerationEngine;
+  private readonly requirementCache = new Map<string, VisualRequirement>();
+  private readonly payloadCache = new Map<string, SmartBoardVisualPayload>();
 
   constructor(options: VisualRequirementEngineOptions = {}) {
     const store = options.assetStore || assetStore;
@@ -67,12 +69,24 @@ export class VisualRequirementEngine {
   }
 
   /**
+   * Clears in-memory caches.
+   */
+  public clearCache(): void {
+    this.requirementCache.clear();
+    this.payloadCache.clear();
+  }
+
+  /**
    * Evaluates and produces a structured VisualRequirement for a learning concept.
    */
   public async evaluateVisualRequirement(
     request: VisualIntelligenceRequest
   ): Promise<VisualRequirement> {
     const stage: VisualStage = request.stage || 'explain';
+    const cacheKey = `${request.conceptId}:${stage}:${request.allowGeneration ? 'gen' : 'static'}`;
+    if (this.requirementCache.has(cacheKey)) {
+      return this.requirementCache.get(cacheKey)!;
+    }
 
     // 1. Evaluate Visual Need (Step 3, 13, 15)
     const needResult = await this.needEvaluator.evaluate({
@@ -83,7 +97,7 @@ export class VisualRequirementEngine {
     });
 
     if (!needResult.needed) {
-      return {
+      const notNeeded: VisualRequirement = {
         conceptId: request.conceptId,
         subject: request.subject,
         topic: request.topic,
@@ -93,6 +107,8 @@ export class VisualRequirementEngine {
         confidence: needResult.confidence,
         reason: needResult.reason,
       };
+      this.requirementCache.set(cacheKey, notNeeded);
+      return notNeeded;
     }
 
     // 2. Resolve Representation Type & Safe Fallback (Step 4, 7, 8)
@@ -161,6 +177,7 @@ export class VisualRequirementEngine {
       }
     }
 
+    this.requirementCache.set(cacheKey, requirement);
     return requirement;
   }
 
@@ -168,6 +185,11 @@ export class VisualRequirementEngine {
    * Formats a clean output contract for the Smart Board (Step 17).
    */
   public formatSmartBoardPayload(requirement: VisualRequirement): SmartBoardVisualPayload {
+    const payloadKey = `${requirement.conceptId}:${requirement.stage}:${requirement.visualType}:${requirement.resolvedAsset?.publicUrl || ''}`;
+    if (this.payloadCache.has(payloadKey)) {
+      return this.payloadCache.get(payloadKey)!;
+    }
+
     const isInteractive =
       requirement.visualType === 'interactive_simulation' ||
       requirement.stage === 'interact';
@@ -183,7 +205,7 @@ export class VisualRequirementEngine {
       });
     }
 
-    return {
+    const payload: SmartBoardVisualPayload = {
       type: 'visual_requirement',
       visualType: requirement.visualType || 'educational_illustration',
       assetUrl: requirement.resolvedAsset?.publicUrl,
@@ -204,6 +226,9 @@ export class VisualRequirementEngine {
         conceptId: requirement.conceptId,
       },
     };
+
+    this.payloadCache.set(payloadKey, payload);
+    return payload;
   }
 
   /**
@@ -308,6 +333,111 @@ export class VisualRequirementEngine {
           ],
           labelsRequired: true,
           verifiedFacts: ['Left ventricle myocardium is 3x thicker than right ventricle'],
+        },
+      };
+    }
+
+    if (norm.includes('quadratic') || norm.includes('parabola')) {
+      return {
+        purpose: {
+          learnerNotice: [
+            'Symmetrical parabolic curve opening upward or downward',
+            'Vertex turning point at (h, k)',
+            'Real roots / x-intercepts',
+            'Vertical axis of symmetry x = -b/(2a)',
+          ],
+          relationshipToEmphasize:
+            'How coefficients a, b, c dictate parabola curvature, vertex coordinates, and real roots via discriminant Δ = b² - 4ac',
+          keyObjects: ['Parabola Curve', 'Vertex', 'Axis of Symmetry', 'Roots / Intercepts', 'Discriminant Banner'],
+          labelsRequired: true,
+          interactionRequired: stage === 'interact',
+        },
+        contentReqs: {
+          requiredElements: ['vertex', 'axis of symmetry', 'x-intercepts', 'parabola curve', 'y-intercept'],
+          relationships: [
+            'Axis of symmetry passes through vertex x = -b / (2a)',
+            'Discriminant Δ = b² - 4ac determines root multiplicity',
+          ],
+          labelsRequired: true,
+          verifiedFacts: ['Roots x = (-b ± √(b² - 4ac)) / (2a)', 'Vertex x = -b / (2a)'],
+        },
+      };
+    }
+
+    if (norm.includes('molecule') || norm.includes('bonding') || norm.includes('covalent')) {
+      return {
+        purpose: {
+          learnerNotice: [
+            'Central oxygen nucleus with two shared covalent bonds',
+            'Two unbonded lone electron pairs',
+            'Bent molecular geometry with 104.5° bond angle',
+          ],
+          relationshipToEmphasize:
+            'VSEPR electron pair repulsion: lone pairs exert greater electrostatic repulsion, compressing the bond angle',
+          keyObjects: ['Oxygen Atom', 'Hydrogen Atoms', 'Covalent Bond Pairs', 'Lone Electron Pairs'],
+          labelsRequired: true,
+          interactionRequired: stage === 'interact',
+        },
+        contentReqs: {
+          requiredElements: ['oxygen nucleus', 'hydrogen atoms', 'covalent bond electron pairs', 'lone pairs', 'bond angle 104.5°'],
+          relationships: [
+            'Lone pair repulsion compresses H-O-H angle to 104.5°',
+            'Electronegativity difference creates polar covalent bonds',
+          ],
+          labelsRequired: true,
+          verifiedFacts: ['Water molecule adopts bent geometry with 104.5° bond angle'],
+        },
+      };
+    }
+
+    if (norm.includes('binary_search') || (norm.includes('binary') && norm.includes('search'))) {
+      return {
+        purpose: {
+          learnerNotice: [
+            'Sorted index array elements',
+            'Low, Mid, and High boundary pointers',
+            'Halving of active search interval at each step',
+          ],
+          relationshipToEmphasize:
+            'Divide and conquer: comparing target with middle element cuts remaining search space in half',
+          keyObjects: ['Sorted Array', 'Low Pointer', 'Mid Pointer', 'High Pointer', 'Target Value'],
+          labelsRequired: true,
+          interactionRequired: stage === 'interact',
+        },
+        contentReqs: {
+          requiredElements: ['sorted array', 'low index', 'mid index', 'high index', 'target element'],
+          relationships: [
+            'If target < array[mid], high = mid - 1; else low = mid + 1',
+            'Worst-case search space collapses in ⌈log₂ n⌉ steps',
+          ],
+          labelsRequired: true,
+          verifiedFacts: ['Binary search operates in O(log n) time complexity on sorted arrays'],
+        },
+      };
+    }
+
+    if (norm.includes('revolution') || norm.includes('french')) {
+      return {
+        purpose: {
+          learnerNotice: [
+            'Estates-General assembly in May 1789',
+            'Storming of the Bastille on July 14, 1789',
+            'Declaration of the Rights of Man on August 26, 1789',
+            'Proclamation of the First Republic in 1792',
+          ],
+          relationshipToEmphasize:
+            'Chronological transition from absolute feudal monarchy to popular constitutional sovereignty',
+          keyObjects: ['Ancien Régime', 'Bastille Fortress', 'National Assembly', 'Declaration of Rights', 'First Republic'],
+          labelsRequired: true,
+          interactionRequired: stage === 'interact',
+        },
+        contentReqs: {
+          requiredElements: ['estates-general', 'bastille', 'declaration of rights of man', 'national assembly', 'republic'],
+          relationships: [
+            'Fiscal crisis triggered Estates-General -> popular revolt led to Bastille -> National Assembly drafted human rights',
+          ],
+          labelsRequired: true,
+          verifiedFacts: ['Storming of the Bastille occurred July 14, 1789'],
         },
       };
     }

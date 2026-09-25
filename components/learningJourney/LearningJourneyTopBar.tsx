@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BookOpen, Search, Bell, ChevronDown, User, LogOut, Settings, Award } from 'lucide-react';
 
 import { XpeditionLogo } from '@/components/XpeditionLogo';
@@ -13,6 +14,8 @@ interface LearningJourneyTopBarProps {
 export const LearningJourneyTopBar: React.FC<LearningJourneyTopBarProps> = ({ learnerName }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const router = useRouter();
 
   const initial = learnerName ? learnerName.charAt(0).toUpperCase() : 'L';
 
@@ -54,16 +57,25 @@ export const LearningJourneyTopBar: React.FC<LearningJourneyTopBarProps> = ({ le
         {/* Search Toggle / Input */}
         <div className="relative">
           {showSearch ? (
-            <div className="flex items-center bg-white border border-[#D5CFBF] rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 shadow-sm animate-fadeIn">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const q = searchValue.trim();
+                router.push(q ? `/learn?tab=explore&search=${encodeURIComponent(q)}` : '/learn?tab=explore');
+                setShowSearch(false);
+              }}
+              className="flex items-center bg-white border border-[#D5CFBF] rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 shadow-sm animate-fadeIn"
+            >
               <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 mr-1.5 sm:mr-2 shrink-0" />
               <input
                 type="text"
                 autoFocus
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
                 placeholder="Search concepts..."
                 className="w-28 sm:w-48 text-[11px] sm:text-xs font-sans text-slate-800 placeholder-slate-400 outline-none bg-transparent"
-                onBlur={() => setShowSearch(false)}
               />
-            </div>
+            </form>
           ) : (
             <button
               type="button"

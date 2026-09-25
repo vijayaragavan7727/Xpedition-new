@@ -37,7 +37,7 @@ const QUICK_ACTIONS = [
   { id: 'deeper', label: 'Go deeper', icon: <Zap className="w-3.5 h-3.5 text-purple-400" />, prompt: 'What is the deeper mathematical or scientific mechanism here?' },
 ];
 
-export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = ({
+export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = React.memo(({
   topicTitle,
   subject,
   currentStepTitle,
@@ -55,7 +55,7 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = ({
   const [activeResponse, setActiveResponse] = useState<StructuredXiraResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleAsk = async (queryText: string) => {
+  const handleAsk = React.useCallback(async (queryText: string) => {
     const trimmed = queryText.trim();
     if (!trimmed || isLoading) return;
 
@@ -113,11 +113,11 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading, stepHint, currentStepTitle, topicTitle, activeMisconception, hintsUsedCount]);
 
   return (
     <div
-      className={`flex flex-col rounded-3xl bg-[#090F24]/80 border border-cyan-500/30 shadow-2xl backdrop-blur-xl overflow-hidden select-none ${className}`}
+      className={`flex flex-col rounded-3xl bg-[#090F24]/85 border border-cyan-500/30 shadow-2xl backdrop-blur-md overflow-hidden select-none ${className}`}
       style={{
         boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
       }}
@@ -281,6 +281,9 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = ({
       </div>
     </div>
   );
-};
+});
+
+ClassroomXiraAssistant.displayName = 'ClassroomXiraAssistant';
 
 export default ClassroomXiraAssistant;
+

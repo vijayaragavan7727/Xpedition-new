@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { HomeDashboardData } from '@/lib/home/homeDashboardModel';
 import { ConceptVisual } from './ConceptVisual';
 import {
@@ -25,6 +26,11 @@ interface HomeDashboardViewProps {
 }
 
 export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) => {
+  const router = useRouter();
+  const [passportIndex, setPassportIndex] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
+  const passportScrollerRef = useRef<HTMLDivElement | null>(null);
+
   const {
     learnerName,
     greetingTitle,
@@ -50,16 +56,29 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
           ========================================================================= */}
       <header className="w-full flex items-center justify-between gap-2.5 sm:gap-4 select-none pt-0 sm:pt-0.5">
         {/* Search Bar (Rounded Pill) */}
-        <div className="relative flex-1 max-w-md">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = searchInput.trim();
+            if (q) {
+              router.push(`/learn?tab=explore&q=${encodeURIComponent(q)}`);
+            } else {
+              router.push('/learn?tab=explore');
+            }
+          }}
+          className="relative flex-1 max-w-md"
+        >
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
             <Search className="w-4 h-4" aria-hidden="true" />
           </div>
           <input
             type="search"
-            placeholder="Search anything..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search topics, concepts, science..."
             className="w-full h-9 sm:h-10 pl-9 sm:pl-10 pr-3 sm:pr-4 rounded-full bg-[#F0EDE6] border border-[#E5E0D5] text-xs sm:text-sm font-sans text-slate-800 placeholder:text-slate-500 focus:outline-none focus:border-[#184E38] focus:ring-1 focus:ring-[#184E38] transition-all"
           />
-        </div>
+        </form>
 
         {/* Right Section: Notifications + User Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -315,55 +334,67 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
         </div>
 
         {/* CARD 5: YOUR PASSPORTS */}
-        <div className="lg:col-span-4 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between min-w-0">
           <div>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-sans font-bold text-xs sm:text-base text-slate-900">Your Passports</h3>
-                <p className="font-sans text-[10px] sm:text-[11px] text-slate-500 mt-0.5">
-                  Track your skills. Build your future.
-                </p>
+                <p className="font-sans text-[10px] sm:text-[11px] text-slate-500 mt-0.5">Track your skills. Build your future.</p>
               </div>
-              <Link href="/passport" className="text-slate-400 hover:text-slate-600 transition-colors">
+              <Link href="/passport" aria-label="Open all passports" className="text-slate-400 hover:text-slate-600 transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
 
-            {/* Passport Book Item */}
-            <div className="mt-2 sm:mt-3.5 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-[#FAF8F5] border border-[#EBE7DF] flex items-center justify-between gap-2.5 sm:gap-3">
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                {/* Green Passport Cover Book */}
-                <div className="w-8 h-11 sm:w-10 sm:h-14 rounded bg-[#184E38] border border-[#133E2D] p-0.5 sm:p-1 flex flex-col items-center justify-between text-white shadow-sm shrink-0">
-                  <span className="text-[6px] sm:text-[7px] font-mono tracking-tighter">✦</span>
-                  <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="text-[5px] sm:text-[6px] font-sans font-bold uppercase tracking-wider">Pass</span>
-                </div>
-
-                <div>
-                  <div className="font-sans font-bold text-xs sm:text-sm text-slate-900">
-                    {passports.subjectTitle}
+            <div
+              className="mt-2.5 sm:mt-3.5 overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth overscroll-x-contain touch-pan-y"
+              ref={passportScrollerRef}
+              onTouchStart={(event) => {
+                const target = event.currentTarget;
+                target.dataset.touchX = String(event.touches[0]?.clientX ?? 0);
+              }}
+              onTouchEnd={(event) => {
+                const target = event.currentTarget;
+                const start = Number(target.dataset.touchX || 0);
+                const end = event.changedTouches[0]?.clientX ?? start;
+                if (Math.abs(end - start) > 35 && passports.length > 1) {
+                  const nextIdx = end < start ? (passportIndex + 1) % passports.length : (passportIndex - 1 + passports.length) % passports.length;
+                  setPassportIndex(nextIdx);
+                  document.getElementById(`passport-slide-${nextIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+              }}
+            >
+              <div className="flex gap-3 w-max">
+                {passports.map((passport, index) => (
+                  <div key={passport.subjectTitle} id={`passport-slide-${index}`} className="w-[min(100%,360px)] sm:w-full shrink-0 snap-center p-2.5 sm:p-3 rounded-xl bg-[#FAF8F5] border border-[#EBE7DF] flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-14 rounded-md bg-[#184E38] border border-[#133E2D] p-1 flex flex-col items-center justify-between text-white shadow-sm shrink-0">
+                        <span className="text-[7px] font-mono">✦</span>
+                        <Award className="w-4 h-4" />
+                        <span className="text-[6px] font-sans font-bold uppercase">Pass</span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-sans font-bold text-xs sm:text-sm text-slate-900 truncate">{passport.subjectTitle}</div>
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#E3EBE5] text-[#184E38] text-[9px] font-semibold">{passport.statusBadge}</span>
+                      </div>
+                    </div>
+                    <Link href={passport.route} className="shrink-0 px-2.5 py-1.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] sm:text-xs font-semibold">View Passport</Link>
                   </div>
-                  <span className="inline-block mt-0.5 px-2 py-0.2 sm:py-0.5 rounded-full bg-[#E3EBE5] text-[#184E38] font-sans text-[9px] sm:text-[10px] font-semibold">
-                    {passports.statusBadge}
-                  </span>
-                </div>
+                ))}
               </div>
-
-              <Link
-                href={passports.route}
-                className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-sans text-[11px] sm:text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
-              >
-                View Passport
-              </Link>
             </div>
           </div>
 
-          {/* Carousel Pagination Dots */}
-          <div className="flex items-center justify-center gap-1.5 pt-1.5 sm:pt-2.5">
-            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#184E38]" />
-            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-slate-300" />
-            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-slate-300" />
-            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-slate-300" />
+          <div className="flex items-center justify-center gap-1.5 pt-2.5" aria-label="Passport carousel position">
+            {passports.map((passport, index) => (
+              <button
+                key={passport.subjectTitle}
+                type="button"
+                aria-label={`Show ${passport.subjectTitle} passport`}
+                onClick={() => { setPassportIndex(index); document.getElementById(`passport-slide-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }}
+                className={`rounded-full transition-all ${index === passportIndex ? 'w-5 h-1.5 bg-[#184E38]' : 'w-1.5 h-1.5 bg-slate-300'}`}
+              />
+            ))}
           </div>
         </div>
       </div>

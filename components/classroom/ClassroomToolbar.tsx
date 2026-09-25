@@ -27,7 +27,7 @@ export interface ClassroomToolbarProps {
   className?: string;
 }
 
-export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = ({
+export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = React.memo(({
   activeTool,
   onSelectTool,
   hasFormulas = false,
@@ -39,14 +39,9 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = ({
   onToggleAudio,
   className = '',
 }) => {
-  const tools: {
-    id: ClassroomToolType;
-    label: string;
-    icon: React.ReactNode;
-    isAudioToggle?: boolean;
-  }[] = [
+  const tools = React.useMemo(() => [
     {
-      id: 'lesson',
+      id: 'lesson' as ClassroomToolType,
       label: 'Lesson',
       icon: <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />,
     },
@@ -59,29 +54,27 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = ({
           },
         ]
       : []),
-    {
-      id: 'audio',
-      label: 'Audio',
-      icon: (
-        <Volume2
-          className={`w-4 h-4 sm:w-5 sm:h-5 ${
-            isAudioPlaying ? 'animate-pulse text-sky-400' : ''
-          }`}
-        />
-      ),
-      isAudioToggle: true,
-    },
+    ...(onToggleAudio
+      ? [
+          {
+            id: 'audio' as ClassroomToolType,
+            label: isAudioPlaying ? 'Mute' : 'Audio',
+            icon: <Volume2 className={`w-4 h-4 sm:w-5 sm:h-5 ${isAudioPlaying ? 'text-cyan-400 animate-pulse' : ''}`} />,
+            isAudioToggle: true,
+          },
+        ]
+      : []),
     ...(hasHint
       ? [
           {
             id: 'hint' as ClassroomToolType,
             label: 'Hint',
-            icon: <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />,
+            icon: <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5" />,
           },
         ]
       : []),
     {
-      id: 'notes',
+      id: 'notes' as ClassroomToolType,
       label: 'Notes',
       icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
     },
@@ -90,11 +83,7 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = ({
           {
             id: 'formula' as ClassroomToolType,
             label: 'Formula',
-            icon: (
-              <span className="font-serif font-bold text-base sm:text-lg leading-none">
-                ∑
-              </span>
-            ),
+            icon: <Calculator className="w-4 h-4 sm:w-5 sm:h-5" />,
           },
         ]
       : []),
@@ -102,7 +91,7 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = ({
       ? [
           {
             id: 'flashcards' as ClassroomToolType,
-            label: 'Flashcards',
+            label: 'Cards',
             icon: <Layers className="w-4 h-4 sm:w-5 sm:h-5" />,
           },
         ]
@@ -116,13 +105,13 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = ({
           },
         ]
       : []),
-  ];
+  ], [hasQuestions, onToggleAudio, isAudioPlaying, hasHint, hasFormulas, hasFlashcards, hasSources]);
 
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
       <nav
         aria-label="Classroom learning tools"
-        className="relative flex items-center justify-start sm:justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-[#090F24]/95 border border-sky-500/25 backdrop-blur-2xl shadow-[0_10px_32px_rgba(0,0,0,0.8),0_0_20px_rgba(14,165,233,0.15)] overflow-x-auto select-none no-scrollbar max-w-full"
+        className="relative flex items-center justify-start sm:justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-2xl bg-[#090F24]/95 border border-sky-500/25 backdrop-blur-md shadow-[0_10px_32px_rgba(0,0,0,0.8),0_0_20px_rgba(14,165,233,0.15)] overflow-x-auto select-none no-scrollbar max-w-full"
       >
         {/* Leftmost Glowing Indicator Bar (from reference) */}
         <div className="hidden sm:block w-1 h-6 rounded-full bg-gradient-to-b from-sky-400 to-cyan-500 shadow-[0_0_8px_rgba(56,189,248,0.8)] mr-1 shrink-0" />
@@ -167,7 +156,9 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = ({
       </nav>
     </div>
   );
-};
+});
+
+ClassroomToolbar.displayName = 'ClassroomToolbar';
 
 export default ClassroomToolbar;
 

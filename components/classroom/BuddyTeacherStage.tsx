@@ -27,7 +27,7 @@ export interface BuddyTeacherStageProps {
   className?: string;
 }
 
-export const BuddyTeacherStage: React.FC<BuddyTeacherStageProps> = ({
+export const BuddyTeacherStage: React.FC<BuddyTeacherStageProps> = React.memo(({
   dialogue,
   state = 'EXPLAINING',
   onNextAction,
@@ -36,7 +36,7 @@ export const BuddyTeacherStage: React.FC<BuddyTeacherStageProps> = ({
   className = '',
 }) => {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [use3DView, setUse3DView] = useState(false);
+  const [use3DView, setUse3DView] = useState(true);
   const config = BUDDY_STATE_CONFIG[state] || BUDDY_STATE_CONFIG.EXPLAINING;
 
   // Speak dialogue using browser SpeechSynthesis
@@ -81,7 +81,7 @@ export const BuddyTeacherStage: React.FC<BuddyTeacherStageProps> = ({
          ===================================================================== */}
       <div className="w-full max-w-[280px] sm:max-w-[320px] mb-1.5 z-20 relative shrink-0">
         <div
-          className="relative p-2.5 sm:p-3 rounded-2xl bg-[#090F26]/95 border border-sky-400/35 text-slate-100 shadow-[0_8px_24px_rgba(0,0,0,0.7)] backdrop-blur-xl"
+          className="relative p-2.5 sm:p-3 rounded-2xl bg-[#090F26]/95 border border-sky-400/35 text-slate-100 shadow-[0_8px_24px_rgba(0,0,0,0.7)] backdrop-blur-md"
           style={{
             boxShadow: `0 6px 24px -4px ${config.glowColor}`,
           }}
@@ -167,30 +167,48 @@ export const BuddyTeacherStage: React.FC<BuddyTeacherStageProps> = ({
               </div>
             </div>
           ) : (
-            <div className="relative h-full max-h-[50vh] w-full max-w-[280px] sm:max-w-[320px] flex items-end justify-center">
-              <Image
-                src="/images/classroom/buddy-teacher-clean.png"
-                alt="Buddy - AI Robot Teacher"
-                width={320}
-                height={420}
-                priority
-                className="w-auto h-full max-h-[50vh] object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.9)] filter brightness-105 contrast-105 transition-all duration-300 hover:scale-[1.02]"
-                style={{
-                  filter:
-                    state === 'CORRECT' || state === 'CELEBRATING'
-                      ? 'drop-shadow(0 0 20px rgba(16,185,129,0.5))'
-                      : state === 'INCORRECT'
-                      ? 'drop-shadow(0 0 20px rgba(245,158,11,0.5))'
-                      : 'drop-shadow(0 0 25px rgba(6,182,212,0.35))',
-                }}
-              />
+            <div className="relative h-full max-h-[50vh] w-full max-w-[280px] sm:max-w-[320px] flex flex-col items-center justify-end">
+              <div className="relative flex-1 min-h-0 w-full flex items-end justify-center">
+                <Image
+                  src="/images/classroom/buddy-teacher-clean.png"
+                  alt="Buddy - AI Robot Teacher"
+                  width={320}
+                  height={420}
+                  priority
+                  className="w-auto h-full max-h-[42vh] object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.9)] filter brightness-105 contrast-105 transition-all duration-300 hover:scale-[1.02] z-10"
+                  style={{
+                    filter:
+                      state === 'CORRECT' || state === 'CELEBRATING'
+                        ? 'drop-shadow(0 0 20px rgba(16,185,129,0.5))'
+                        : state === 'INCORRECT'
+                        ? 'drop-shadow(0 0 20px rgba(245,158,11,0.5))'
+                        : 'drop-shadow(0 0 25px rgba(6,182,212,0.35))',
+                  }}
+                />
+              </div>
+
+              {/* Physical Observatory Dais Platform Underneath Buddy */}
+              <div className="relative z-0 -mt-3.5 flex flex-col items-center shrink-0 w-full">
+                <div className="relative w-44 sm:w-52 h-7 rounded-[100%] bg-gradient-to-b from-[#18244D] via-[#0E1530] to-[#080D20] border-2 border-cyan-400/60 shadow-[0_0_24px_rgba(6,182,212,0.4)] flex items-center justify-center">
+                  <div className="w-[88%] h-[80%] rounded-[100%] border border-cyan-300/40 shadow-inner flex items-center justify-center">
+                    <div className="w-[75%] h-[70%] rounded-[100%] bg-cyan-400/15 blur-[1px]" />
+                  </div>
+                </div>
+                <div className="relative -mt-3 w-40 sm:w-48 h-4 rounded-b-xl bg-gradient-to-b from-[#0B1126] to-[#040712] border border-cyan-500/30 flex items-center justify-center shadow-lg">
+                  <span className="font-mono text-[9px] font-black tracking-[0.25em] text-cyan-300 uppercase drop-shadow-[0_0_6px_rgba(6,182,212,0.8)]">
+                    BUDDY • TEACHER
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>
       </div>
     </div>
   );
-};
+});
+
+BuddyTeacherStage.displayName = 'BuddyTeacherStage';
 
 export default BuddyTeacherStage;
 

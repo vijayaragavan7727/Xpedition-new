@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, Bot, Compass } from 'lucide-react';
+import { Sparkles, Search, Check } from 'lucide-react';
 import { ClassroomLesson, ClassroomToolType } from './types';
 import { getClassroomLesson } from '@/lib/classroom/classroomCatalog';
 import { SmartBoard } from './SmartBoard';
@@ -10,14 +10,12 @@ import { BuddyTeacherStage } from './BuddyTeacherStage';
 import { ClassroomXiraAssistant } from './ClassroomXiraAssistant';
 import { ClassroomToolbar } from './ClassroomToolbar';
 import { ClassroomToolsModal } from './tools/ClassroomToolsModal';
-import { ProgressBar } from '@/components/ui';
 import {
   defaultClassroomIntelligence,
   ClassroomTelemetryEvent,
   AdaptiveDirective,
 } from '@/lib/classroom/classroomIntelligence';
-import { useClassroomOrientation } from './useClassroomOrientation';
-import { ClassroomOrientationPrompt } from './ClassroomOrientationPrompt';
+import { downloadFlashcards, downloadFormulaCards, downloadStudyNote } from '@/lib/learningObjectsDownloads';
 
 export interface ClassroomLayoutProps {
   conceptId?: string;
@@ -32,7 +30,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   onClassComplete,
   className = '',
 }) => {
-  const lesson: ClassroomLesson = getClassroomLesson(conceptId);
+  const lesson: ClassroomLesson = React.useMemo(() => getClassroomLesson(conceptId), [conceptId]);
 
   // 1. Step Navigation State
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -41,13 +39,20 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
 
   // 2. Classroom Session & Orchestrator State (Phase 4)
   const [sessionState, setSessionState] = useState<any | null>(null);
+  const initializedConceptRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
+    if (initializedConceptRef.current === conceptId) return;
+    initializedConceptRef.current = conceptId;
+
     let isMounted = true;
+    const controller = new AbortController();
+
     fetch('/api/classroom/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'create', conceptId }),
+      signal: controller.signal,
     })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -56,11 +61,14 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
         }
       })
       .catch((err) => {
-        console.warn('[ClassroomLayout] Session init warning:', err?.message);
+        if (err.name !== 'AbortError') {
+          console.warn('[ClassroomLayout] Session init warning:', err?.message);
+        }
       });
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [conceptId]);
 
@@ -84,8 +92,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   // 6. Audio State for Buddy Narration
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
-  // 7. Orientation Lock & Fallback Prompt (scoped specifically to Class)
-  const { shouldShowPrompt, dismissPrompt } = useClassroomOrientation();
+  // 7. Learning-object download feedback
+  const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
 
   const toggleAudio = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -207,26 +215,85 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
     [handleTelemetry, lesson.conceptId, lesson.topicTitle, currentStepIndex, currentStep, sessionState?.sessionId, conceptId]
   );
 
+  const handleOpenTool = useCallback(async (tool: ClassroomToolType | null) => {
+    if (!tool) {
+      setActiveTool(null);
+      return;
+    }
+
+    // On small screens, and for quick-reference objects everywhere, the tool action
+    // is a direct save action instead of opening a cramped preview drawer.
+    if (tool === 'formula' && lesson.formulas?.length) {
+      await downloadFormulaCards(lesson.topicTitle, lesson.formulas);
+      setDownloadNotice('Formula cards saved to your device.');
+      window.setTimeout(() => setDownloadNotice(null), 2600);
+      return;
+    }
+    if (tool === 'flashcards' && lesson.flashcards?.length) {
+      await downloadFlashcards(lesson.topicTitle, lesson.flashcards.map((card, index) => ({
+        title: card.category || `Concept Card ${index + 1}`,
+        front: card.front,
+        back: card.back,
+        number: index + 1,
+      })));
+      setDownloadNotice('Flashcards saved to your device.');
+      window.setTimeout(() => setDownloadNotice(null), 2600);
+      return;
+    }
+    if (tool === 'notes') {
+      const note = typeof window !== 'undefined' ? localStorage.getItem(`xpedition_notes_${lesson.conceptId}`) || `${currentStep.title}\n${currentStep.boardSummary}\n${currentStep.keyPrinciple || ''}` : `${currentStep.title}\n${currentStep.boardSummary}`;
+      await downloadStudyNote(lesson.topicTitle, note);
+      setDownloadNotice('Study note saved to your device.');
+      window.setTimeout(() => setDownloadNotice(null), 2600);
+      return;
+    }
+
+    setActiveTool(tool);
+  }, [lesson, currentStep]);
+
+  const handleCloseTool = useCallback(() => {
+    setActiveTool(null);
+  }, []);
+
+  const handleOpenMobileXira = useCallback(() => {
+    setIsMobileXiraOpen(true);
+  }, []);
+
+  const handleCloseMobileXira = useCallback(() => {
+    setIsMobileXiraOpen(false);
+  }, []);
+
+  const buddyDialogue = sessionState?.buddyDialogue || activeDirective?.buddyDirective?.dialogueQuote || currentStep.buddyDialogue;
+  const buddyState = sessionState?.buddyState || activeDirective?.buddyDirective?.state || currentStep.buddyState;
+  const nextActionLabel = currentStepIndex === totalSteps - 1 ? 'Finish Lesson' : 'Next Step';
+
+  const hasFormulas = React.useMemo(() => Boolean(lesson.hasFormulas && lesson.formulas && lesson.formulas.length > 0), [lesson.hasFormulas, lesson.formulas]);
+  const hasQuestions = React.useMemo(() => Boolean(currentStep.checkQuestion || (lesson.questions && lesson.questions.length > 0)), [currentStep.checkQuestion, lesson.questions]);
+  const hasHint = React.useMemo(() => Boolean(currentStep.hintText || currentStep.progressiveHint || (lesson.progressiveHints && lesson.progressiveHints.length > 0)), [currentStep.hintText, currentStep.progressiveHint, lesson.progressiveHints]);
+  const hasFlashcards = React.useMemo(() => Boolean(lesson.flashcards && lesson.flashcards.length > 0), [lesson.flashcards]);
+  const hasSources = React.useMemo(() => Boolean(lesson.sources && lesson.sources.length > 0), [lesson.sources]);
+
   return (
     <div
       className={`h-[100dvh] max-h-[100dvh] w-full bg-[#040714] text-slate-100 flex flex-col justify-between overflow-hidden relative ${className}`}
     >
-      {/* Fallback Orientation Prompt for mobile portrait when lock fails */}
-      {shouldShowPrompt && (
-        <ClassroomOrientationPrompt onDismiss={dismissPrompt} backHref={backHref} />
-      )}
       {/* ===================================================================
           FUTURISTIC OBSERVATORY CLASSROOM ENVIRONMENT BACKDROP (100% FIDELITY)
          =================================================================== */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
         {/* Photographic Master Reference Room Backdrop - 100% Crisp Visual Match */}
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-100 pointer-events-none filter contrast-[1.03] brightness-[1.02]"
+          className="absolute inset-0 bg-cover bg-center opacity-100 pointer-events-none"
           style={{ backgroundImage: `url('/images/classroom/classroom-master-reference.png')` }}
         />
 
-        {/* Ambient Observatory Ceiling Spotlight */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-gradient-to-b from-sky-400/15 via-indigo-500/5 to-transparent blur-3xl" />
+        {/* Ambient Observatory Ceiling Spotlight - Fast hardware-accelerated radial gradient without Gaussian blur */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[350px] pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 60% 60% at 50% 0%, rgba(56, 189, 248, 0.15), rgba(99, 102, 241, 0.05) 55%, transparent 100%)',
+          }}
+        />
 
         {/* Subtle Blue Neon Floor Highlights */}
         <div className="absolute bottom-12 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
@@ -236,7 +303,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
       {/* ===================================================================
           1. CLASSROOM TOP BAR (Exact Reference Alignment)
          =================================================================== */}
-      <header className="sticky top-0 z-40 h-13 sm:h-14 border-b border-white/[0.08] bg-[#060A18]/90 backdrop-blur-2xl flex items-center justify-between px-3 sm:px-6 select-none shrink-0 shadow-lg">
+      <header className="sticky top-0 z-40 h-13 sm:h-14 border-b border-white/[0.08] bg-[#060A18]/90 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 select-none shrink-0 shadow-lg">
         {/* Left: XPEDITION Brand + [Classroom] Badge + Breadcrumb */}
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
           {/* Logo */}
@@ -307,10 +374,20 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
             </div>
           </div>
 
+          {/* Search / New Concept */}
+          <Link
+            href="/learn?tab=explore"
+            aria-label="Search and learn a new concept"
+            className="flex items-center justify-center w-8 h-8 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.1] text-slate-300 hover:text-white transition-colors"
+          >
+            <Search className="w-4 h-4" />
+            <span className="hidden sm:inline ml-1.5 text-xs font-semibold">New concept</span>
+          </Link>
+
           {/* Mobile Xira Assistant Trigger Button */}
           <button
             type="button"
-            onClick={() => setIsMobileXiraOpen(true)}
+            onClick={handleOpenMobileXira}
             className="flex lg:hidden items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-sans text-xs font-semibold"
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -332,21 +409,21 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
       {/* ===================================================================
           2. MAIN CLASSROOM STAGE (Dedicated Landscape Composition)
          =================================================================== */}
-      <main className="flex-1 min-h-0 w-full max-w-[1700px] mx-auto px-2 sm:px-4 lg:px-6 py-1 sm:py-2 flex flex-col justify-center relative z-10 overflow-hidden">
-        <div className="grid grid-cols-1 landscape:grid-cols-[22%_56%_22%] lg:grid-cols-[23%_57%_20%] gap-2 sm:gap-3 xl:gap-4 items-stretch h-full max-h-full min-h-0">
+      <main className="flex-1 min-h-0 w-full max-w-[1700px] mx-auto px-2 sm:px-4 lg:px-6 py-1 sm:py-2 flex flex-col justify-center relative z-10 overflow-y-auto lg:overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[20%_60%_20%] xl:grid-cols-[18%_64%_18%] gap-2 sm:gap-3 xl:gap-4 items-stretch h-auto lg:h-full max-h-full min-h-0">
           {/* Left on Desktop/Landscape: 🤖 3D Buddy Robot Teacher */}
-          <div className="order-2 landscape:order-1 lg:order-1 h-full min-h-0 flex flex-col justify-end items-center overflow-hidden">
+          <div className="order-2 lg:order-1 h-[22vh] min-h-[150px] lg:h-full lg:min-h-0 flex flex-col justify-end items-center overflow-hidden">
             <BuddyTeacherStage
-              dialogue={sessionState?.buddyDialogue || activeDirective?.buddyDirective?.dialogueQuote || currentStep.buddyDialogue}
-              state={sessionState?.buddyState || activeDirective?.buddyDirective?.state || currentStep.buddyState}
+              dialogue={buddyDialogue}
+              state={buddyState}
               onNextAction={handleNextStep}
-              nextActionLabel={currentStepIndex === totalSteps - 1 ? 'Finish Lesson' : 'Next Step'}
+              nextActionLabel={nextActionLabel}
               className="h-full w-full"
             />
           </div>
 
           {/* Center on Desktop/Landscape: 🖥️ Smart Teaching Board (HERO DOMINANT) */}
-          <div className="order-1 landscape:order-2 lg:order-2 h-full min-h-0 flex flex-col overflow-hidden">
+          <div className="order-1 lg:order-2 h-[56vh] min-h-[390px] lg:h-full lg:min-h-0 flex flex-col overflow-hidden">
             <SmartBoard
               step={currentStep}
               totalSteps={totalSteps}
@@ -354,7 +431,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
               onPreviousStep={handlePreviousStep}
               onNextStep={handleNextStep}
               onQuestionAnswered={handleQuestionAnswered}
-              onOpenTool={(tool) => setActiveTool(tool)}
+              onOpenTool={handleOpenTool}
               adaptiveDirective={activeDirective || undefined}
               visualPayload={sessionState?.currentVisualPayload}
               topicTitle={lesson.topicTitle}
@@ -364,7 +441,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
           </div>
 
           {/* Right on Desktop/Landscape: ✨ Contextual Xira Assistant (COMPACT) */}
-          <div className="order-3 hidden landscape:flex lg:flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="order-3 flex lg:flex h-auto min-h-[180px] lg:h-full lg:min-h-0 flex-col overflow-hidden">
             <ClassroomXiraAssistant
               topicTitle={lesson.topicTitle}
               subject={lesson.subject}
@@ -372,12 +449,19 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
               stepHint={currentStep.hintText}
               adaptiveDirective={activeDirective || undefined}
               activeMisconception={sessionState?.xiraIntervention?.message || activeDirective?.detectedMisconception}
-              onOpenTool={(tool) => setActiveTool(tool)}
+              onOpenTool={handleOpenTool}
               className="h-full w-full"
             />
           </div>
         </div>
       </main>
+
+      {downloadNotice && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-16 z-[70] inline-flex items-center gap-2 rounded-full bg-emerald-500/95 text-white px-4 py-2 text-xs font-semibold shadow-xl">
+          <Check className="w-4 h-4" />
+          {downloadNotice}
+        </div>
+      )}
 
       {/* ===================================================================
           3. FLOATING LEARNING TOOLS DOCK (100% Viewport-Safe)
@@ -385,12 +469,12 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
       <footer className="w-full px-2 sm:px-3 py-1 shrink-0 select-none relative bottom-0 z-30 flex justify-center pb-1">
         <ClassroomToolbar
           activeTool={activeTool}
-          onSelectTool={(tool) => setActiveTool(tool)}
-          hasFormulas={Boolean(lesson.hasFormulas && lesson.formulas && lesson.formulas.length > 0)}
-          hasQuestions={Boolean(currentStep.checkQuestion || (lesson.questions && lesson.questions.length > 0))}
-          hasHint={Boolean(currentStep.hintText || currentStep.progressiveHint || (lesson.progressiveHints && lesson.progressiveHints.length > 0))}
-          hasFlashcards={Boolean(lesson.flashcards && lesson.flashcards.length > 0)}
-          hasSources={Boolean(lesson.sources && lesson.sources.length > 0)}
+          onSelectTool={handleOpenTool}
+          hasFormulas={hasFormulas}
+          hasQuestions={hasQuestions}
+          hasHint={hasHint}
+          hasFlashcards={hasFlashcards}
+          hasSources={hasSources}
           isAudioPlaying={isAudioPlaying}
           onToggleAudio={toggleAudio}
         />
@@ -401,13 +485,13 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
          =================================================================== */}
       <ClassroomToolsModal
         isOpen={activeTool !== null}
-        onClose={() => setActiveTool(null)}
+        onClose={handleCloseTool}
         toolType={activeTool}
         lesson={lesson}
         currentStep={currentStep}
         currentStepIndex={currentStepIndex}
         onSelectStep={(idx) => setCurrentStepIndex(idx)}
-        onOpenTool={(tool) => setActiveTool(tool)}
+        onOpenTool={handleOpenTool}
         onTelemetry={handleTelemetry}
       />
 
@@ -422,8 +506,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
               stepHint={currentStep.hintText}
               adaptiveDirective={activeDirective || undefined}
               activeMisconception={activeDirective?.detectedMisconception}
-              onOpenTool={(tool) => setActiveTool(tool)}
-              onCloseMobileDrawer={() => setIsMobileXiraOpen(false)}
+              onOpenTool={handleOpenTool}
+              onCloseMobileDrawer={handleCloseMobileXira}
               className="h-[75vh]"
             />
           </div>

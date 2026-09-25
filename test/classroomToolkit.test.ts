@@ -265,7 +265,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
       sources: [], // Empty sources
     };
 
-    assert.strictEqual(dummyLesson.sources.length, 0);
+    assert.strictEqual(dummyLesson.sources?.length, 0);
     // Verified invariant: tools UI displays 'Sources not provided for this lesson.'
   });
 

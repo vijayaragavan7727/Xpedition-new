@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { ClassroomLessonStep, ClassroomToolType } from './types';
 import { AdaptiveDirective } from '@/lib/classroom/classroomIntelligence';
@@ -33,7 +33,7 @@ export interface SmartBoardProps {
   className?: string;
 }
 
-export const SmartBoard: React.FC<SmartBoardProps> = ({
+export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
   step,
   totalSteps,
   currentStepIndex,
@@ -54,30 +54,54 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
   // Rotation animation toggle for motor
   const [isRotating, setIsRotating] = useState<boolean>(true);
 
-  const handleSelectOption = (optId: string) => {
+  const handleSelectOption = useCallback((optId: string) => {
     if (isAnswerSubmitted) return;
     setSelectedOptionId(optId);
-  };
+  }, [isAnswerSubmitted]);
 
-  const handleSubmitAnswer = () => {
+  const handleSubmitAnswer = useCallback(() => {
     if (!selectedOptionId || !step.checkQuestion) return;
     setIsAnswerSubmitted(true);
     const selected = step.checkQuestion.options.find((o) => o.id === selectedOptionId);
     if (onQuestionAnswered && selected) {
       onQuestionAnswered(selected.isCorrect);
     }
-  };
+  }, [selectedOptionId, step.checkQuestion, onQuestionAnswered]);
 
-  const handleResetAnswer = () => {
+  const handleResetAnswer = useCallback(() => {
     setSelectedOptionId(null);
     setIsAnswerSubmitted(false);
-  };
+  }, []);
+
+  const handleToggleRotation = useCallback(() => {
+    setIsRotating((prev) => !prev);
+  }, []);
+
+  const handleHotspotClick = useCallback(() => {
+    onOpenTool?.('lesson');
+  }, [onOpenTool]);
+
+  // Stable memoized fallback visual payload (avoids creating new object references on every render)
+  const fallbackPayload = React.useMemo<SmartBoardVisualPayload>(
+    () => ({
+      type: 'visual_requirement',
+      visualType: 'scientific_diagram',
+      title: topicTitle,
+      purpose: step.boardSummary || 'Interactive pedagogical visualization',
+      metadata: {
+        conceptId: topicTitle.toLowerCase().replace(/\s+/g, '_'),
+        stage: 'explain',
+      },
+    }),
+    [topicTitle, step.boardSummary]
+  );
+  const effectiveVisualPayload = visualPayload || fallbackPayload;
 
   const selectedOption = step.checkQuestion?.options.find((o) => o.id === selectedOptionId);
 
   return (
     <div
-      className={`relative flex flex-col justify-between rounded-3xl bg-[#060B1E]/80 border-2 border-cyan-500/40 shadow-[0_12px_48px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden ${className}`}
+      className={`relative flex flex-col justify-between rounded-3xl bg-[#060B1E]/90 border-2 border-cyan-500/40 shadow-[0_12px_48px_rgba(0,0,0,0.8)] backdrop-blur-md overflow-hidden ${className}`}
       style={{
         boxShadow: '0 0 35px -5px rgba(6,182,212,0.3), inset 0 1px 0 rgba(255,255,255,0.12)',
       }}
@@ -174,80 +198,13 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 xl:gap-4 items-center flex-1 min-h-0 my-1">
           {/* Hero Visual Schematic (Dominant: 8 cols) */}
           <div className="md:col-span-8 relative w-full h-full flex flex-col items-center justify-center overflow-hidden">
-            {visualPayload ? (
-              <SmartBoardVisualRenderer
-                payload={visualPayload}
-                isRotating={isRotating}
-                onToggleRotation={() => setIsRotating(!isRotating)}
-                onHotspotClick={() => onOpenTool?.('lesson')}
-              />
-            ) : (
-              <div className="relative w-full max-w-xl h-full max-h-[310px] flex items-center justify-center select-none group">
-                {/* DC Motor 3D Production Diagram Render */}
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <Image
-                    src="/images/classroom/dc-motor-diagram-clean.png"
-                    alt="DC Motor & Commutation 3D Interactive Diagram"
-                    width={600}
-                    height={320}
-                    priority
-                    className={`w-full max-h-[280px] object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.9)] transition-all duration-500 ${
-                      isRotating ? 'filter brightness-105' : 'filter brightness-95'
-                    }`}
-                  />
+            <SmartBoardVisualRenderer
+              payload={effectiveVisualPayload}
+              isRotating={isRotating}
+              onToggleRotation={handleToggleRotation}
+              onHotspotClick={handleHotspotClick}
+            />
 
-                  {/* Animated Rotational Glow Field when active */}
-                  {isRotating && (
-                    <div
-                      aria-hidden="true"
-                      className="absolute inset-x-1/4 inset-y-6 rounded-full bg-cyan-400/10 blur-2xl pointer-events-none animate-pulse"
-                    />
-                  )}
-
-                  {/* Interactive Hotspot Pills (Armature Coil, Commutator, Brushes, North & South Poles) */}
-                  <button
-                    type="button"
-                    onClick={() => onOpenTool?.('lesson')}
-                    title="Armature Coil: High-conductivity copper windings that carry rotor current"
-                    aria-label="Armature Coil detail"
-                    className="absolute top-2 left-[20%] sm:left-[24%] bg-[#080E24]/95 hover:bg-[#0E1738] border border-cyan-400/50 hover:border-cyan-300 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 shadow-[0_2px_10px_rgba(0,0,0,0.8)] flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    <span>Armature Coil</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onOpenTool?.('lesson')}
-                    title="Split-Ring Commutator: Inverts current polarity every 180° for continuous rotation"
-                    aria-label="Commutator detail"
-                    className="absolute top-2 right-[20%] sm:right-[24%] bg-[#080E24]/95 hover:bg-[#0E1738] border border-cyan-400/50 hover:border-cyan-300 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-cyan-300 shadow-[0_2px_10px_rgba(0,0,0,0.8)] flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                    <span>Commutator</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onOpenTool?.('lesson')}
-                    title="Carbon Brushes: Sliding stationary graphite contacts that feed current into the spinning commutator"
-                    aria-label="Brushes detail"
-                    className="absolute bottom-2 right-[24%] sm:right-[28%] bg-[#080E24]/95 hover:bg-[#0E1738] border border-slate-400/50 hover:border-slate-300 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold text-slate-300 shadow-[0_2px_10px_rgba(0,0,0,0.8)] flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    <span>Brushes</span>
-                  </button>
-
-                  <div className="absolute bottom-2 left-[12%] sm:left-[16%] text-[10px] font-mono font-bold text-rose-400/90 bg-[#080E24]/90 px-2 py-0.5 rounded-full border border-rose-500/30">
-                    North Pole
-                  </div>
-
-                  <div className="absolute bottom-2 right-[12%] sm:right-[16%] text-[10px] font-mono font-bold text-sky-400/90 bg-[#080E24]/90 px-2 py-0.5 rounded-full border border-sky-500/30">
-                    South Pole
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Contextual Side Callouts (Matching Reference: 4 cols) */}
@@ -411,6 +368,9 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
       </div>
     </div>
   );
-};
+});
+
+SmartBoard.displayName = 'SmartBoard';
 
 export default SmartBoard;
+

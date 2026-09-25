@@ -260,6 +260,7 @@ export class LocalAssetStore implements IAssetStore {
   }): Promise<EducationalAsset | null> {
     const normalizedConcept = query.conceptId.trim().toLowerCase();
 
+    // First pass: look for substantial, production-ready assets (sizeBytes >= 1024)
     for (const asset of this.assetIndex.values()) {
       if (asset.conceptId.toLowerCase() === normalizedConcept && asset.status === 'ready') {
         if (query.visualType && asset.visualType !== query.visualType) {
@@ -268,7 +269,25 @@ export class LocalAssetStore implements IAssetStore {
         if (query.promptHash && asset.promptHash !== query.promptHash) {
           continue;
         }
+        if (asset.sizeBytes !== undefined && asset.sizeBytes < 1024) {
+          continue; // Skip 70-byte mock placeholder stubs
+        }
         // Verify storage file
+        if (asset.filePath && (await this.storageBackend.exists(asset.filePath))) {
+          return asset;
+        }
+      }
+    }
+
+    // Second pass: fallback to any existing matching asset if no substantial asset found
+    for (const asset of this.assetIndex.values()) {
+      if (asset.conceptId.toLowerCase() === normalizedConcept && asset.status === 'ready') {
+        if (query.visualType && asset.visualType !== query.visualType) {
+          continue;
+        }
+        if (query.promptHash && asset.promptHash !== query.promptHash) {
+          continue;
+        }
         if (asset.filePath && (await this.storageBackend.exists(asset.filePath))) {
           return asset;
         }

@@ -22,9 +22,10 @@ import {
 
 interface JourneyPathCardProps {
   data: LearningJourneyData;
+  onExploreTopics?: () => void;
 }
 
-export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
+export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExploreTopics }) => {
   const router = useRouter();
   const [selectedNode, setSelectedNode] = useState<JourneyNode | null>(null);
   const [lockedNotice, setLockedNotice] = useState<string | null>(null);
@@ -74,10 +75,22 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data }) => {
                 style={{ width: `${data.subject.progressPercentage}%` }}
               />
             </div>
-            {/* Level Pill */}
-            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#E8F5EE] border border-[#C5E6D2] text-[#0F5132] text-[9px] xs:text-[9.5px] sm:text-xs font-sans font-bold shadow-2xs mt-0.5">
-              <Mountain className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#0F5132]" />
-              <span>Level {data.subject.level} • {data.subject.levelTitle}</span>
+            {/* Level Pill + Explore CTA */}
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#E8F5EE] border border-[#C5E6D2] text-[#0F5132] text-[9px] xs:text-[9.5px] sm:text-xs font-sans font-bold shadow-2xs">
+                <Mountain className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#0F5132]" />
+                <span>Level {data.subject.level} • {data.subject.levelTitle}</span>
+              </div>
+              {onExploreTopics && (
+                <button
+                  type="button"
+                  onClick={onExploreTopics}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAF8F5] hover:bg-[#EFECE4] border border-[#EBE7DF] text-slate-700 text-[9px] xs:text-[9.5px] sm:text-xs font-sans font-semibold cursor-pointer transition-colors"
+                >
+                  <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                  <span>Explore Topics</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

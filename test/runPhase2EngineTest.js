@@ -208,7 +208,7 @@ async function runPhase2EngineTests() {
   // TEST MATRIX E: Asset Store & Output Validation
   // ---------------------------------------------------------------------------
   console.log('\nE. Testing Asset Store & Output Validation');
-  const testStorageDir = path.join(rootDir, 'public', 'generated-visuals');
+  const testStorageDir = path.join(rootDir, '.test-generated-visuals');
   const assetStore = new LocalAssetStore(testStorageDir);
 
   // Buffer validation: Empty buffer
@@ -352,6 +352,10 @@ async function runPhase2EngineTests() {
   console.log('\n===========================================================');
   console.log(`PHASE 2 ENGINE TEST SUMMARY: ${totalPassed} passed, ${totalFailed} failed`);
   console.log('===========================================================\n');
+
+  if (fs.existsSync(testStorageDir)) {
+    try { fs.rmSync(testStorageDir, { recursive: true, force: true }); } catch {}
+  }
 
   if (totalFailed > 0) {
     process.exit(1);

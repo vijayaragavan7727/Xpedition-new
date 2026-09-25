@@ -69,13 +69,26 @@ export interface ClassroomLessonStep {
   boardSummary: string;
   keyPrinciple?: string;
   formulaSnippet?: string;
-  visualType: 'schematic' | 'mechanism' | 'interactive_diagram' | 'formula_focus' | 'comparison';
+  visualType:
+    | 'schematic'
+    | 'mechanism'
+    | 'interactive_diagram'
+    | 'formula_focus'
+    | 'comparison'
+    | 'graph'
+    | 'molecular_visual'
+    | 'code_visual'
+    | 'timeline'
+    | 'anatomical_visual'
+    | 'scientific_diagram'
+    | 'interactive_simulation';
   visualData?: any;
   example?: {
     title: string;
     description: string;
   };
   checkQuestion?: {
+    id?: string;
     prompt: string;
     options: { id: string; text: string; isCorrect: boolean; feedback: string }[];
   };
@@ -125,7 +138,8 @@ export interface ClassroomLesson {
   questions?: QuestionDefinition[];
   progressiveHints?: ProgressiveHint[];
   formulas?: FormulaItem[];
-  flashcards: FlashcardItem[];
-  sources: ClassroomSourceItem[];
+  flashcards?: FlashcardItem[];
+  sources?: ClassroomSourceItem[];
   initialNotes?: string;
 }
+

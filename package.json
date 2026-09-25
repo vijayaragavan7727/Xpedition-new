@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "test:intelligence": "node test/runTests.js",
     "test:experience": "node test/runExperienceTest.js",
     "test:integration": "node test/runExperienceIntegrationTest.js",
@@ -39,7 +40,10 @@
     "test:visual-intelligence": "npx tsx test/runPhase3VisualIntelligenceTest.js",
     "test:classroom:integration": "npx tsx test/runPhase4ClassIntegrationTest.js",
     "test:hardening:phase5": "npx tsx test/runPhase5HardeningTest.js",
-    "test": "node test/runSecurityRemediationTest.js && node test/runSourceIntelligenceTest.js && node test/runUniversalTeachingTest.js && node test/runHardeningTest.js && node test/runPersistenceTest.js && node test/runThreeDisposalTest.js && node test/runRealUserJourneyTest.js && node test/runVisualTeachingTest.js && node test/runLegalTrustTest.js && node test/runProductionReadinessTest.js && node test/runBuddyTest.js && node test/runXiraWorkspaceTest.js && node test/runSkipSystemTest.js && node test/runClassroomToolkitTest.js && node test/runClassroomAdaptiveTest.js && node test/runVisualGenerationTest.js && npx tsx test/runPhase2EngineTest.js && npx tsx test/runPhase3VisualIntelligenceTest.js && npx tsx test/runPhase4ClassIntegrationTest.js && npx tsx test/runPhase5HardeningTest.js"
+    "test:ux-visual": "node test/runUXCorrectionAndVisualTest.js",
+    "test:classroom-performance": "node test/runClassroomPerformanceTest.js",
+    "test:final": "node test/runFinal12RequirementsTest.js",
+    "test": "node test/runSecurityRemediationTest.js && node test/runSourceIntelligenceTest.js && node test/runUniversalTeachingTest.js && node test/runHardeningTest.js && node test/runPersistenceTest.js && node test/runThreeDisposalTest.js && node test/runRealUserJourneyTest.js && node test/runVisualTeachingTest.js && node test/runLegalTrustTest.js && node test/runProductionReadinessTest.js && node test/runBuddyTest.js && node test/runXiraWorkspaceTest.js && node test/runSkipSystemTest.js && node test/runClassroomToolkitTest.js && node test/runClassroomAdaptiveTest.js && node test/runVisualGenerationTest.js && npx tsx test/runPhase2EngineTest.js && npx tsx test/runPhase3VisualIntelligenceTest.js && npx tsx test/runPhase4ClassIntegrationTest.js && npx tsx test/runPhase5HardeningTest.js && node test/runUXCorrectionAndVisualTest.js && node test/runClassroomPerformanceTest.js && node test/runFinal12RequirementsTest.js"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

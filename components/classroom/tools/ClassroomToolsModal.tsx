@@ -195,6 +195,11 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
   }, [activeQuestion, currentStep, lesson]);
 
   const [hintStage, setHintStage] = useState(0); // 0 = Hint 1, 1 = Hint 2, 2 = Hint 3
+  const [isSpeakingLesson, setIsSpeakingLesson] = useState(false);
+
+  useEffect(() => () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+  }, []);
 
   const handleUnlockNextHint = () => {
     if (hintStage < activeHintData.hints.length - 1) {
@@ -450,7 +455,44 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
         )}
 
         {/* ===================================================================
-            2. QUESTIONS TOOL (LESSON-AWARE, NO CLIENT THETA FABRICATION)
+            2. AUDIO TOOL
+           =================================================================== */}
+        {toolType === 'audio' && (
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-sky-500/10 border border-sky-500/25 p-4">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-sky-300">Buddy narration</div>
+              <h3 className="mt-1 text-base font-bold text-white">{currentStep.title}</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">{currentStep.buddyDialogue}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!('speechSynthesis' in window)) return;
+                if (isSpeakingLesson) {
+                  window.speechSynthesis.cancel();
+                  setIsSpeakingLesson(false);
+                  return;
+                }
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(currentStep.buddyDialogue);
+                utterance.rate = 0.98;
+                utterance.pitch = 1.04;
+                utterance.onend = () => setIsSpeakingLesson(false);
+                utterance.onerror = () => setIsSpeakingLesson(false);
+                setIsSpeakingLesson(true);
+                window.speechSynthesis.speak(utterance);
+              }}
+              className="w-full min-h-12 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center justify-center gap-2"
+            >
+              <Volume2 className="w-4 h-4" />
+              {isSpeakingLesson ? 'Stop narration' : 'Teach this step aloud'}
+            </button>
+            <p className="text-[11px] text-slate-500 text-center">Uses the device voice when browser speech synthesis is available.</p>
+          </div>
+        )}
+
+        {/* ===================================================================
+            3. QUESTIONS TOOL (LESSON-AWARE, NO CLIENT THETA FABRICATION)
            =================================================================== */}
         {toolType === 'questions' && (
           <div className="space-y-4">

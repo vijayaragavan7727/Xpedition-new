@@ -100,7 +100,7 @@ export default function AppLayout({
   }
 
   // Home and Learn pages render their canonical dashboard / journey layout directly
-  if (pathname === '/home' || pathname === '/learn') {
+  if (pathname === '/home' || pathname === '/learn' || pathname === '/profile') {
     return <>{children}</>;
   }
 

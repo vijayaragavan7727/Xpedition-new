@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { getStoreData, UserStoreData } from '@/lib/store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { resolveLearningJourneyData } from '@/lib/learningJourney/learningJourneyModel';
 import { LearningJourneyView } from '@/components/learningJourney';
 
-export default function LearnPage() {
+function LearnPageContent() {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
   const [authUser, setAuthUser] = useState<{
     user_metadata?: { full_name?: string; name?: string };
@@ -84,3 +84,12 @@ export default function LearnPage() {
 
   return <LearningJourneyView data={journeyData} />;
 }
+
+export default function LearnPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center font-sans text-slate-500">Loading your journey...</div>}>
+      <LearnPageContent />
+    </Suspense>
+  );
+}
+

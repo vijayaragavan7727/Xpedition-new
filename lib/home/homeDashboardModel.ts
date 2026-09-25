@@ -80,7 +80,7 @@ export interface HomeDashboardData {
   nextUp: NextUpCardData;
   progress: ProgressCardData;
   todaysFocus: FocusItem[];
-  passports: PassportCardData;
+  passports: PassportCardData[];
   worldCta: {
     title: string;
     description: string;
@@ -174,19 +174,18 @@ export function resolveHomeDashboardData(
     : homeState.mission.experienceTypeLabel || 'Core Concept';
 
   const durationMin = homeState.mission.estimatedMinutes || 8;
-  const currentRoute = isDefaultOrEmpty
-    ? '/class?concept=dc_motor'
-    : homeState.mission.route || `/class?concept=${homeState.mission.conceptId}`;
+  const currentConceptId = isDefaultOrEmpty ? 'dc_motor' : homeState.mission.conceptId;
+  const currentRoute = `/class?concept=${encodeURIComponent(currentConceptId)}`;
 
   const continueLearning: ContinueLearningCardData = {
-    conceptId: isDefaultOrEmpty ? 'dc_motor' : homeState.mission.conceptId,
+    conceptId: currentConceptId,
     title: currentTitle,
     subject: currentSubject,
     topic: currentTopic,
     durationLabel: `${durationMin} min left`,
     route: currentRoute,
     buttonLabel: 'Resume Lesson',
-    visualAsset: resolveConceptVisual(isDefaultOrEmpty ? 'dc_motor' : homeState.mission.conceptId, currentSubject, false),
+    visualAsset: resolveConceptVisual(currentConceptId, currentSubject, false),
     badgeLabel: 'Continue Learning',
   };
 
@@ -208,7 +207,7 @@ export function resolveHomeDashboardData(
     title: nextTitle,
     subject: nextSubject,
     durationLabel: '5 min',
-    route: isDefaultOrEmpty ? '/class?concept=dc_motor' : `/class?concept=${nextConceptFromPathway?.id || 'dc_motor'}`,
+    route: `/class?concept=${encodeURIComponent(isDefaultOrEmpty ? 'magnetic_fields' : (nextConceptFromPathway?.id || 'magnetic_fields'))}`,
     buttonLabel: 'Start',
     visualAsset: resolveConceptVisual(isDefaultOrEmpty ? 'magnetic_fields' : (nextConceptFromPathway?.id || 'magnetic_fields'), nextSubject, true),
     badgeLabel: 'Next Up',
@@ -262,15 +261,25 @@ export function resolveHomeDashboardData(
   ];
 
   // 8. Your Passports Card Data
-  const passports: PassportCardData = {
+  const passportSubjects = Array.from(
+    new Set([
+      currentSubject,
+      ...(baseStore.graphs || []).map((g) => g.goalText || '').filter(Boolean),
+      'Mathematics',
+      'Programming',
+      'Biology',
+    ])
+  ).slice(0, 4);
+
+  const passports: PassportCardData[] = passportSubjects.map((subjectTitle, index) => ({
     hasPassport: true,
-    subjectTitle: currentSubject,
-    statusBadge: 'Applied',
+    subjectTitle,
+    statusBadge: index === 0 ? 'Applied' : 'In Progress',
     route: '/passport',
     coverImage: '/images/home/home-passport-preview.png',
     emptyStateText: 'Build evidence-backed skill credentials as you complete learning pathways.',
     emptyStateCta: 'Explore Learning',
-  };
+  }));
 
   // 9. Explore the World Banner
   const worldCta = {
