@@ -637,3 +637,113 @@ DROP POLICY IF EXISTS "Participants can view and manage own raid sessions" ON pu
 CREATE POLICY "Participants can view and manage own raid sessions" ON public.raid_sessions
   FOR ALL USING (auth.uid() = player1_id OR auth.uid() = player2_id)
   WITH CHECK (auth.uid() = player1_id OR auth.uid() = player2_id);
+
+-- =============================================================================
+-- 10. CLASSROOM PERSISTENCE, VISUAL ASSETS & GENERATION JOBS (PHASE 4 & 5)
+-- =============================================================================
+
+-- 10a. Classroom Sessions Table (Distributed classroom session tracking)
+CREATE TABLE IF NOT EXISTS public.classroom_sessions (
+  session_id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  concept_id TEXT NOT NULL,
+  current_stage TEXT NOT NULL,
+  stage_index INT NOT NULL DEFAULT 0,
+  mastery_level TEXT NOT NULL DEFAULT 'NOT_STARTED',
+  mastery_score INT NOT NULL DEFAULT 0,
+  state_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_classroom_sessions_user_id ON public.classroom_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_classroom_sessions_concept ON public.classroom_sessions(concept_id);
+
+-- 10b. Classroom Telemetry Table (Sanitized pedagogical telemetry stream)
+CREATE TABLE IF NOT EXISTS public.classroom_telemetry (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id TEXT NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  concept_id TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  data_json JSONB DEFAULT '{}'::jsonb,
+  timestamp BIGINT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_classroom_telemetry_session ON public.classroom_telemetry(session_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_classroom_telemetry_user ON public.classroom_telemetry(user_id, timestamp DESC);
+
+-- 10c. Educational Assets Table (Verified and generated educational representations)
+CREATE TABLE IF NOT EXISTS public.educational_assets (
+  asset_id TEXT PRIMARY KEY,
+  concept_id TEXT NOT NULL,
+  visual_type TEXT NOT NULL,
+  workflow_id TEXT NOT NULL,
+  workflow_version TEXT NOT NULL,
+  model_family TEXT NOT NULL,
+  prompt_hash TEXT NOT NULL,
+  cache_key TEXT UNIQUE NOT NULL,
+  public_url TEXT NOT NULL,
+  storage_path TEXT,
+  mime_type TEXT NOT NULL DEFAULT 'image/png',
+  size_bytes INT NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'ready',
+  provenance_json JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_educational_assets_concept ON public.educational_assets(concept_id);
+CREATE INDEX IF NOT EXISTS idx_educational_assets_cache_key ON public.educational_assets(cache_key);
+
+-- 10d. Generation Jobs Table (Async and synchronous generation job lifecycle)
+CREATE TABLE IF NOT EXISTS public.generation_jobs (
+  job_id TEXT PRIMARY KEY,
+  request_id TEXT,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  concept_id TEXT NOT NULL,
+  cache_key TEXT,
+  status TEXT NOT NULL DEFAULT 'queued',
+  retry_count INT DEFAULT 0,
+  error TEXT,
+  error_code TEXT,
+  output_asset_id TEXT REFERENCES public.educational_assets(asset_id) ON DELETE SET NULL,
+  metadata_json JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_generation_jobs_user ON public.generation_jobs(user_id);
+CREATE INDEX IF NOT EXISTS idx_generation_jobs_cache_key ON public.generation_jobs(cache_key);
+CREATE INDEX IF NOT EXISTS idx_generation_jobs_status ON public.generation_jobs(status);
+
+-- -----------------------------------------------------------------------------
+-- 10e. Row Level Security Policies for Classroom & Visual Assets
+-- -----------------------------------------------------------------------------
+ALTER TABLE public.classroom_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.classroom_telemetry ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.educational_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.generation_jobs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage own classroom sessions" ON public.classroom_sessions;
+CREATE POLICY "Users can manage own classroom sessions" ON public.classroom_sessions
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own classroom telemetry" ON public.classroom_telemetry;
+CREATE POLICY "Users can insert own classroom telemetry" ON public.classroom_telemetry
+  FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Users can view own classroom telemetry" ON public.classroom_telemetry;
+CREATE POLICY "Users can view own classroom telemetry" ON public.classroom_telemetry
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Anyone can view ready educational assets" ON public.educational_assets;
+CREATE POLICY "Anyone can view ready educational assets" ON public.educational_assets
+  FOR SELECT USING (status = 'ready');
+
+DROP POLICY IF EXISTS "Authenticated users can view own generation jobs" ON public.generation_jobs;
+CREATE POLICY "Authenticated users can view own generation jobs" ON public.generation_jobs
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Authenticated users can create generation jobs" ON public.generation_jobs;
+CREATE POLICY "Authenticated users can create generation jobs" ON public.generation_jobs
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+

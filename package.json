@@ -34,7 +34,12 @@
     "test:skip": "node test/runSkipSystemTest.js",
     "test:toolkit": "node test/runClassroomToolkitTest.js",
     "test:adaptive:classroom": "node test/runClassroomAdaptiveTest.js",
-    "test": "node test/runSecurityRemediationTest.js && node test/runSourceIntelligenceTest.js && node test/runUniversalTeachingTest.js && node test/runHardeningTest.js && node test/runPersistenceTest.js && node test/runThreeDisposalTest.js && node test/runRealUserJourneyTest.js && node test/runVisualTeachingTest.js && node test/runLegalTrustTest.js && node test/runProductionReadinessTest.js && node test/runBuddyTest.js && node test/runXiraWorkspaceTest.js && node test/runSkipSystemTest.js && node test/runClassroomToolkitTest.js && node test/runClassroomAdaptiveTest.js"
+    "test:visual-generation": "node test/runVisualGenerationTest.js",
+    "test:visual-generation:engine": "npx tsx test/runPhase2EngineTest.js",
+    "test:visual-intelligence": "npx tsx test/runPhase3VisualIntelligenceTest.js",
+    "test:classroom:integration": "npx tsx test/runPhase4ClassIntegrationTest.js",
+    "test:hardening:phase5": "npx tsx test/runPhase5HardeningTest.js",
+    "test": "node test/runSecurityRemediationTest.js && node test/runSourceIntelligenceTest.js && node test/runUniversalTeachingTest.js && node test/runHardeningTest.js && node test/runPersistenceTest.js && node test/runThreeDisposalTest.js && node test/runRealUserJourneyTest.js && node test/runVisualTeachingTest.js && node test/runLegalTrustTest.js && node test/runProductionReadinessTest.js && node test/runBuddyTest.js && node test/runXiraWorkspaceTest.js && node test/runSkipSystemTest.js && node test/runClassroomToolkitTest.js && node test/runClassroomAdaptiveTest.js && node test/runVisualGenerationTest.js && npx tsx test/runPhase2EngineTest.js && npx tsx test/runPhase3VisualIntelligenceTest.js && npx tsx test/runPhase4ClassIntegrationTest.js && npx tsx test/runPhase5HardeningTest.js"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

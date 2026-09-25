@@ -659,7 +659,12 @@ export function getClassroomLesson(conceptId: string): ClassroomLesson {
   if (normalized.includes('projectile') || normalized.includes('kinematic')) {
     return CANONICAL_CLASSROOM_LESSONS.projectile_motion;
   }
-  if (normalized.includes('heart') || normalized.includes('cardio') || normalized.includes('anatomy')) {
+  if (
+    normalized.includes('heart') ||
+    normalized.includes('cardio') ||
+    normalized.includes('cardiac') ||
+    normalized.includes('anatomy')
+  ) {
     return CANONICAL_CLASSROOM_LESSONS.human_heart_anatomy;
   }
 

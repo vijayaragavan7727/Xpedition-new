@@ -39,7 +39,32 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   const currentStep = lesson.steps[currentStepIndex] || lesson.steps[0];
   const totalSteps = lesson.steps.length;
 
-  // 2. Adaptive Intelligence State
+  // 2. Classroom Session & Orchestrator State (Phase 4)
+  const [sessionState, setSessionState] = useState<any | null>(null);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    fetch('/api/classroom/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'create', conceptId }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data?.success && data?.session) {
+          setSessionState(data.session);
+        }
+      })
+      .catch((err) => {
+        console.warn('[ClassroomLayout] Session init warning:', err?.message);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [conceptId]);
+
+  // 3. Adaptive Intelligence State
   const [activeDirective, setActiveDirective] = useState<AdaptiveDirective | null>(null);
 
   const handleTelemetry = useCallback(
@@ -50,16 +75,16 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
     []
   );
 
-  // 3. Active Tool State (for bottom toolbar & drawer)
+  // 4. Active Tool State (for bottom toolbar & drawer)
   const [activeTool, setActiveTool] = useState<ClassroomToolType | null>(null);
 
-  // 4. Mobile Xira Drawer State
+  // 5. Mobile Xira Drawer State
   const [isMobileXiraOpen, setIsMobileXiraOpen] = useState(false);
 
-  // 5. Audio State for Buddy Narration
+  // 6. Audio State for Buddy Narration
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
-  // 6. Orientation Lock & Fallback Prompt (scoped specifically to Class)
+  // 7. Orientation Lock & Fallback Prompt (scoped specifically to Class)
   const { shouldShowPrompt, dismissPrompt } = useClassroomOrientation();
 
   const toggleAudio = useCallback(() => {
@@ -75,7 +100,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(currentStep.buddyDialogue);
+      const textToSpeak = sessionState?.buddyDialogue || currentStep.buddyDialogue;
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
       utterance.rate = 1.0;
       utterance.pitch = 1.05;
       utterance.onend = () => setIsAudioPlaying(false);
@@ -83,21 +109,103 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
       setIsAudioPlaying(true);
       window.speechSynthesis.speak(utterance);
     }
-  }, [currentStep.buddyDialogue, isAudioPlaying]);
+  }, [currentStep.buddyDialogue, isAudioPlaying, sessionState?.buddyDialogue]);
 
-  const handleNextStep = () => {
+  const handleNextStep = useCallback(() => {
     if (currentStepIndex < totalSteps - 1) {
       setCurrentStepIndex((prev) => prev + 1);
     } else if (onClassComplete) {
       onClassComplete();
     }
-  };
 
-  const handlePreviousStep = () => {
+    if (sessionState?.sessionId) {
+      fetch('/api/classroom/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'process',
+          conceptId,
+          sessionId: sessionState.sessionId,
+          learnerAction: { type: 'ADVANCE_STAGE' },
+        }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.success && data?.session) {
+            setSessionState(data.session);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentStepIndex, totalSteps, onClassComplete, sessionState?.sessionId, conceptId]);
+
+  const handlePreviousStep = useCallback(() => {
     if (currentStepIndex > 0) {
       setCurrentStepIndex((prev) => prev - 1);
     }
-  };
+
+    if (sessionState?.sessionId) {
+      fetch('/api/classroom/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'process',
+          conceptId,
+          sessionId: sessionState.sessionId,
+          learnerAction: { type: 'PREVIOUS_STAGE' },
+        }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.success && data?.session) {
+            setSessionState(data.session);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentStepIndex, sessionState?.sessionId, conceptId]);
+
+  const handleQuestionAnswered = useCallback(
+    (isCorrect: boolean) => {
+      handleTelemetry({
+        eventType: 'question_attempt',
+        conceptId: lesson.conceptId,
+        conceptName: lesson.topicTitle,
+        stepIndex: currentStepIndex,
+        stepTitle: currentStep.title,
+        timestamp: Date.now(),
+        data: {
+          questionId: currentStep.checkQuestion?.prompt,
+          isCorrect,
+          misconceptionTag: currentStep.checkQuestion?.options.find((o) => !o.isCorrect)?.feedback,
+        },
+      });
+
+      if (sessionState?.sessionId) {
+        fetch('/api/classroom/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'process',
+            conceptId,
+            sessionId: sessionState.sessionId,
+            learnerAction: {
+              type: 'ANSWER_QUESTION',
+              optionId: isCorrect ? 'opt_correct' : 'opt_incorrect',
+            },
+          }),
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.success && data?.session) {
+              setSessionState(data.session);
+            }
+          })
+          .catch(() => {});
+      }
+    },
+    [handleTelemetry, lesson.conceptId, lesson.topicTitle, currentStepIndex, currentStep, sessionState?.sessionId, conceptId]
+  );
 
   return (
     <div
@@ -229,8 +337,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
           {/* Left on Desktop/Landscape: 🤖 3D Buddy Robot Teacher */}
           <div className="order-2 landscape:order-1 lg:order-1 h-full min-h-0 flex flex-col justify-end items-center overflow-hidden">
             <BuddyTeacherStage
-              dialogue={activeDirective?.buddyDirective?.dialogueQuote || currentStep.buddyDialogue}
-              state={activeDirective?.buddyDirective?.state || currentStep.buddyState}
+              dialogue={sessionState?.buddyDialogue || activeDirective?.buddyDirective?.dialogueQuote || currentStep.buddyDialogue}
+              state={sessionState?.buddyState || activeDirective?.buddyDirective?.state || currentStep.buddyState}
               onNextAction={handleNextStep}
               nextActionLabel={currentStepIndex === totalSteps - 1 ? 'Finish Lesson' : 'Next Step'}
               className="h-full w-full"
@@ -245,8 +353,10 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
               currentStepIndex={currentStepIndex}
               onPreviousStep={handlePreviousStep}
               onNextStep={handleNextStep}
+              onQuestionAnswered={handleQuestionAnswered}
               onOpenTool={(tool) => setActiveTool(tool)}
               adaptiveDirective={activeDirective || undefined}
+              visualPayload={sessionState?.currentVisualPayload}
               topicTitle={lesson.topicTitle}
               subject={lesson.subject}
               className="h-full w-full"
@@ -261,7 +371,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
               currentStepTitle={currentStep.title}
               stepHint={currentStep.hintText}
               adaptiveDirective={activeDirective || undefined}
-              activeMisconception={activeDirective?.detectedMisconception}
+              activeMisconception={sessionState?.xiraIntervention?.message || activeDirective?.detectedMisconception}
               onOpenTool={(tool) => setActiveTool(tool)}
               className="h-full w-full"
             />
