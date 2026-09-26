@@ -43,6 +43,7 @@
     "components/classroom/**/*.ts",
     "components/classroom/**/*.tsx",
     "lib/classroom/**/*.ts",
+    "lib/visualIntelligence/**/*.ts",
     "lib/types.ts",
     "lib/class/**/*.ts",
     "lib/legal/**/*.ts",

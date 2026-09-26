@@ -112,12 +112,13 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
       visualData: step.visualData,
       metadata: {
         conceptId,
+        subject,
         stage,
         stepNumber: step.stepNumber,
         stepIndex: currentStepIndex,
       },
     }),
-    [step, topicTitle, candidateAssetUrl, conceptId, stage, currentStepIndex]
+    [step, topicTitle, candidateAssetUrl, conceptId, subject, stage, currentStepIndex]
   );
   const authoritativeStepPayload = fallbackPayload;
 

@@ -155,7 +155,7 @@ export const SUBJECT_VISUAL_RULES: SubjectRule[] = [
   // ================= HISTORY =================
   {
     subject: 'History',
-    topicKeywords: ['revolution', 'war', 'timeline', 'dynasty', 'century', 'chronology', 'treaty', 'empire'],
+    topicKeywords: ['revolution', 'industrial_revolution', 'war', 'timeline', 'dynasty', 'century', 'chronology', 'treaty', 'empire'],
     recommendedType: 'timeline',
     accuracyLevel: 'contextual',
     requiresInteraction: false,
@@ -184,12 +184,31 @@ export const SUBJECT_VISUAL_RULES: SubjectRule[] = [
   // ================= PROGRAMMING =================
   {
     subject: 'Computer Science',
-    topicKeywords: ['algorithm', 'code', 'sorting', 'recursion', 'binary_search', 'debugging', 'python', 'javascript', 'loop'],
+    topicKeywords: [
+      'algorithm',
+      'code',
+      'sorting',
+      'recursion',
+      'binary_search',
+      'debugging',
+      'python',
+      'javascript',
+      'loop',
+      'polymorphism',
+      'inheritance',
+      'encapsulation',
+      'oop',
+      'class',
+      'interface',
+      'object_oriented',
+      'method',
+      'function',
+    ],
     recommendedType: 'code_visual',
     accuracyLevel: 'technical',
     requiresInteraction: true,
     requiresLabels: true,
-    pedagogicalFocus: 'Highlight active stack frames, variable state transitions, and step-by-step pointer positions.',
+    pedagogicalFocus: 'Highlight type hierarchies, virtual dispatch, active stack frames, and architectural structures.',
   },
   {
     subject: 'Computer Science',

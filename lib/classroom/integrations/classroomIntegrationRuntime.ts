@@ -31,31 +31,58 @@ export async function requestExternalTeachingScene(args: {
   const stage = stageForStep(args.step);
   if (!shouldRequestExternalTeachingScene(stage)) return null;
 
-  const response = await fetch('/api/classroom/integrations', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal: args.signal,
-    body: JSON.stringify({
-      action: 'generate_scene',
-      provider: 'openmaic',
-      context: {
-        conceptId: args.lesson.conceptId,
-        topicTitle: args.lesson.topicTitle,
-        subject: args.lesson.subject,
-        stage,
-        stepIndex: args.stepIndex,
-        lesson: args.lesson,
-        step: args.step,
-        purpose: stage === 'INTERACT' ? 'interact' : 'visualize',
-      },
-    }),
-  });
+  const timeoutController = new AbortController();
+  const timer = setTimeout(() => {
+    timeoutController.abort(new Error('Scene request timeout (3000ms)'));
+  }, 3000);
 
-  if (!response.ok) return null;
-  const data = (await response.json()) as {
-    success?: boolean;
-    scene?: { payload?: { xpeditionVisualPayload?: SmartBoardVisualPayload } };
+  const onExternalAbort = () => {
+    timeoutController.abort();
   };
 
-  return data.success ? data.scene?.payload?.xpeditionVisualPayload || null : null;
+  if (args.signal) {
+    if (args.signal.aborted) {
+      clearTimeout(timer);
+      return null;
+    }
+    args.signal.addEventListener('abort', onExternalAbort, { once: true });
+  }
+
+  try {
+    const response = await fetch('/api/classroom/integrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: timeoutController.signal,
+      body: JSON.stringify({
+        action: 'generate_scene',
+        provider: 'openmaic',
+        context: {
+          conceptId: args.lesson.conceptId,
+          topicTitle: args.lesson.topicTitle,
+          subject: args.lesson.subject,
+          stage,
+          stepIndex: args.stepIndex,
+          lesson: args.lesson,
+          step: args.step,
+          purpose: stage === 'INTERACT' ? 'interact' : 'visualize',
+        },
+      }),
+    });
+
+    if (!response.ok) return null;
+    const data = (await response.json()) as {
+      success?: boolean;
+      scene?: { payload?: { xpeditionVisualPayload?: SmartBoardVisualPayload } };
+    };
+
+    return data.success ? data.scene?.payload?.xpeditionVisualPayload || null : null;
+  } catch (_err) {
+    // Timeout or network error safely returns null without blanking the Smart Board
+    return null;
+  } finally {
+    clearTimeout(timer);
+    if (args.signal) {
+      args.signal.removeEventListener('abort', onExternalAbort);
+    }
+  }
 }

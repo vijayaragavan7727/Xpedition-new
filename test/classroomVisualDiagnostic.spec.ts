@@ -521,6 +521,88 @@ test.describe('Classroom Visual & Responsive Diagnostic', () => {
     await expect(svgInitial).toBeVisible();
     await expect(imgElement).toHaveCount(0);
   });
+
+  const CONCEPTS_TO_TEST = [
+    { id: 'dc_motor', label: 'DC Motor', kind: 'canonical', expectedText: 'DC Motor' },
+    { id: 'projectile_motion', label: 'Projectile Motion', kind: 'canonical', expectedText: 'TRAJECTORY SIMULATION' },
+    { id: 'human_heart_anatomy', label: 'Cardiovascular Heart', kind: 'canonical', expectedText: 'CARDIOVASCULAR ANATOMY' },
+    { id: 'polymorphism', label: 'Polymorphism (OOP)', kind: 'synthetic', expectedText: 'SOFTWARE ARCHITECTURE' },
+    { id: 'calculus_derivatives', label: 'Calculus Derivatives', kind: 'synthetic', expectedText: 'CALCULUS DERIVATIVE' },
+    { id: 'industrial_revolution', label: 'Industrial Revolution', kind: 'synthetic', expectedText: 'HISTORICAL TIMELINE' },
+  ];
+
+  for (const item of CONCEPTS_TO_TEST) {
+    test(`class visual resolution: ${item.id} (${item.kind}) renders authoritative visual with zero loading placeholders`, async ({ page }) => {
+      const consoleErrors: string[] = [];
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') consoleErrors.push(msg.text());
+      });
+
+      const failed5xx: string[] = [];
+      page.on('response', (res) => {
+        if (res.status() >= 500) failed5xx.push(`${res.status()} ${res.url()}`);
+      });
+
+      await page.goto(`http://localhost:3000/class?concept=${item.id}`, { waitUntil: 'domcontentloaded' });
+
+      // A. Authoritative visual exists immediately at initial render
+      const expectedLocator = page.locator(`text=${item.expectedText}`).first();
+      await expect(expectedLocator).toBeVisible({ timeout: 10000 });
+
+      // B. No pulsing fake loading state inside visual
+      const pulsingSparkles = page.locator('.animate-pulse.text-cyan-400');
+      await expect(pulsingSparkles).toHaveCount(0);
+
+      // C. No "generating" or "loading" placeholders
+      const fakeLoadingText = page.locator('text=/loading pedagogical|generating scene|generating visualization/i');
+      await expect(fakeLoadingText).toHaveCount(0);
+
+      // G. Step 1 -> Step 2 transition does not flash blank
+      const nextBtn = page.locator('button[aria-label="Next step"]');
+      if (await nextBtn.isVisible()) {
+        await nextBtn.click();
+        await expect(expectedLocator).toBeVisible();
+      }
+
+      // L & M: No console errors, no HTTP 5xx
+      expect(failed5xx).toEqual([]);
+      const filteredErrors = consoleErrors.filter(
+        (err) => !err.includes('favicon') && !err.includes('WebGL')
+      );
+      expect(filteredErrors).toEqual([]);
+    });
+  }
+
+  test('synthetic visual stability: waiting 3+ seconds on polymorphism and synthetic topics does not blank smart board', async ({ page }) => {
+    // Test polymorphism: synthetic topic with no pre-generated asset
+    await page.goto('http://localhost:3000/class?concept=polymorphism', { waitUntil: 'domcontentloaded' });
+    const polyVisual = page.locator('text=SOFTWARE ARCHITECTURE').first();
+    await expect(polyVisual).toBeVisible({ timeout: 10000 });
+
+    // D. Wait past 3000ms bounded timeout window
+    await page.waitForTimeout(3500);
+
+    // Verify visual remains authoritative and completely un-blanked
+    await expect(polyVisual).toBeVisible();
+    await expect(page.locator('text=ComponentContract')).toBeVisible();
+    await expect(page.locator('text=ConcreteVariantA')).toBeVisible();
+  });
+
+  test('responsive viewport audit across mobile (375, 390, 430) and desktop (1366, 1440)', async ({ page }) => {
+    for (const vp of VIEWPORTS) {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('http://localhost:3000/class?concept=polymorphism', { waitUntil: 'domcontentloaded' });
+
+      const smartBoard = page.locator('text=SMART BOARD').first();
+      await expect(smartBoard).toBeVisible({ timeout: 10000 });
+
+      // K. Check zero horizontal overflow
+      const hasOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > window.innerWidth;
+      });
+      expect(hasOverflow).toBe(false);
+    }
+  });
 });
 
 function generateMarkdownReport(data: any): string {

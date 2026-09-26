@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { SmartBoardVisualPayload } from '@/lib/visualIntelligence/types';
 import {
@@ -17,6 +17,9 @@ import {
   Maximize2,
   Eye,
   RefreshCw,
+  Code2,
+  Activity,
+  Columns,
 } from 'lucide-react';
 
 export interface SmartBoardVisualRendererProps {
@@ -35,12 +38,13 @@ export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> =
   className = '',
 }) => {
   if (!payload) {
-    return <FallbackRenderer title="Interactive Learning Surface" purpose="Loading pedagogical visualization..." />;
+    return <FallbackRenderer title="Interactive Learning Surface" purpose="Interactive pedagogical visualization." />;
   }
 
   const conceptId = String(payload.metadata?.conceptId || payload.title || '').toLowerCase();
+  const subject = String(payload.metadata?.subject || '').toLowerCase();
 
-  // 1. DC Motor & Electromagnetism: Dedicated Scientific Deterministic Renderer
+  // 1. DC Motor & Electromagnetism: Dedicated Scientific Deterministic Renderer (Canonical)
   if (
     conceptId.includes('motor') ||
     conceptId.includes('commutation') ||
@@ -58,7 +62,7 @@ export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> =
     );
   }
 
-  // 2. Interactive Simulations (Projectile Motion, Kinematics)
+  // 2. Interactive Simulations: Projectile Motion & Kinematics (Canonical)
   if (payload.visualType === 'interactive_simulation' || conceptId.includes('projectile')) {
     return (
       <ProjectileSimulationRenderer
@@ -70,32 +74,57 @@ export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> =
     );
   }
 
-  // 3. Coordinate Graphs (Quadratic Equations, Linear Regression, Distributions)
-  if (payload.visualType === 'graph' || conceptId.includes('quadratic') || conceptId.includes('regression')) {
+  // 3. Coordinate Graphs: Quadratic, Linear Regression, Calculus, Derivatives (Canonical + Generic Math)
+  if (
+    payload.visualType === 'graph' ||
+    conceptId.includes('quadratic') ||
+    conceptId.includes('regression') ||
+    conceptId.includes('calculus') ||
+    conceptId.includes('derivative')
+  ) {
     return <GraphRenderer payload={payload} className={className} />;
   }
 
-  // 4. Molecular Bonding (Chemistry)
+  // 4. Molecular Bonding: Chemistry (Canonical)
   if (payload.visualType === 'molecular_visual' || conceptId.includes('molecule') || conceptId.includes('bond')) {
     return <MolecularRenderer payload={payload} className={className} />;
   }
 
-  // 5. Anatomical Visual (Human Heart)
+  // 5. Anatomical Visual: Human Heart (Canonical)
   if (payload.visualType === 'anatomical_visual' || conceptId.includes('heart') || conceptId.includes('cardio')) {
     return <AnatomicalHeartRenderer payload={payload} className={className} />;
   }
 
-  // 6. Chronological Timelines (History, Process Flow)
-  if (payload.visualType === 'timeline' || conceptId.includes('revolution') || conceptId.includes('history')) {
+  // 6. Chronological Timelines: French Revolution, Industrial Revolution, History (Canonical + Generic History)
+  if (payload.visualType === 'timeline' || conceptId.includes('revolution') || conceptId.includes('history') || subject === 'history') {
     return <TimelineRenderer payload={payload} className={className} />;
   }
 
-  // 7. Code Visualizer (Algorithms, Binary Search)
-  if (payload.visualType === 'code_visual' || conceptId.includes('binary') || conceptId.includes('search')) {
-    return <CodeVisualizerRenderer payload={payload} className={className} />;
+  // 7. Process Flow Pipeline: Sequential Transformations & Mechanisms
+  if ((payload.visualType as string) === 'process_flow' || (payload.visualType as string) === 'mechanism') {
+    return <ProcessFlowRenderer payload={payload} className={className} />;
   }
 
-  // 8. General Scientific Diagram & Verified Existing Asset Fallback
+  // 8. Comparative Matrix: Side-by-side contrast
+  if (payload.visualType === 'comparison_visual' || (payload.visualType as string) === 'comparison') {
+    return <ComparisonRenderer payload={payload} className={className} />;
+  }
+
+  // 9. Code & Computer Science Architecture (Canonical Binary Search + Generic Software Architecture)
+  if (
+    payload.visualType === 'code_visual' ||
+    conceptId.includes('binary_search') ||
+    conceptId.includes('polymorphism') ||
+    conceptId.includes('algorithm') ||
+    subject === 'computer science'
+  ) {
+    if (conceptId.includes('binary_search') || (payload.title.toLowerCase().includes('binary') && payload.title.toLowerCase().includes('search'))) {
+      return <CodeVisualizerRenderer payload={payload} className={className} />;
+    }
+    return <CodeArchitectureRenderer payload={payload} className={className} />;
+  }
+
+  // 10. General Pedagogical Relationship Diagram & Deterministic Visual Surface
   return (
     <GeneralDiagramRenderer
       payload={payload}
@@ -896,88 +925,201 @@ const ProjectileSimulationRenderer: React.FC<{
 ProjectileSimulationRenderer.displayName = 'ProjectileSimulationRenderer';
 
 // =========================================================================
-// 3. MATHEMATICAL COORDINATE GRAPH RENDERER (QUADRATIC & REGRESSION)
+// 3. MATHEMATICAL COORDINATE GRAPH RENDERER (QUADRATIC, REGRESSION, CALCULUS)
 // =========================================================================
 
 const GraphRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
   payload,
   className = '',
 }) => {
-  const isRegression = payload.title.toLowerCase().includes('regression');
+  const conceptId = String(payload.metadata?.conceptId || '').toLowerCase();
+  const titleLower = payload.title.toLowerCase();
+  const isRegression = titleLower.includes('regression') || conceptId.includes('regression');
+  const isDerivative =
+    titleLower.includes('derivative') ||
+    titleLower.includes('calculus') ||
+    conceptId.includes('calculus') ||
+    conceptId.includes('derivative');
+
+  // Interactive evaluation point for derivative tangent
+  const [tangentX, setTangentX] = useState<number>(0.8);
+
+  // Artwork toggle state
+  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
+  const hasRealArtwork = Boolean(payload.assetUrl);
+  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
+
+  // Cubic curve for calculus: f(x) = (x^3)/2.5 - 1.2*x
+  // Tangent slope: f'(x) = 1.2*x^2 - 1.2
+  const calcCurvePath = useMemo(() => {
+    const points: string[] = [];
+    for (let x = -2.2; x <= 2.2; x += 0.1) {
+      const y = (x * x * x) / 2.5 - 1.2 * x;
+      const px = 270 + x * 80;
+      const py = 130 - y * 45;
+      points.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+    }
+    return `M ${points.join(' L ')}`;
+  }, []);
+
+  const curY = (tangentX * tangentX * tangentX) / 2.5 - 1.2 * tangentX;
+  const slope = (3 * (tangentX * tangentX)) / 2.5 - 1.2;
+  const tangentPx = 270 + tangentX * 80;
+  const tangentPy = 130 - curY * 45;
+
+  // Tangent line coordinates across width
+  const dx = 1.0;
+  const x1 = tangentX - dx;
+  const y1 = curY - slope * dx;
+  const x2 = tangentX + dx;
+  const y2 = curY + slope * dx;
+
+  const t1Px = 270 + x1 * 80;
+  const t1Py = 130 - y1 * 45;
+  const t2Px = 270 + x2 * 80;
+  const t2Py = 130 - y2 * 45;
 
   return (
     <div className={`relative w-full h-full flex flex-col items-center justify-between p-4 bg-[#05091B]/95 rounded-2xl border border-indigo-500/30 overflow-hidden shadow-2xl ${className}`}>
       <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-indigo-300">
         <span className="font-bold flex items-center gap-1.5">
           <span>📈</span>
-          <span>{isRegression ? 'OLS REGRESSION LINE' : 'COORDINATE GRAPH: PARABOLA'}</span>
+          <span>
+            {isDerivative
+              ? `CALCULUS DERIVATIVE: ${payload.title}`
+              : isRegression
+              ? 'OLS REGRESSION LINE'
+              : 'COORDINATE GRAPH: PARABOLA'}
+          </span>
         </span>
-        <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-          {isRegression ? 'y = m·x + c' : 'y = a·x² + b·x + c'}
-        </span>
-      </div>
 
-      <div className="relative w-full flex-1 flex items-center justify-center my-2">
-        <svg viewBox="0 0 540 240" className="w-full h-full max-h-[220px]">
-          {/* Grid lines */}
-          <g stroke="#1E293B" strokeWidth="1">
-            {[-200, -150, -100, -50, 0, 50, 100, 150, 200].map((offset) => (
-              <line key={`x-${offset}`} x1={270 + offset} y1="20" x2={270 + offset} y2="220" />
-            ))}
-            {[-80, -40, 0, 40, 80].map((offset) => (
-              <line key={`y-${offset}`} x1="50" y1="130 + offset" x2="490" y2="130 + offset" />
-            ))}
-          </g>
-
-          {/* Axes */}
-          <line x1="50" y1="130" x2="490" y2="130" stroke="#475569" strokeWidth="2" />
-          <line x1="270" y1="20" x2="270" y2="220" stroke="#475569" strokeWidth="2" />
-          <text x="480" y="145" fill="#94A3B8" fontSize="10" fontFamily="monospace">x</text>
-          <text x="255" y="32" fill="#94A3B8" fontSize="10" fontFamily="monospace">y</text>
-
-          {!isRegression ? (
-            /* Quadratic Parabola Curve */
-            <>
-              <path
-                d="M 120 210 Q 270 30 420 210"
-                fill="none"
-                stroke="#22D3EE"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-              {/* Vertex Point */}
-              <circle cx="270" cy="30" r="5" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="1.5" />
-              <text x="280" y="35" fill="#FCD34D" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                Vertex (h, k)
-              </text>
-              {/* Axis of Symmetry */}
-              <line x1="270" y1="20" x2="270" y2="220" stroke="#F59E0B" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.6" />
-
-              {/* Roots / Intercepts */}
-              <circle cx="178" cy="130" r="4.5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1.5" />
-              <text x="160" y="145" fill="#6EE7B7" fontSize="9" fontFamily="monospace">Root x₁</text>
-              <circle cx="362" cy="130" r="4.5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1.5" />
-              <text x="366" y="145" fill="#6EE7B7" fontSize="9" fontFamily="monospace">Root x₂</text>
-            </>
-          ) : (
-            /* Linear Regression Scatter & Best Fit Line */
-            <>
-              {/* Data points */}
-              {[
-                [100, 190], [140, 175], [180, 160], [210, 140], [250, 130],
-                [300, 110], [340, 95], [380, 80], [420, 65]
-              ].map(([px, py], idx) => (
-                <circle key={idx} cx={px} cy={py} r="4" fill="#38BDF8" />
-              ))}
-              {/* Regression line */}
-              <line x1="80" y1="200" x2="440" y2="55" stroke="#F59E0B" strokeWidth="3" />
-              <text x="360" y="50" fill="#FCD34D" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                y = 0.42x + 12 (R² = 0.94)
-              </text>
-            </>
+        <div className="flex items-center gap-2">
+          {hasRealArtwork && (
+            <button
+              type="button"
+              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
+              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
+            >
+              <Eye className="w-3 h-3 text-cyan-400" />
+              <span>{isDisplayingArtwork ? 'Diagram' : 'AI Render'}</span>
+            </button>
           )}
-        </svg>
+
+          <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            {isDerivative ? "f'(x) = dy/dx" : isRegression ? 'y = m·x + c' : 'y = a·x² + b·x + c'}
+          </span>
+        </div>
       </div>
+
+      <div className="relative w-full flex-1 flex items-center justify-center my-2 overflow-hidden">
+        {isDisplayingArtwork ? (
+          <Image
+            src={payload.assetUrl!}
+            alt={payload.title}
+            width={540}
+            height={240}
+            className="w-full max-h-[220px] object-contain drop-shadow-xl"
+          />
+        ) : (
+          <svg viewBox="0 0 540 240" className="w-full h-full max-h-[220px]">
+            {/* Grid lines */}
+            <g stroke="#1E293B" strokeWidth="1">
+              {[-200, -150, -100, -50, 0, 50, 100, 150, 200].map((offset) => (
+                <line key={`x-${offset}`} x1={270 + offset} y1="20" x2={270 + offset} y2="220" />
+              ))}
+              {[-80, -40, 0, 40, 80].map((offset) => (
+                <line key={`y-${offset}`} x1="50" y1={130 + offset} x2="490" y2={130 + offset} />
+              ))}
+            </g>
+
+            {/* Axes */}
+            <line x1="50" y1="130" x2="490" y2="130" stroke="#475569" strokeWidth="2" />
+            <line x1="270" y1="20" x2="270" y2="220" stroke="#475569" strokeWidth="2" />
+            <text x="480" y="145" fill="#94A3B8" fontSize="10" fontFamily="monospace">x</text>
+            <text x="255" y="32" fill="#94A3B8" fontSize="10" fontFamily="monospace">y</text>
+
+            {isDerivative ? (
+              /* Calculus Derivative Tangent Plot */
+              <>
+                <path d={calcCurvePath} fill="none" stroke="#38BDF8" strokeWidth="3" strokeLinecap="round" />
+                {/* Tangent line */}
+                <line x1={t1Px} y1={t1Py} x2={t2Px} y2={t2Py} stroke="#F59E0B" strokeWidth="2.5" />
+                {/* Tangent contact point */}
+                <circle cx={tangentPx} cy={tangentPy} r="5" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="2" />
+                {/* Rate of Change Callout */}
+                <text x="70" y="45" fill="#FCD34D" fontSize="11" fontFamily="monospace" fontWeight="bold">
+                  Tangent Slope m = {slope.toFixed(2)}
+                </text>
+                <text x="70" y="62" fill="#94A3B8" fontSize="9" fontFamily="monospace">
+                  Instantaneous rate of change at x = {tangentX.toFixed(1)}
+                </text>
+              </>
+            ) : !isRegression ? (
+              /* Quadratic Parabola Curve */
+              <>
+                <path
+                  d="M 120 210 Q 270 30 420 210"
+                  fill="none"
+                  stroke="#22D3EE"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+                {/* Vertex Point */}
+                <circle cx="270" cy="30" r="5" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="1.5" />
+                <text x="280" y="35" fill="#FCD34D" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                  Vertex (h, k)
+                </text>
+                {/* Axis of Symmetry */}
+                <line x1="270" y1="20" x2="270" y2="220" stroke="#F59E0B" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.6" />
+
+                {/* Roots / Intercepts */}
+                <circle cx="178" cy="130" r="4.5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1.5" />
+                <text x="160" y="145" fill="#6EE7B7" fontSize="9" fontFamily="monospace">Root x₁</text>
+                <circle cx="362" cy="130" r="4.5" fill="#10B981" stroke="#FFFFFF" strokeWidth="1.5" />
+                <text x="366" y="145" fill="#6EE7B7" fontSize="9" fontFamily="monospace">Root x₂</text>
+              </>
+            ) : (
+              /* Linear Regression Scatter & Best Fit Line */
+              <>
+                {/* Data points */}
+                {[
+                  [100, 190], [140, 175], [180, 160], [210, 140], [250, 130],
+                  [300, 110], [340, 95], [380, 80], [420, 65]
+                ].map(([px, py], idx) => (
+                  <circle key={idx} cx={px} cy={py} r="4" fill="#38BDF8" />
+                ))}
+                {/* Regression line */}
+                <line x1="80" y1="200" x2="440" y2="55" stroke="#F59E0B" strokeWidth="3" />
+                <text x="360" y="50" fill="#FCD34D" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                  y = 0.42x + 12 (R² = 0.94)
+                </text>
+              </>
+            )}
+          </svg>
+        )}
+      </div>
+
+      {isDerivative && !isDisplayingArtwork && (
+        <div className="w-full flex items-center justify-between px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded-xl text-[10px] font-mono text-slate-300">
+          <span>Move Tangent Point:</span>
+          <div className="flex items-center gap-1.5">
+            {[-1.5, -1.0, 0, 1.0, 1.5].map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setTangentX(val)}
+                className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                  Math.abs(tangentX - val) < 0.2
+                    ? 'bg-indigo-600 text-white font-bold'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-400'
+                }`}
+              >
+                x={val}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium">
         {payload.purpose}
@@ -1159,12 +1301,41 @@ const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?:
   payload,
   className = '',
 }) => {
-  const milestones = [
-    { year: 'May 1789', title: 'Estates-General', desc: 'King Louis XVI convenes assembly; Third Estate breaks away.' },
-    { year: 'Jul 14, 1789', title: 'Storming of Bastille', desc: 'Citizens seize the medieval royal weapons fortress.' },
-    { year: 'Aug 1789', title: 'Rights of Man', desc: 'National Assembly drafts Declaration of Equality.' },
-    { year: 'Sep 1792', title: 'First Republic', desc: 'Monarchy abolished; popular sovereignty proclaimed.' },
-  ];
+  const conceptId = String(payload.metadata?.conceptId || '').toLowerCase();
+  const titleLower = payload.title.toLowerCase();
+
+  const isIndustrial = conceptId.includes('industrial') || titleLower.includes('industrial');
+  const isFrench = conceptId.includes('french') || titleLower.includes('french') || conceptId.includes('revolution');
+
+  // Artwork toggle state
+  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
+  const hasRealArtwork = Boolean(payload.assetUrl);
+  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
+
+  const milestones = useMemo(() => {
+    if (isIndustrial) {
+      return [
+        { year: '1769', title: 'Watt Steam Condenser', desc: 'Separate condenser radically advances thermodynamic mechanical power.' },
+        { year: '1785', title: 'Power Loom & Factories', desc: 'Cartwright automates weaving, catalyzing industrialized textile production.' },
+        { year: '1830', title: 'Steam Locomotion', desc: 'Liverpool & Manchester Railway establishes rapid intercity freight & passenger transit.' },
+        { year: '1870', title: 'Second Industrial Wave', desc: 'Bessemer steel, chemical engineering, and electrical grid drive urban expansion.' },
+      ];
+    }
+    if (isFrench) {
+      return [
+        { year: 'May 1789', title: 'Estates-General', desc: 'King Louis XVI convenes assembly; Third Estate breaks away.' },
+        { year: 'Jul 14, 1789', title: 'Storming of Bastille', desc: 'Citizens seize the medieval royal weapons fortress.' },
+        { year: 'Aug 1789', title: 'Rights of Man', desc: 'National Assembly drafts Declaration of Equality.' },
+        { year: 'Sep 1792', title: 'First Republic', desc: 'Monarchy abolished; popular sovereignty proclaimed.' },
+      ];
+    }
+    return [
+      { year: 'Phase 1', title: 'Inception & Catalysts', desc: 'Foundational drivers, preconditions, and initial paradigm disruption.' },
+      { year: 'Phase 2', title: 'Structural Transformation', desc: 'Systemic institutional reorganization and rapid adoption of primary mechanisms.' },
+      { year: 'Phase 3', title: 'Scale & Diffusion', desc: 'Cross-regional propagation, secondary industrial effects, and consolidation.' },
+      { year: 'Phase 4', title: 'Modern Equilibrium', desc: 'Institutional integration, regulatory frameworks, and historical legacy.' },
+    ];
+  }, [isIndustrial, isFrench]);
 
   return (
     <div className={`relative w-full h-full flex flex-col items-center justify-between p-4 bg-[#140E05]/95 rounded-2xl border border-amber-500/30 overflow-hidden shadow-2xl ${className}`}>
@@ -1173,22 +1344,46 @@ const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?:
           <span>⏱️</span>
           <span>HISTORICAL TIMELINE: {payload.title}</span>
         </span>
-        <span className="text-[10px] text-amber-400">Sequential Milestones</span>
+        <div className="flex items-center gap-2">
+          {hasRealArtwork && (
+            <button
+              type="button"
+              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
+              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
+            >
+              <Eye className="w-3 h-3 text-cyan-400" />
+              <span>{isDisplayingArtwork ? 'Timeline' : 'AI Render'}</span>
+            </button>
+          )}
+          <span className="text-[10px] text-amber-400">Sequential Milestones</span>
+        </div>
       </div>
 
-      <div className="w-full flex-1 flex items-center justify-between my-2 px-3 gap-2">
-        {milestones.map((m, idx) => (
-          <div key={idx} className="flex-1 flex flex-col items-center text-center relative">
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-bold mb-1">
-              {m.year}
-            </span>
-            <div className="w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white my-1 shadow-md" />
-            <span className="font-bold text-white text-xs mt-1 leading-snug">{m.title}</span>
-            <span className="text-[10px] text-slate-400 mt-1 leading-tight max-w-[130px] hidden sm:block">
-              {m.desc}
-            </span>
+      <div className="w-full flex-1 flex items-center justify-center my-2 px-3 overflow-hidden">
+        {isDisplayingArtwork ? (
+          <Image
+            src={payload.assetUrl!}
+            alt={payload.title}
+            width={600}
+            height={260}
+            className="w-full max-h-[220px] object-contain drop-shadow-xl"
+          />
+        ) : (
+          <div className="w-full flex items-center justify-between gap-2">
+            {milestones.map((m, idx) => (
+              <div key={idx} className="flex-1 flex flex-col items-center text-center relative">
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-bold mb-1">
+                  {m.year}
+                </span>
+                <div className="w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white my-1 shadow-md" />
+                <span className="font-bold text-white text-xs mt-1 leading-snug">{m.title}</span>
+                <span className="text-[10px] text-slate-400 mt-1 leading-tight max-w-[130px] hidden sm:block">
+                  {m.desc}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium">
@@ -1201,7 +1396,7 @@ const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?:
 TimelineRenderer.displayName = 'TimelineRenderer';
 
 // =========================================================================
-// 7. CODE & ALGORITHM VISUALIZER (PROGRAMMING - BINARY SEARCH)
+// 7. CODE & ALGORITHM VISUALIZER (CANONICAL - BINARY SEARCH)
 // =========================================================================
 
 const CodeVisualizerRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
@@ -1271,7 +1466,339 @@ const CodeVisualizerRenderer: React.FC<{ payload: SmartBoardVisualPayload; class
 CodeVisualizerRenderer.displayName = 'CodeVisualizerRenderer';
 
 // =========================================================================
-// 8. GENERAL SCIENTIFIC DIAGRAM & VERIFIED ASSET RENDERER
+// 8. CODE ARCHITECTURE & SOFTWARE DESIGN RENDERER (GENERIC PROGRAMMING / OOP)
+// =========================================================================
+
+const CodeArchitectureRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
+  payload,
+  className = '',
+}) => {
+  const conceptId = String(payload.metadata?.conceptId || '').toLowerCase();
+  const humanTitle = payload.title.replace(/^Overview:\s*/i, '').replace(/^Structural Mechanics:\s*/i, '');
+  const [selectedVariant, setSelectedVariant] = useState<'A' | 'B'>('A');
+
+  // Artwork toggle state
+  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
+  const hasRealArtwork = Boolean(payload.assetUrl);
+  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
+
+  const isPolymorphism = conceptId.includes('polymorph') || payload.title.toLowerCase().includes('polymorph');
+
+  return (
+    <div className={`relative w-full h-full flex flex-col items-center justify-between p-3 sm:p-4 bg-[#0A0D24]/95 rounded-2xl border border-indigo-500/30 overflow-hidden shadow-2xl ${className}`}>
+      {/* Header */}
+      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-indigo-300 select-none">
+        <span className="font-bold flex items-center gap-1.5">
+          <Code2 className="w-4 h-4 text-cyan-400" />
+          <span>SOFTWARE ARCHITECTURE: {humanTitle}</span>
+        </span>
+        <div className="flex items-center gap-2">
+          {hasRealArtwork && (
+            <button
+              type="button"
+              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
+              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
+            >
+              <Eye className="w-3 h-3 text-cyan-400" />
+              <span>{isDisplayingArtwork ? 'Architecture' : 'AI Render'}</span>
+            </button>
+          )}
+          <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            {isPolymorphism ? 'Dynamic Dispatch • Virtual Binding' : 'Modular Contract'}
+          </span>
+        </div>
+      </div>
+
+      {/* Main Visual Schema */}
+      <div className="w-full flex-1 flex flex-col items-center justify-center my-1 select-none overflow-hidden">
+        {isDisplayingArtwork ? (
+          <Image
+            src={payload.assetUrl!}
+            alt={payload.title}
+            width={600}
+            height={260}
+            className="w-full max-h-[220px] object-contain drop-shadow-xl"
+          />
+        ) : (
+          <div className="w-full max-w-xl flex flex-col items-center gap-2">
+            {/* Base Interface / Contract Card */}
+            <div className="w-full max-w-md bg-[#10183B] border-2 border-cyan-400/50 rounded-xl p-2.5 shadow-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-300 text-xs font-bold font-mono">
+                  &lt;I&gt;
+                </div>
+                <div>
+                  <div className="text-[11px] font-mono font-bold text-cyan-300">
+                    interface ComponentContract
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400">
+                    + execute(context): Result
+                  </div>
+                </div>
+              </div>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/30">
+                Polymorphic Abstraction
+              </span>
+            </div>
+
+            {/* Connecting Dispatch Vectors */}
+            <div className="w-full max-w-md flex justify-around items-center px-8 text-slate-500 text-[10px] font-mono">
+              <div className="flex flex-col items-center text-cyan-400/80">
+                <span>▲ implements</span>
+                <span className="text-xs">│</span>
+              </div>
+              <div className="px-2 py-0.5 rounded bg-white/[0.03] border border-white/10 text-amber-300 text-[9px] font-semibold">
+                Dynamic Runtime Binding
+              </div>
+              <div className="flex flex-col items-center text-cyan-400/80">
+                <span>▲ implements</span>
+                <span className="text-xs">│</span>
+              </div>
+            </div>
+
+            {/* Derived Implementations */}
+            <div className="w-full grid grid-cols-2 gap-2.5 sm:gap-4 max-w-md">
+              {/* Variant A */}
+              <button
+                type="button"
+                onClick={() => setSelectedVariant('A')}
+                className={`text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
+                  selectedVariant === 'A'
+                    ? 'bg-indigo-950/80 border-cyan-400 shadow-md shadow-cyan-500/20 scale-[1.02]'
+                    : 'bg-[#0E1433]/70 border-white/10 hover:border-white/20 opacity-80'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-mono text-xs font-bold text-emerald-300">ConcreteVariantA</span>
+                  {selectedVariant === 'A' && (
+                    <span className="text-[9px] font-mono text-cyan-400 font-bold">● Active Dispatch</span>
+                  )}
+                </div>
+                <div className="font-mono text-[10px] text-slate-300">
+                  {"execute() { /* Specialized Algorithm A */ }"}
+                </div>
+                <div className="mt-1 text-[9px] text-slate-400">
+                  Decoupled client caller
+                </div>
+              </button>
+
+              {/* Variant B */}
+              <button
+                type="button"
+                onClick={() => setSelectedVariant('B')}
+                className={`text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
+                  selectedVariant === 'B'
+                    ? 'bg-indigo-950/80 border-cyan-400 shadow-md shadow-cyan-500/20 scale-[1.02]'
+                    : 'bg-[#0E1433]/70 border-white/10 hover:border-white/20 opacity-80'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-mono text-xs font-bold text-amber-300">ConcreteVariantB</span>
+                  {selectedVariant === 'B' && (
+                    <span className="text-[9px] font-mono text-cyan-400 font-bold">● Active Dispatch</span>
+                  )}
+                </div>
+                <div className="font-mono text-[10px] text-slate-300">
+                  {"execute() { /* Specialized Algorithm B */ }"}
+                </div>
+                <div className="mt-1 text-[9px] text-slate-400">
+                  Interchangeable behavior
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer telemetry */}
+      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium pt-1">
+        {payload.purpose}
+      </div>
+    </div>
+  );
+});
+
+CodeArchitectureRenderer.displayName = 'CodeArchitectureRenderer';
+
+// =========================================================================
+// 9. PROCESS FLOW PIPELINE RENDERER (SEQUENTIAL TRANSFORMATION)
+// =========================================================================
+
+const ProcessFlowRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
+  payload,
+  className = '',
+}) => {
+  // Artwork toggle state
+  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
+  const hasRealArtwork = Boolean(payload.assetUrl);
+  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
+
+  const [activeStage, setActiveStage] = useState<number>(1);
+
+  const stages = [
+    { num: 1, title: 'Input & Stimulus', desc: 'Precondition state and activating input.' },
+    { num: 2, title: 'Transformation', desc: 'Core mechanical or biochemical pathway.' },
+    { num: 3, title: 'Phase Transition', desc: 'Intermediate reaction and state change.' },
+    { num: 4, title: 'Equilibrium', desc: 'Observable product and steady-state return.' },
+  ];
+
+  return (
+    <div className={`relative w-full h-full flex flex-col items-center justify-between p-3 sm:p-4 bg-[#061412]/95 rounded-2xl border border-teal-500/30 overflow-hidden shadow-2xl ${className}`}>
+      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-teal-300 select-none">
+        <span className="font-bold flex items-center gap-1.5">
+          <Activity className="w-4 h-4 text-teal-400" />
+          <span>PROCESS FLOW PIPELINE: {payload.title}</span>
+        </span>
+        <div className="flex items-center gap-2">
+          {hasRealArtwork && (
+            <button
+              type="button"
+              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
+              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
+            >
+              <Eye className="w-3 h-3 text-cyan-400" />
+              <span>{isDisplayingArtwork ? 'Process Flow' : 'AI Render'}</span>
+            </button>
+          )}
+          <span className="text-[10px] px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">
+            Sequential Pipeline
+          </span>
+        </div>
+      </div>
+
+      <div className="w-full flex-1 flex items-center justify-center my-2 px-2 overflow-hidden">
+        {isDisplayingArtwork ? (
+          <Image
+            src={payload.assetUrl!}
+            alt={payload.title}
+            width={600}
+            height={260}
+            className="w-full max-h-[220px] object-contain drop-shadow-xl"
+          />
+        ) : (
+          <div className="w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {stages.map((stg) => (
+              <button
+                key={stg.num}
+                type="button"
+                onClick={() => setActiveStage(stg.num)}
+                className={`flex flex-col p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  activeStage === stg.num
+                    ? 'bg-teal-950/80 border-teal-400 shadow-md shadow-teal-500/20 scale-[1.02]'
+                    : 'bg-white/[0.02] border-white/10 hover:border-white/20 opacity-80'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-bold">
+                    Stage {stg.num}
+                  </span>
+                  {activeStage === stg.num && <span className="w-2 h-2 rounded-full bg-teal-400" />}
+                </div>
+                <span className="font-bold text-xs text-white leading-tight">{stg.title}</span>
+                <span className="text-[10px] text-slate-400 mt-1 leading-snug">{stg.desc}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium">
+        {payload.purpose}
+      </div>
+    </div>
+  );
+});
+
+ProcessFlowRenderer.displayName = 'ProcessFlowRenderer';
+
+// =========================================================================
+// 10. COMPARATIVE MATRIX RENDERER (SIDE-BY-SIDE CONTRAST)
+// =========================================================================
+
+const ComparisonRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
+  payload,
+  className = '',
+}) => {
+  // Artwork toggle state
+  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
+  const hasRealArtwork = Boolean(payload.assetUrl);
+  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
+
+  return (
+    <div className={`relative w-full h-full flex flex-col items-center justify-between p-3 sm:p-4 bg-[#120D24]/95 rounded-2xl border border-purple-500/30 overflow-hidden shadow-2xl ${className}`}>
+      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-purple-300 select-none">
+        <span className="font-bold flex items-center gap-1.5">
+          <Columns className="w-4 h-4 text-purple-400" />
+          <span>COMPARATIVE ANALYSIS: {payload.title}</span>
+        </span>
+        <div className="flex items-center gap-2">
+          {hasRealArtwork && (
+            <button
+              type="button"
+              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
+              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
+            >
+              <Eye className="w-3 h-3 text-cyan-400" />
+              <span>{isDisplayingArtwork ? 'Comparison' : 'AI Render'}</span>
+            </button>
+          )}
+          <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            Side-by-Side Matrix
+          </span>
+        </div>
+      </div>
+
+      <div className="w-full flex-1 flex items-center justify-center my-2 px-2 overflow-hidden">
+        {isDisplayingArtwork ? (
+          <Image
+            src={payload.assetUrl!}
+            alt={payload.title}
+            width={600}
+            height={260}
+            className="w-full max-h-[220px] object-contain drop-shadow-xl"
+          />
+        ) : (
+          <div className="w-full max-w-xl grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="p-3 bg-white/[0.03] border border-cyan-500/30 rounded-xl space-y-2">
+              <div className="text-xs font-mono font-bold text-cyan-300 flex items-center justify-between border-b border-white/10 pb-1">
+                <span>Model A / Baseline</span>
+                <span className="text-[9px] px-1.5 py-0.5 bg-cyan-950 rounded text-cyan-400">Class A</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Initial condition governed by standard analytical constraints.
+              </p>
+              <div className="text-[10px] font-mono text-emerald-300 bg-emerald-950/40 p-1.5 rounded border border-emerald-500/20">
+                Key Trait: High determinism & strict adherence.
+              </div>
+            </div>
+
+            <div className="p-3 bg-white/[0.03] border border-purple-500/30 rounded-xl space-y-2">
+              <div className="text-xs font-mono font-bold text-purple-300 flex items-center justify-between border-b border-white/10 pb-1">
+                <span>Model B / Transformed</span>
+                <span className="text-[9px] px-1.5 py-0.5 bg-purple-950 rounded text-purple-400">Class B</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                Divergent or specialized variation under dynamic conditions.
+              </p>
+              <div className="text-[10px] font-mono text-amber-300 bg-amber-950/40 p-1.5 rounded border border-amber-500/20">
+                Key Trait: Dynamic adaptation & runtime flexibility.
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium">
+        {payload.purpose}
+      </div>
+    </div>
+  );
+});
+
+ComparisonRenderer.displayName = 'ComparisonRenderer';
+
+// =========================================================================
+// 11. GENERAL PEDAGOGICAL RELATIONSHIP DIAGRAM & VERIFIED ASSET RENDERER
 // =========================================================================
 
 const GeneralDiagramRenderer: React.FC<{
@@ -1280,37 +1807,130 @@ const GeneralDiagramRenderer: React.FC<{
   onHotspotClick?: (id: string) => void;
   className?: string;
 }> = React.memo(({ payload, isRotating, onHotspotClick, className = '' }) => {
-  const imageUrl = payload.assetUrl;
+  const [selectedEntity, setSelectedEntity] = useState<string>('core');
+
+  // Artwork toggle state
+  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
+  const hasRealArtwork = Boolean(payload.assetUrl);
+  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
+
+  const subject = String(payload.metadata?.subject || 'Scientific Concept');
+  const stage = String(payload.metadata?.stage || 'explain');
 
   return (
-    <div className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden ${className}`}>
-      <div className="relative w-full max-w-xl h-full max-h-[310px] flex items-center justify-center select-none group">
-        {imageUrl ? (
+    <div className={`relative w-full h-full flex flex-col items-center justify-between p-3 sm:p-4 bg-[#060D24]/95 rounded-2xl border border-cyan-500/30 overflow-hidden shadow-2xl ${className}`}>
+      {/* Header */}
+      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-cyan-300 select-none">
+        <span className="font-bold flex items-center gap-1.5">
+          <Layers className="w-4 h-4 text-cyan-400" />
+          <span>SYSTEM ARCHITECTURE & RELATIONSHIPS: {payload.title}</span>
+        </span>
+        <div className="flex items-center gap-2">
+          {hasRealArtwork && (
+            <button
+              type="button"
+              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
+              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
+            >
+              <Eye className="w-3 h-3 text-cyan-400" />
+              <span>{isDisplayingArtwork ? 'Diagram' : 'AI Render'}</span>
+            </button>
+          )}
+          <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+            {subject} • {stage.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      {/* Main Visual Surface */}
+      <div className="w-full flex-1 flex items-center justify-center my-1 select-none overflow-hidden">
+        {isDisplayingArtwork ? (
           <Image
-            src={imageUrl}
-            alt={payload.title || 'Educational Scientific Diagram'}
+            src={payload.assetUrl!}
+            alt={payload.title}
             width={600}
-            height={320}
+            height={280}
             priority
-            className={`w-full max-h-[280px] object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.9)] transition-all duration-500 ${
-              isRotating ? 'filter brightness-105' : 'filter brightness-95'
-            }`}
+            className="w-full max-h-[240px] object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.9)]"
           />
         ) : (
-          <div className="w-full h-56 rounded-2xl bg-[#080E24]/90 border border-cyan-500/30 flex flex-col items-center justify-center p-6 text-center space-y-2">
-            <Sparkles className="w-8 h-8 text-cyan-400 animate-pulse" />
-            <h4 className="font-sans font-bold text-white text-sm">{payload.title}</h4>
-            <p className="font-sans text-xs text-slate-300 max-w-md">{payload.purpose}</p>
+          <div className="w-full max-w-xl flex flex-col items-center justify-center gap-3">
+            {/* System Relationship Nodes */}
+            <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-stretch">
+              {/* 1. Governing Preconditions */}
+              <button
+                type="button"
+                onClick={() => setSelectedEntity('inputs')}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  selectedEntity === 'inputs'
+                    ? 'bg-sky-950/80 border-sky-400 shadow-md shadow-sky-500/20 scale-[1.02]'
+                    : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-mono text-sky-400 font-bold">1. Governing Inputs</span>
+                  {selectedEntity === 'inputs' && <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />}
+                </div>
+                <div className="text-xs font-bold text-white mb-0.5">Preconditions</div>
+                <div className="text-[10px] text-slate-400 leading-tight">
+                  Boundary rules and essential conditions establishing systemic balance.
+                </div>
+              </button>
+
+              {/* 2. Core Operational Mechanism */}
+              <button
+                type="button"
+                onClick={() => setSelectedEntity('core')}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  selectedEntity === 'core'
+                    ? 'bg-cyan-950/80 border-cyan-400 shadow-md shadow-cyan-500/20 scale-[1.02]'
+                    : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-mono text-cyan-300 font-bold">2. Core Dynamic</span>
+                  {selectedEntity === 'core' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
+                </div>
+                <div className="text-xs font-bold text-white mb-0.5">Operational Process</div>
+                <div className="text-[10px] text-slate-400 leading-tight">
+                  Active transformation and energy/data transfer mechanism.
+                </div>
+              </button>
+
+              {/* 3. Observable Outputs & Equilibrium */}
+              <button
+                type="button"
+                onClick={() => setSelectedEntity('outputs')}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  selectedEntity === 'outputs'
+                    ? 'bg-emerald-950/80 border-emerald-400 shadow-md shadow-emerald-500/20 scale-[1.02]'
+                    : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold">3. Equilibrium</span>
+                  {selectedEntity === 'outputs' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                </div>
+                <div className="text-xs font-bold text-white mb-0.5">Observable Output</div>
+                <div className="text-[10px] text-slate-400 leading-tight">
+                  Verifiable state resulting from consistent governing laws.
+                </div>
+              </button>
+            </div>
+
+            {/* Connecting Relationship Flow Bar */}
+            <div className="w-full flex items-center justify-between px-3 py-1.5 bg-[#09102E] border border-cyan-500/20 rounded-xl text-[10px] font-mono text-slate-300">
+              <span className="text-sky-300 font-semibold">Inputs / Causes</span>
+              <span className="text-cyan-400">───► Dynamic Transform ───►</span>
+              <span className="text-emerald-300 font-semibold">Outputs / Effects</span>
+            </div>
           </div>
         )}
+      </div>
 
-        {/* Ambient rotational glow */}
-        {isRotating && (
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-1/4 inset-y-6 rounded-full bg-cyan-400/10 blur-2xl pointer-events-none animate-pulse"
-          />
-        )}
+      {/* Principle Footer */}
+      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium pt-1">
+        {payload.purpose}
       </div>
     </div>
   );
@@ -1319,13 +1939,13 @@ const GeneralDiagramRenderer: React.FC<{
 GeneralDiagramRenderer.displayName = 'GeneralDiagramRenderer';
 
 // =========================================================================
-// 9. SAFE STRUCTURED FALLBACK RENDERER
+// 12. SAFE STRUCTURED FALLBACK RENDERER
 // =========================================================================
 
 const FallbackRenderer: React.FC<{ title: string; purpose: string }> = React.memo(({ title, purpose }) => {
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center p-6 bg-[#060B1E]/90 rounded-2xl border border-cyan-500/20 text-center select-none">
-      <Sparkles className="w-8 h-8 text-cyan-400 mb-2 animate-pulse" />
+      <Compass className="w-8 h-8 text-cyan-400 mb-2" />
       <h3 className="font-sans font-bold text-white text-base mb-1">{title}</h3>
       <p className="font-sans text-xs text-slate-300 max-w-md leading-relaxed">{purpose}</p>
     </div>
@@ -1335,3 +1955,4 @@ const FallbackRenderer: React.FC<{ title: string; purpose: string }> = React.mem
 FallbackRenderer.displayName = 'FallbackRenderer';
 
 export default SmartBoardVisualRenderer;
+

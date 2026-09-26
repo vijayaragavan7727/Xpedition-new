@@ -6,6 +6,7 @@
  */
 
 import { ClassroomLesson } from '@/components/classroom/types';
+import { matchSubjectRule } from '../visualIntelligence/rules/SubjectVisualRules';
 
 export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
   dc_motor: {
@@ -1191,7 +1192,7 @@ export function getClassroomLesson(conceptId: string): ClassroomLesson {
   if (normalized.includes('binary_search') || normalized.includes('search') || normalized.includes('algorithm')) {
     return CANONICAL_CLASSROOM_LESSONS.binary_search;
   }
-  if (normalized.includes('revolution') || normalized.includes('french') || normalized.includes('bastille')) {
+  if (normalized === 'french_revolution' || normalized.includes('french') || normalized.includes('bastille')) {
     return CANONICAL_CLASSROOM_LESSONS.french_revolution;
   }
   if (normalized.includes('regression') || normalized.includes('scatter') || normalized.includes('least_squares')) {
@@ -1204,15 +1205,19 @@ export function getClassroomLesson(conceptId: string): ClassroomLesson {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
 
+  const matchedRule = matchSubjectRule(undefined, normalized);
+  const inferredSubject = matchedRule?.subject || 'General Science';
+  const inferredVisualType = (matchedRule?.recommendedType as any) || 'scientific_diagram';
+
   return {
     id: `lesson_${normalized}`,
     conceptId: normalized,
     topicTitle: humanTitle,
-    subject: 'General Science',
+    subject: inferredSubject,
     gradeLevel: 'Foundational Curriculum',
     estimatedMinutes: 8,
     hasFormulas: false,
-    learningObjective: `Master the foundational scientific and analytical principles of ${humanTitle}.`,
+    learningObjective: `Master the foundational ${inferredSubject.toLowerCase()} and analytical principles of ${humanTitle}.`,
     steps: [
       {
         id: `step_1_${normalized}_intro`,
@@ -1224,7 +1229,7 @@ export function getClassroomLesson(conceptId: string): ClassroomLesson {
         boardTitle: `Overview: ${humanTitle}`,
         boardSummary: `Foundational study of ${humanTitle} and its governing mechanisms in academic study.`,
         keyPrinciple: `Understanding the essential relationships that define ${humanTitle}.`,
-        visualType: 'scientific_diagram',
+        visualType: inferredVisualType,
       },
       {
         id: `step_2_${normalized}_explain`,
@@ -1236,7 +1241,7 @@ export function getClassroomLesson(conceptId: string): ClassroomLesson {
         boardTitle: `Structural Mechanics: ${humanTitle}`,
         boardSummary: `Detailed analysis of structural components, governing inputs, and observable outputs.`,
         keyPrinciple: `Every element plays a specific role in maintaining equilibrium.`,
-        visualType: 'scientific_diagram',
+        visualType: inferredVisualType,
       },
       {
         id: `step_3_${normalized}_demonstrate`,
@@ -1248,7 +1253,7 @@ export function getClassroomLesson(conceptId: string): ClassroomLesson {
         boardTitle: `Operational Dynamics`,
         boardSummary: `Observing the functional transformation in real time.`,
         keyPrinciple: `Causes lead predictably to observable physical effects.`,
-        visualType: 'scientific_diagram',
+        visualType: inferredVisualType,
       },
       {
         id: `step_4_${normalized}_interact`,
@@ -1260,13 +1265,13 @@ export function getClassroomLesson(conceptId: string): ClassroomLesson {
         boardTitle: 'Knowledge Check',
         boardSummary: `Apply the core principle to verify your intuition.`,
         keyPrinciple: `Verifying foundational understanding before advanced synthesis.`,
-        visualType: 'scientific_diagram',
+        visualType: inferredVisualType,
         checkQuestion: {
           id: `q_${normalized}_1`,
           prompt: `Which principle is most critical to understanding ${humanTitle}?`,
           options: [
-            { id: 'opt_syn_1', text: `Conservation and structural relationships govern ${humanTitle}`, isCorrect: true, feedback: 'Correct! Systematic principles govern every physical and mathematical model.' },
-            { id: 'opt_syn_2', text: 'Outcomes happen completely at random without underlying rules', isCorrect: false, feedback: 'Natural systems adhere to strict physical and analytical laws.' },
+            { id: 'opt_syn_1', text: `Systematic principles and structural relationships govern ${humanTitle}`, isCorrect: true, feedback: 'Correct! Systematic principles govern every physical and mathematical model.' },
+            { id: 'opt_syn_2', text: 'Outcomes happen completely at random without underlying rules', isCorrect: false, feedback: 'Natural and analytical systems adhere to strict governing laws.' },
           ],
         },
       },
@@ -1280,7 +1285,7 @@ export function getClassroomLesson(conceptId: string): ClassroomLesson {
         boardTitle: 'Summary of Key Principles',
         boardSummary: `Reviewing the essential concepts and real-world implications of ${humanTitle}.`,
         keyPrinciple: `Mastery builds cumulative intuition for more complex explorations.`,
-        visualType: 'scientific_diagram',
+        visualType: inferredVisualType,
       },
     ],
   };

@@ -62,6 +62,9 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
 
     let isMounted = true;
     const controller = new AbortController();
+    const sessionTimer = setTimeout(() => {
+      controller.abort();
+    }, 3000);
 
     fetch('/api/classroom/session', {
       method: 'POST',
@@ -82,10 +85,14 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
         if (err?.name !== 'AbortError') {
           console.warn('[ClassroomLayout] Session init warning:', err?.message);
         }
+      })
+      .finally(() => {
+        clearTimeout(sessionTimer);
       });
 
     return () => {
       isMounted = false;
+      clearTimeout(sessionTimer);
       controller.abort();
       initializedConceptRef.current = null;
     };
