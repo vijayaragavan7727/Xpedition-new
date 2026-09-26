@@ -122,14 +122,41 @@ const DCMotorScientificRenderer: React.FC<{
   // Interactive circuit parameters
   const [currentReversed, setCurrentReversed] = useState(false);
   const [selectedHotspot, setSelectedHotspot] = useState<string | null>(null);
-  const [showArtworkView, setShowArtworkView] = useState(true);
 
   const stage = String(payload.metadata?.stage || 'explain').toLowerCase();
+
+  // Authoritative stage view mode:
+  // For DC Motor, the deterministic scientific diagram is the canonical teaching surface.
+  // AI render is an intentional companion view that can be toggled by the user or
+  // requested by an artwork-specific stage.
+  const isStageExplicitArtwork =
+    payload.visualType === 'educational_illustration' ||
+    payload.metadata?.preferredView === 'artwork';
+
+  // Explicit user override ('diagram' | 'artwork' | null)
+  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
+
+  // When stage or concept changes, reset user override so the new stage establishes its own authoritative view
+  const stageKey = `${payload.metadata?.conceptId || ''}:${stage}:${payload.metadata?.stepIndex ?? ''}`;
+  const prevStageKeyRef = React.useRef(stageKey);
+  React.useEffect(() => {
+    if (prevStageKeyRef.current !== stageKey) {
+      prevStageKeyRef.current = stageKey;
+      setUserViewMode(null);
+    }
+  }, [stageKey]);
 
   const hasRealArtwork =
     Boolean(payload.assetUrl) &&
     !payload.assetUrl?.includes('97eb0310bc') &&
     payload.assetUrl !== '/images/classroom/dc-motor-diagram-clean.png';
+
+  // Determine active view:
+  // If user explicitly toggled, use user preference.
+  // Otherwise, use stage authoritative view (defaults to 'diagram' for scientific motor).
+  // CRITICAL: Arrival of payload.assetUrl does NOT flip active view!
+  const effectiveViewMode = userViewMode ?? (isStageExplicitArtwork ? 'artwork' : 'diagram');
+  const isDisplayingArtwork = effectiveViewMode === 'artwork' && hasRealArtwork;
 
   const handleHotspotSelect = useCallback((name: string) => {
     setSelectedHotspot((prev) => (prev === name ? null : name));
@@ -180,17 +207,20 @@ const DCMotorScientificRenderer: React.FC<{
           </button>
 
           {/* Real AI Artwork vs Scientific Schematic Toggle */}
-          {hasRealArtwork && (
-            <button
-              type="button"
-              onClick={() => setShowArtworkView(!showArtworkView)}
-              className="flex items-center gap-1 text-[10px] font-mono text-slate-300 hover:text-white px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10"
-              title="Toggle between scientific schematic and generated illustration"
-            >
-              <Eye className="w-3 h-3 text-cyan-400" />
-              <span>{showArtworkView ? 'Diagram' : 'AI Render'}</span>
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={!hasRealArtwork}
+            onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
+            className={`flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border transition-all ${
+              !hasRealArtwork
+                ? 'opacity-40 cursor-not-allowed bg-white/[0.02] border-white/5 text-slate-500'
+                : 'text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border-white/10 cursor-pointer'
+            }`}
+            title={hasRealArtwork ? 'Toggle between scientific schematic and generated illustration' : 'AI render illustration'}
+          >
+            <Eye className="w-3 h-3 text-cyan-400" />
+            <span>{isDisplayingArtwork ? 'Diagram' : 'AI Render'}</span>
+          </button>
 
           {/* Play/Pause Rotation */}
           <button
@@ -265,7 +295,7 @@ const DCMotorScientificRenderer: React.FC<{
 
       {/* Main Visual Surface */}
       <div className="relative w-full flex-1 min-h-0 flex items-center justify-center my-1 select-none overflow-hidden">
-        {showArtworkView && hasRealArtwork ? (
+        {isDisplayingArtwork ? (
           <div className="relative w-full h-full flex items-center justify-center">
             <Image
               src={payload.assetUrl!}

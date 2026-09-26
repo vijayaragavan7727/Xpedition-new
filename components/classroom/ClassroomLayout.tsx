@@ -44,6 +44,18 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   const [externalVisualPayload, setExternalVisualPayload] = useState<SmartBoardVisualPayload | null>(null);
   const initializedConceptRef = React.useRef<string | null>(null);
 
+  // Request generation token to prevent race conditions and stale responses
+  const visualRequestRef = React.useRef({
+    id: 0,
+    conceptId: lesson.conceptId,
+    stepIndex: currentStepIndex,
+  });
+
+  // Reset external payload only when the concept itself changes
+  React.useEffect(() => {
+    setExternalVisualPayload(null);
+  }, [conceptId]);
+
   React.useEffect(() => {
     if (initializedConceptRef.current === conceptId) return;
     initializedConceptRef.current = conceptId;
@@ -60,11 +72,14 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (isMounted && data?.success && data?.session) {
-          setSessionState(data.session);
+          // Verify session still belongs to current concept
+          if (!data.session.conceptId || data.session.conceptId === conceptId) {
+            setSessionState(data.session);
+          }
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError') {
+        if (err?.name !== 'AbortError') {
           console.warn('[ClassroomLayout] Session init warning:', err?.message);
         }
       });
@@ -72,15 +87,25 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
     return () => {
       isMounted = false;
       controller.abort();
+      initializedConceptRef.current = null;
     };
   }, [conceptId]);
 
   // 3. Adaptive Intelligence State
   const [activeDirective, setActiveDirective] = useState<AdaptiveDirective | null>(null);
 
+  // Atomic external teaching scene fetch:
+  // 1. Keep previous stage visual stable while next stage data resolves
+  // 2. Verify response matches active request ID, conceptId, and stepIndex
+  // 3. Only then commit the new visual payload
   React.useEffect(() => {
     const controller = new AbortController();
-    setExternalVisualPayload(null);
+    const requestId = ++visualRequestRef.current.id;
+    visualRequestRef.current.conceptId = lesson.conceptId;
+    visualRequestRef.current.stepIndex = currentStepIndex;
+
+    const targetConceptId = lesson.conceptId;
+    const targetStepIndex = currentStepIndex;
 
     requestExternalTeachingScene({
       lesson,
@@ -89,13 +114,27 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
       signal: controller.signal,
     })
       .then((payload) => {
-        if (!controller.signal.aborted) setExternalVisualPayload(payload);
+        // Validate that this response is still the current active request and hasn't been superseded
+        if (
+          !controller.signal.aborted &&
+          visualRequestRef.current.id === requestId &&
+          visualRequestRef.current.conceptId === targetConceptId &&
+          visualRequestRef.current.stepIndex === targetStepIndex
+        ) {
+          if (payload) {
+            setExternalVisualPayload(payload);
+          }
+        }
       })
-      .catch(() => {
-        if (!controller.signal.aborted) setExternalVisualPayload(null);
+      .catch((err) => {
+        if (err?.name !== 'AbortError') {
+          console.warn('[ClassroomLayout] External scene request warning:', err?.message);
+        }
       });
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+    };
   }, [lesson, currentStep, currentStepIndex]);
 
   const handleTelemetry = useCallback(

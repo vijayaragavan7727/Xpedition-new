@@ -83,21 +83,66 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
     onOpenTool?.('lesson');
   }, [onOpenTool]);
 
-  // Stable memoized fallback visual payload (avoids creating new object references on every render)
-  const fallbackPayload = React.useMemo<SmartBoardVisualPayload>(
+  // Step-aware authoritative stage determination
+  const stage = useMemo(() => {
+    if (step.checkQuestion) return 'question';
+    if (step.visualType === 'interactive_simulation' || step.visualType === 'interactive_diagram') return 'interact';
+    if (step.stepNumber <= 1) return 'introduce';
+    if (step.stepNumber === 2) return 'explain';
+    if (step.stepNumber === 3) return 'demonstrate';
+    if (step.stepNumber === 4) return 'practice';
+    return 'assess';
+  }, [step]);
+
+  const conceptId = useMemo(
+    () => (visualPayload?.metadata?.conceptId as string) || topicTitle.toLowerCase().replace(/\s+/g, '_'),
+    [visualPayload?.metadata?.conceptId, topicTitle]
+  );
+
+  const candidateAssetUrl = externalVisualPayload?.assetUrl || visualPayload?.assetUrl;
+
+  // Authoritative step-aware fallback visual payload derived deterministically for the current step and stage
+  const fallbackPayload = useMemo<SmartBoardVisualPayload>(
     () => ({
       type: 'visual_requirement',
-      visualType: 'scientific_diagram',
-      title: topicTitle,
+      visualType: (step.visualType as any) || 'scientific_diagram',
+      title: step.boardTitle || topicTitle,
       purpose: step.boardSummary || 'Interactive pedagogical visualization',
+      assetUrl: candidateAssetUrl,
+      visualData: step.visualData,
       metadata: {
-        conceptId: topicTitle.toLowerCase().replace(/\s+/g, '_'),
-        stage: 'explain',
+        conceptId,
+        stage,
+        stepNumber: step.stepNumber,
+        stepIndex: currentStepIndex,
       },
     }),
-    [topicTitle, step.boardSummary]
+    [step, topicTitle, candidateAssetUrl, conceptId, stage, currentStepIndex]
   );
-  const effectiveVisualPayload = externalVisualPayload || visualPayload || fallbackPayload;
+  const authoritativeStepPayload = fallbackPayload;
+
+  // Synchronized effective visual payload:
+  // External payload is used only if it belongs to the current step and concept
+  const effectiveVisualPayload = useMemo<SmartBoardVisualPayload>(() => {
+    if (
+      externalVisualPayload &&
+      (externalVisualPayload.metadata?.stepIndex === undefined || externalVisualPayload.metadata.stepIndex === currentStepIndex) &&
+      (externalVisualPayload.metadata?.conceptId === undefined || externalVisualPayload.metadata.conceptId === conceptId)
+    ) {
+      return {
+        ...externalVisualPayload,
+        assetUrl: externalVisualPayload.assetUrl || candidateAssetUrl,
+        metadata: {
+          ...externalVisualPayload.metadata,
+          conceptId,
+          stage: externalVisualPayload.metadata?.stage || stage,
+          stepNumber: step.stepNumber,
+          stepIndex: currentStepIndex,
+        },
+      };
+    }
+    return authoritativeStepPayload;
+  }, [externalVisualPayload, currentStepIndex, conceptId, stage, step.stepNumber, candidateAssetUrl, authoritativeStepPayload]);
 
   const selectedOption = step.checkQuestion?.options.find((o) => o.id === selectedOptionId);
 
