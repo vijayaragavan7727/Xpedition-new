@@ -24,6 +24,8 @@ export interface ClassroomToolbarProps {
   hasSources?: boolean;
   isAudioPlaying?: boolean;
   onToggleAudio?: () => void;
+  conceptProgress?: number;
+  currentXp?: number;
   className?: string;
 }
 
@@ -37,6 +39,8 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = React.memo(({
   hasSources = true,
   isAudioPlaying = false,
   onToggleAudio,
+  conceptProgress = 0,
+  currentXp = 0,
   className = '',
 }) => {
   const tools = React.useMemo(() => [
@@ -153,6 +157,25 @@ export const ClassroomToolbar: React.FC<ClassroomToolbarProps> = React.memo(({
             </button>
           );
         })}
+
+        {/* Concept Progress & XP Badge */}
+        <div className="flex items-center gap-1.5 pl-1 sm:pl-2 ml-0.5 sm:ml-1 border-l border-white/[0.08] shrink-0">
+          <div className="flex flex-col items-center justify-center px-1.5 sm:px-2 py-0.5 rounded-lg bg-white/[0.03] text-center" title="Concept Progress">
+            <span className="text-[8.5px] sm:text-[9.5px] font-mono text-cyan-400 font-bold leading-none">
+              {conceptProgress}%
+            </span>
+            <span className="text-[7.5px] sm:text-[8.5px] text-slate-400 font-sans leading-none mt-0.5">
+              Progress
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.2)]" title="Earned Concept XP">
+            <span className="text-[10px] sm:text-xs">⚡</span>
+            <span className="text-[9.5px] sm:text-[10.5px] font-mono font-bold tracking-tight">
+              {currentXp} XP
+            </span>
+          </div>
+        </div>
       </nav>
     </div>
   );

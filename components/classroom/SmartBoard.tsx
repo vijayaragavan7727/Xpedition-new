@@ -28,6 +28,7 @@ export interface SmartBoardProps {
   onOpenTool?: (tool: ClassroomToolType) => void;
   adaptiveDirective?: AdaptiveDirective;
   visualPayload?: SmartBoardVisualPayload;
+  externalVisualPayload?: SmartBoardVisualPayload;
   topicTitle: string;
   subject: string;
   className?: string;
@@ -43,6 +44,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
   onOpenTool,
   adaptiveDirective,
   visualPayload,
+  externalVisualPayload,
   topicTitle,
   subject,
   className = '',
@@ -95,7 +97,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
     }),
     [topicTitle, step.boardSummary]
   );
-  const effectiveVisualPayload = visualPayload || fallbackPayload;
+  const effectiveVisualPayload = externalVisualPayload || visualPayload || fallbackPayload;
 
   const selectedOption = step.checkQuestion?.options.find((o) => o.id === selectedOptionId);
 

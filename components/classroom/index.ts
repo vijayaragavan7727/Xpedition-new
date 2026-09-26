@@ -5,5 +5,3 @@ export * from './BuddyTeacherStage';
 export * from './ClassroomXiraAssistant';
 export * from './ClassroomToolbar';
 export * from './tools/ClassroomToolsModal';
-export * from './useClassroomOrientation';
-export * from './ClassroomOrientationPrompt';
