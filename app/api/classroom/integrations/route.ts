@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { classroomIntegrationRegistry } from '@/lib/classroom/integrations';
 import { sanitizeExternalUrl } from '@/lib/classroom/integrations/urlSecurity';
+import {
+  rateLimiter,
+  getClientRateLimitKey,
+  createRateLimitExceededResponse,
+  applyRateLimitHeaders,
+} from '@/lib/security/rateLimiter';
 import type {
   ClassroomAction,
   ClassroomIntegrationContext,
@@ -22,6 +28,19 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitKey = getClientRateLimitKey(request, undefined, 'classroom-integrations');
+    const rateResult = await rateLimiter.checkLimit(rateLimitKey, {
+      maxRequests: 60,
+      windowMs: 60000,
+    });
+    if (!rateResult.allowed) {
+      return createRateLimitExceededResponse(rateResult);
+    }
+
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 1024 * 100) {
+      return NextResponse.json({ success: false, error: 'Payload too large' }, { status: 413 });
+    }
     let body: {
       action?: string;
       provider?: string;
@@ -87,7 +106,8 @@ export async function POST(request: NextRequest) {
         };
       }
 
-      return NextResponse.json({ success: true, scene: safeScene, provider: provider.status() });
+      const response = NextResponse.json({ success: true, scene: safeScene, provider: provider.status() });
+      return applyRateLimitHeaders(response, rateResult);
     }
 
     if (!body.providerAction || typeof body.providerAction !== 'object' || !body.providerAction.type) {
@@ -102,11 +122,12 @@ export async function POST(request: NextRequest) {
       result.payload.url = sanitized || '';
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: Boolean(result?.ok),
       result: result || null,
       provider: provider.status(),
     });
+    return applyRateLimitHeaders(response, rateResult);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Classroom integration request failed';
     return NextResponse.json({ success: false, error: message }, { status: 502 });
