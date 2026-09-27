@@ -157,3 +157,5 @@ Coverage note for the next attempt. `test/phase4SupabaseLive.test.ts` checks dat
 - browser logout/switch with real Supabase logins.
 
 Those need the app running against the hosted project and should be added alongside the live run.
+
+Setup runbook for the hosted run: `docs/hosted-supabase-verification.md`.
