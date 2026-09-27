@@ -39,7 +39,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   console.log('--- Test Group 1: Questions Schema & Rendering Invariants ---');
 
   test('1. Question rendering: Canonical lessons have structured, topic-aware questions', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     assert.ok(dcMotor.questions && dcMotor.questions.length >= 3, 'DC motor must have at least 3 canonical questions');
 
     for (const q of dcMotor.questions!) {
@@ -54,7 +54,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   });
 
   test('2. Question answer validation: Options have distinct correct answers and feedback', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     const q1 = dcMotor.questions![0];
 
     const correctOptions = q1.options.filter((o) => o.isCorrect);
@@ -69,7 +69,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   });
 
   test('3. Correct answer feedback: Restrained, encouraging pedagogical feedback', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     const q1 = dcMotor.questions![0];
     const correctOpt = q1.options.find((o) => o.isCorrect)!;
 
@@ -83,7 +83,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   });
 
   test('4. Incorrect answer feedback: Diagnoses misconceptions without shame or penalty', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     const q1 = dcMotor.questions![0];
     const distractor = q1.options.find((o) => !o.isCorrect)!;
 
@@ -100,7 +100,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   console.log('\n--- Test Group 2: Progressive Hint Scaffolding ---');
 
   test('5. Hint progression: Supports 3 discrete scaffolding stages (Nudge -> Direction -> Scaffold)', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     assert.ok(dcMotor.progressiveHints && dcMotor.progressiveHints.length > 0);
 
     const hintGroup = dcMotor.progressiveHints![0];
@@ -113,7 +113,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   });
 
   test('6. Hint does not reveal answer prematurely: Stage 1 and Stage 2 preserve discovery', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     const q1 = dcMotor.questions![0];
     assert.ok(q1.hint, 'Question 1 must have associated progressive hint');
 
@@ -169,9 +169,9 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   console.log('\n--- Test Group 4: Formula Sheet & Conditional Relevance ---');
 
   test('9. Formula conditional visibility: Physics has formulas, qualitative biology does not', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
-    const projectile = getClassroomLesson('projectile_motion');
-    const heart = getClassroomLesson('human_heart_anatomy');
+    const dcMotor = getClassroomLesson('dc_motor')!;
+    const projectile = getClassroomLesson('projectile_motion')!;
+    const heart = getClassroomLesson('human_heart_anatomy')!;
 
     assert.strictEqual(dcMotor.hasFormulas, true, 'DC Motor is a physics topic with formulas');
     assert.strictEqual(projectile.hasFormulas, true, 'Projectile motion is a physics topic with formulas');
@@ -180,7 +180,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   });
 
   test('10. Formula rendering: Contains equations, variable table with units, and worked examples', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     assert.ok(dcMotor.formulas && dcMotor.formulas.length > 0);
 
     const lorentz = dcMotor.formulas!.find((f) => f.id === 'f_lorentz');
@@ -202,7 +202,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   console.log('\n--- Test Group 5: Flashcards Deck & Review State ---');
 
   test('11. Flashcard flip: Cards have distinct front (prompt) and back (answer)', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     assert.ok(dcMotor.flashcards && dcMotor.flashcards.length >= 5);
 
     const card = dcMotor.flashcards[0];
@@ -238,7 +238,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   console.log('\n--- Test Group 6: Sources & Academic Citation Integrity ---');
 
   test('13. Sources rendering: Real verified educational citations with publishers and OER links', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     assert.ok(dcMotor.sources && dcMotor.sources.length >= 2);
 
     for (const src of dcMotor.sources) {
@@ -328,7 +328,7 @@ export async function runClassroomToolkitTests(): Promise<{ passed: number; fail
   });
 
   test('19. Buddy state preservation: Buddy remains the teacher during tool usage', () => {
-    const dcMotor = getClassroomLesson('dc_motor');
+    const dcMotor = getClassroomLesson('dc_motor')!;
     const step1 = dcMotor.steps[0];
 
     assert.strictEqual(step1.buddyState, 'INTRODUCING');

@@ -94,6 +94,53 @@ export interface ClassroomLessonStep {
   };
   hintText?: string;
   progressiveHint?: ProgressiveHint;
+  /**
+   * Lesson-owned "Try This" learner action shown beside the Smart Board.
+   * Must be written for THIS concept — shared components never supply a default.
+   */
+  tryThis?: string;
+  /** Lesson-owned common-mistake note shown after an incorrect answer. */
+  commonMistake?: string;
+  /** Canonical class stage for this step (see lib/classroom/classStage.ts). */
+  stage?: ClassStepStage;
+}
+
+/**
+ * Canonical stage vocabulary for a lesson step. The student experiences one
+ * continuous Class; the stage tells Buddy/Xira/Smart Board what the step is for.
+ */
+export type ClassStepStage =
+  | 'introduce'
+  | 'explain'
+  | 'show'
+  | 'interact'
+  | 'question'
+  | 'practice'
+  | 'challenge'
+  | 'assess'
+  | 'reward';
+
+/**
+ * Lesson-owned Buddy script. Buddy never falls back to another concept's lines.
+ */
+export interface BuddyLessonScript {
+  introduction: string;
+  /** Optional opening used when the class is launched with intent=revision. */
+  revisionIntroduction?: string;
+  correct: string;
+  incorrect: string;
+  hint: string;
+  transition: string;
+  completion: string;
+}
+
+/** Lesson-owned Xira quick prompts (contextual, never global physics prompts). */
+export interface XiraLessonPrompts {
+  why: string;
+  simpler: string;
+  example: string;
+  hint: string;
+  deeper: string;
 }
 
 export interface FormulaItem {
@@ -141,5 +188,16 @@ export interface ClassroomLesson {
   flashcards?: FlashcardItem[];
   sources?: ClassroomSourceItem[];
   initialNotes?: string;
+  /** Breadcrumb category shown after the subject (e.g. "Electromagnetism"). */
+  category?: string;
+  buddyScript?: BuddyLessonScript;
+  xiraPrompts?: XiraLessonPrompts;
+  /**
+   * True when the lesson is an outline generated from curriculum metadata
+   * rather than a fully authored interactive lesson. The UI must say so.
+   */
+  isOutline?: boolean;
+  /** Lesson-level deterministic visual data shared by all steps (e.g. timeline milestones). */
+  visualData?: Record<string, unknown>;
 }
 

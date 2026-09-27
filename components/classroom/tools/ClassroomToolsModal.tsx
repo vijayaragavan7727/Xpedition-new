@@ -31,6 +31,7 @@ import {
   FlashcardItem,
 } from '../types';
 import { ClassroomTelemetryEvent } from '@/lib/classroom/classroomIntelligence';
+import { getActiveStoreUser } from '@/lib/store';
 import {
   LearningFlashcard,
   FormulaCard,
@@ -38,9 +39,6 @@ import {
   FlashcardContent,
   FormulaCardContent,
   StickyNoteContent,
-  DEMO_FLASHCARDS,
-  DEMO_FORMULA_CARDS,
-  DEMO_STICKY_NOTES,
 } from '@/components/learning-objects';
 
 export interface ClassroomToolsModalProps {
@@ -234,7 +232,9 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
   // =========================================================================
   // 3. STUDENT STUDY NOTES STATE (LOCAL STORAGE PERSISTENCE)
   // =========================================================================
-  const storageKey = `xpedition_notes_${lesson.conceptId}`;
+  // Notes are learner-owned: scope them to the active user AND the concept so a
+  // shared device never shows one learner's notes to another.
+  const storageKey = `xpedition_notes_${getActiveStoreUser() || 'guest'}_${lesson.conceptId}`;
   const [studentNotes, setStudentNotes] = useState<string>('');
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
@@ -881,7 +881,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                     key={f.id}
                     card={{
                       id: f.id,
-                      subject: lesson.subject || 'PHYSICS',
+                      subject: lesson.subject,
                       cardNumber: `FORMULA CARD 0${idx + 1}`,
                       title: f.name,
                       formulaTex: f.formula,
@@ -939,42 +939,21 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                 <LearningFlashcard
                   card={{
                     id: currentCard.id,
-                    subject: lesson.subject || 'PHYSICS',
+                    subject: lesson.subject,
                     cardNumber: `0${cardIndex + 1}`,
-                    title:
-                      currentCard.category?.toUpperCase() ||
-                      (cardIndex === 0
-                        ? 'DC MOTOR'
-                        : cardIndex === 1
-                        ? 'MAGNETIC FORCE'
-                        : 'QUICK CHECK'),
-                    colorTheme:
-                      cardIndex === 0
-                        ? 'navy'
-                        : cardIndex === 1
-                        ? 'forest'
-                        : 'terracotta',
-                    emblem:
-                      cardIndex === 0
-                        ? 'lightning'
-                        : cardIndex === 1
-                        ? 'magnet'
-                        : 'question',
-                    illustrationUrl:
-                      cardIndex === 0
-                        ? '/images/classroom/dc-motor-core.png'
-                        : undefined,
-                    illustrationAlt: currentCard.category || 'Concept',
+                    // Card content comes only from the active lesson's flashcards.
+                    title: (currentCard.category || lesson.topicTitle).toUpperCase(),
+                    colorTheme: (['navy', 'forest', 'terracotta'] as const)[cardIndex % 3],
+                    emblem: 'question',
+                    illustrationAlt: currentCard.category || lesson.topicTitle,
                     front: {
                       question: currentCard.front,
                       answerPreview: currentCard.back,
                     },
                     back: {
                       answer: currentCard.back,
-                      explanation:
-                        'Physical electromagnetic mechanism demonstrated in the active classroom lesson.',
-                      keyTakeaway:
-                        'Current reversal = Torque reversal = Rotational reversal.',
+                      explanation: `${lesson.topicTitle}: ${currentCard.category || 'key idea'}.`,
+                      keyTakeaway: lesson.learningObjective,
                     },
                     status: currentCard.status,
                     rotation: cardIndex % 2 === 0 ? -0.8 : 0.8,

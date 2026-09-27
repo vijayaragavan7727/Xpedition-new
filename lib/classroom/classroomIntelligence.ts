@@ -168,7 +168,7 @@ export class ClassroomIntelligenceService {
         },
         buddyDirective: {
           state: 'THINKING',
-          dialogueQuote: 'Notice what is happening here. Let us trace the physical connection step by step.',
+          dialogueQuote: 'Let us slow down and trace this idea one step at a time.',
         },
       };
     }
@@ -252,7 +252,9 @@ export class ClassroomIntelligenceService {
         'Ventricular Afterload: The left ventricle is thicker because it must overcome systemic arterial resistance (~120 mmHg) to perfuse the entire body, not because it holds more volume.',
     };
 
-    return map[tag] || 'Review the core mechanism on the Smart Board to observe how cause and effect connect.';
+    // Tags are concept-specific, so an unknown tag gets neutral guidance rather
+    // than another concept's explanation.
+    return map[tag] || 'Review the key idea for this step on the Smart Board, then try again.';
   }
 
   /**

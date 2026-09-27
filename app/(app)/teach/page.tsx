@@ -13,7 +13,7 @@ import { TopicResolver } from '@/lib/experience/topicResolver';
 import { TopicExperienceComposer } from '@/lib/experience/topicExperienceComposer';
 import { UniversalTeachingContainer } from '@/components/experience/UniversalTeachingContainer';
 import { ClassroomLayout } from '@/components/classroom/ClassroomLayout';
-import { CANONICAL_CLASSROOM_LESSONS } from '@/lib/classroom/classroomCatalog';
+import { resolveClassLesson } from '@/lib/concepts/lessonResolver';
 import { TeachingExperiencePlan } from '@/lib/experience/universalTopicTypes';
 import {
   Sparkles,
@@ -56,6 +56,10 @@ export default function TeachMePage() {
   const [inputTopic, setInputTopic] = useState(initialTopicQuery);
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
   const [activePlan, setActivePlan] = useState<TeachingExperiencePlan | null>(null);
+  const teachResolution = React.useMemo(
+    () => (activePlan?.topic.topicId ? resolveClassLesson(activePlan.topic.topicId) : null),
+    [activePlan?.topic.topicId]
+  );
   const [isResolving, setIsResolving] = useState(false);
 
   // Auto-launch if topic query param is provided
@@ -207,12 +211,16 @@ export default function TeachMePage() {
       ) : (
         <div className="w-full animate-fadeIn">
           {activePlan && (
-            activePlan.topic.topicId === 'dc_motor' ||
-            activePlan.topic.rawUserTopic.toLowerCase().includes('motor') ||
-            activePlan.topic.rawUserTopic.toLowerCase().includes('electric') ||
-            Boolean(CANONICAL_CLASSROOM_LESSONS[activePlan.topic.topicId]) ? (
+            // Exact concept identity only: an authored Class lesson is used when the
+            // plan's topicId resolves exactly. No keyword ("motor"/"electric") routing
+            // and no dc_motor default.
+            teachResolution && teachResolution.status === 'resolved' && teachResolution.concept.lessonSource === 'authored' ? (
               <ClassroomLayout
-                conceptId={activePlan.topic.topicId || 'dc_motor'}
+                key={teachResolution.conceptId}
+                requestedConceptId={teachResolution.requestedConceptId}
+                concept={teachResolution.concept}
+                lesson={teachResolution.lesson}
+                intent={teachResolution.intent}
                 backHref="/teach"
                 onClassComplete={() => handleReset()}
               />

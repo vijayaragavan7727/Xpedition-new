@@ -122,7 +122,8 @@ test('9. Core classroom components and sub-renderers are React.memo protected', 
 test('10. SmartBoard memoizes fallback payload and handlers with useMemo and useCallback', () => {
   const sbPath = path.join(__dirname, '../components/classroom/SmartBoard.tsx');
   const content = fs.readFileSync(sbPath, 'utf8');
-  assert(content.includes('fallbackPayload = React.useMemo') || content.includes('fallbackPayload = useMemo'), 'SmartBoard must memoize fallbackPayload');
+  // Phase 1/2 renamed the authoritative deterministic payload to `visualPayload`.
+  assert(content.includes('visualPayload = useMemo') || content.includes('visualPayload = React.useMemo'), 'SmartBoard must memoize the authoritative visualPayload');
   assert(content.includes('handleToggleRotation = useCallback('), 'SmartBoard must memoize handleToggleRotation');
   assert(content.includes('handleHotspotClick = useCallback('), 'SmartBoard must memoize handleHotspotClick');
 });

@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { requireServerAuth } from '@/lib/auth/serverAuth';
-import { xiraClassroomOrchestrator } from '@/lib/classroom/XiraClassroomOrchestrator';
+import {
+  xiraClassroomOrchestrator,
+  ConceptUnavailableError,
+  SessionNotFoundError,
+} from '@/lib/classroom/XiraClassroomOrchestrator';
+import { getCanonicalConcept } from '@/lib/concepts/conceptRegistry';
+import { parseClassIntent } from '@/lib/concepts/lessonResolver';
 import { ClassroomLearnerAction, ClassroomStage } from '@/lib/classroom/classroomSessionTypes';
 import {
   rateLimiter,
@@ -45,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { action, conceptId, sessionId, learnerAction, initialStage } = body;
+    const { action, conceptId, sessionId, learnerAction, initialStage, intent } = body;
 
     // Strict validation
     if (!conceptId || typeof conceptId !== 'string' || conceptId.trim().length === 0) {
@@ -74,11 +80,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Exact concept identity: unknown concepts are refused (never substituted).
+    const concept = getCanonicalConcept(conceptId);
+    if (!concept) {
+      return NextResponse.json(
+        { success: false, error: { code: 'CONCEPT_UNAVAILABLE', message: 'Requested concept is not available.' } },
+        { status: 404 }
+      );
+    }
+
     // 1. Session Creation Action
     if (action === 'create' || !sessionId) {
       const session = await xiraClassroomOrchestrator.createSession(
-        conceptId.trim(),
-        (initialStage as ClassroomStage) || 'INTRODUCE'
+        concept.id,
+        (initialStage as ClassroomStage) || 'INTRODUCE',
+        { ownerId: user?.id, intent: parseClassIntent(intent) }
       );
 
       const response = NextResponse.json({
@@ -103,10 +119,24 @@ export async function POST(request: Request) {
         );
       }
 
+      if (typeof sessionId !== 'string' || sessionId.length > 120) {
+        return NextResponse.json(
+          { success: false, error: { code: 'INVALID_REQUEST', message: 'Invalid sessionId.' } },
+          { status: 400 }
+        );
+      }
       const updatedSession = await xiraClassroomOrchestrator.processLearnerAction(
         sessionId,
-        learnerAction as ClassroomLearnerAction
+        learnerAction as ClassroomLearnerAction,
+        user?.id
       );
+      if (updatedSession.conceptId !== concept.id) {
+        // The session belongs to a different concept than the caller claims.
+        return NextResponse.json(
+          { success: false, error: { code: 'CONCEPT_MISMATCH', message: 'Session concept does not match request.' } },
+          { status: 409 }
+        );
+      }
 
       const response = NextResponse.json({
         success: true,
@@ -126,6 +156,18 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   } catch (error: any) {
+    if (error instanceof SessionNotFoundError) {
+      return NextResponse.json(
+        { success: false, error: { code: 'NOT_FOUND', message: 'Classroom session not found.' } },
+        { status: 404 }
+      );
+    }
+    if (error instanceof ConceptUnavailableError) {
+      return NextResponse.json(
+        { success: false, error: { code: 'CONCEPT_UNAVAILABLE', message: 'Requested concept is not available.' } },
+        { status: 404 }
+      );
+    }
     console.error('[ClassroomSession API Error]', error);
     return NextResponse.json(
       {

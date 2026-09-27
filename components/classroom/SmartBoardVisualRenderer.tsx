@@ -3,6 +3,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { SmartBoardVisualPayload } from '@/lib/visualIntelligence/types';
+import type { ConceptVisualKind } from '@/lib/concepts/types';
+import type { SemanticLessonContext } from '@/lib/classroom/visualIdentity';
+import type { TimelineMilestone } from '@/lib/classroom/lessons/industrialRevolution';
+import { PeriodicTableRenderer, type PeriodicTableMode } from './visuals/PeriodicTableRenderer';
+import { PolymorphismDispatchRenderer } from './visuals/PolymorphismDispatchRenderer';
+import { SemanticLessonRenderer } from './visuals/SemanticLessonRenderer';
 import {
   Sparkles,
   Play,
@@ -24,6 +30,11 @@ import {
 
 export interface SmartBoardVisualRendererProps {
   payload?: SmartBoardVisualPayload;
+  /**
+   * The active lesson's canonical concept id. A payload whose
+   * metadata.conceptId is missing or different is refused (never re-labelled).
+   */
+  activeConceptId: string;
   isRotating?: boolean;
   onToggleRotation?: () => void;
   onHotspotClick?: (hotspotId: string) => void;
@@ -32,107 +43,80 @@ export interface SmartBoardVisualRendererProps {
 
 export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> = React.memo(({
   payload,
+  activeConceptId,
   isRotating = true,
   onToggleRotation,
   onHotspotClick,
   className = '',
 }) => {
   if (!payload) {
-    return <FallbackRenderer title="Interactive Learning Surface" purpose="Interactive pedagogical visualization." />;
+    return <FallbackRenderer title="Visual unavailable" purpose="No visual payload was provided for this step." />;
   }
 
-  const conceptId = String(payload.metadata?.conceptId || payload.title || '').toLowerCase();
-  const subject = String(payload.metadata?.subject || '').toLowerCase();
+  const meta = (payload.metadata ?? {}) as Record<string, unknown>;
+  const payloadConceptId = typeof meta.conceptId === 'string' ? meta.conceptId : '';
 
-  // 1. DC Motor & Electromagnetism: Dedicated Scientific Deterministic Renderer (Canonical)
-  if (
-    conceptId.includes('motor') ||
-    conceptId.includes('commutation') ||
-    conceptId.includes('lorentz') ||
-    payload.title.toLowerCase().includes('dc motor')
-  ) {
+  // Identity gate: refuse anything not explicitly bound to the active concept.
+  if (!payloadConceptId || payloadConceptId !== activeConceptId) {
     return (
-      <DCMotorScientificRenderer
-        payload={payload}
-        isRotating={isRotating}
-        onToggleRotation={onToggleRotation}
-        onHotspotClick={onHotspotClick}
-        className={className}
-      />
+      <div data-testid="visual-rejected" className="w-full h-full">
+        <FallbackRenderer
+          title="Visual withheld"
+          purpose="This visual does not belong to the current lesson, so it was not shown."
+        />
+      </div>
     );
   }
 
-  // 2. Interactive Simulations: Projectile Motion & Kinematics (Canonical)
-  if (payload.visualType === 'interactive_simulation' || conceptId.includes('projectile')) {
-    return (
-      <ProjectileSimulationRenderer
-        payload={payload}
-        isRotating={isRotating}
-        onToggleRotation={onToggleRotation}
-        className={className}
-      />
-    );
-  }
+  const kind = meta.conceptVisual as ConceptVisualKind | undefined;
+  const visualData = (payload.visualData ?? {}) as Record<string, unknown>;
+  const lessonContext = (visualData.lessonContext as SemanticLessonContext | undefined) ?? null;
 
-  // 3. Coordinate Graphs: Quadratic, Linear Regression, Calculus, Derivatives (Canonical + Generic Math)
-  if (
-    payload.visualType === 'graph' ||
-    conceptId.includes('quadratic') ||
-    conceptId.includes('regression') ||
-    conceptId.includes('calculus') ||
-    conceptId.includes('derivative')
-  ) {
-    return <GraphRenderer payload={payload} className={className} />;
-  }
-
-  // 4. Molecular Bonding: Chemistry (Canonical)
-  if (payload.visualType === 'molecular_visual' || conceptId.includes('molecule') || conceptId.includes('bond')) {
-    return <MolecularRenderer payload={payload} className={className} />;
-  }
-
-  // 5. Anatomical Visual: Human Heart (Canonical)
-  if (payload.visualType === 'anatomical_visual' || conceptId.includes('heart') || conceptId.includes('cardio')) {
-    return <AnatomicalHeartRenderer payload={payload} className={className} />;
-  }
-
-  // 6. Chronological Timelines: French Revolution, Industrial Revolution, History (Canonical + Generic History)
-  if (payload.visualType === 'timeline' || conceptId.includes('revolution') || conceptId.includes('history') || subject === 'history') {
-    return <TimelineRenderer payload={payload} className={className} />;
-  }
-
-  // 7. Process Flow Pipeline: Sequential Transformations & Mechanisms
-  if ((payload.visualType as string) === 'process_flow' || (payload.visualType as string) === 'mechanism') {
-    return <ProcessFlowRenderer payload={payload} className={className} />;
-  }
-
-  // 8. Comparative Matrix: Side-by-side contrast
-  if (payload.visualType === 'comparison_visual' || (payload.visualType as string) === 'comparison') {
-    return <ComparisonRenderer payload={payload} className={className} />;
-  }
-
-  // 9. Code & Computer Science Architecture (Canonical Binary Search + Generic Software Architecture)
-  if (
-    payload.visualType === 'code_visual' ||
-    conceptId.includes('binary_search') ||
-    conceptId.includes('polymorphism') ||
-    conceptId.includes('algorithm') ||
-    subject === 'computer science'
-  ) {
-    if (conceptId.includes('binary_search') || (payload.title.toLowerCase().includes('binary') && payload.title.toLowerCase().includes('search'))) {
-      return <CodeVisualizerRenderer payload={payload} className={className} />;
-    }
-    return <CodeArchitectureRenderer payload={payload} className={className} />;
-  }
-
-  // 10. General Pedagogical Relationship Diagram & Deterministic Visual Surface
-  return (
-    <GeneralDiagramRenderer
-      payload={payload}
-      isRotating={isRotating}
-      onHotspotClick={onHotspotClick}
-      className={className}
-    />
+  const wrap = (node: React.ReactNode) => (
+    <div
+      data-testid="smartboard-visual"
+      data-visual-kind={kind ?? 'semantic_lesson'}
+      data-visual-concept={payloadConceptId}
+      className="w-full h-full"
+    >
+      {node}
+    </div>
   );
+
+  switch (kind) {
+    case 'dc_motor_diagram':
+      return wrap(
+        <DCMotorScientificRenderer
+          payload={payload}
+          isRotating={isRotating}
+          onToggleRotation={onToggleRotation}
+          onHotspotClick={onHotspotClick}
+          className={className}
+        />
+      );
+    case 'projectile_simulation':
+      return wrap(<ProjectileSimulationRenderer payload={payload} isRotating={isRotating} onToggleRotation={onToggleRotation} className={className} />);
+    case 'parabola_graph':
+      return wrap(<GraphRenderer payload={payload} variant="parabola" className={className} />);
+    case 'regression_graph':
+      return wrap(<GraphRenderer payload={payload} variant="regression" className={className} />);
+    case 'derivative_graph':
+      return wrap(<GraphRenderer payload={payload} variant="derivative" className={className} />);
+    case 'molecular_geometry':
+      return wrap(<MolecularRenderer payload={payload} className={className} />);
+    case 'heart_anatomy':
+      return wrap(<AnatomicalHeartRenderer payload={payload} className={className} />);
+    case 'history_timeline':
+      return wrap(<TimelineRenderer payload={payload} className={className} />);
+    case 'binary_search_trace':
+      return wrap(<CodeVisualizerRenderer payload={payload} className={className} />);
+    case 'polymorphism_dispatch':
+      return wrap(<PolymorphismDispatchRenderer focus={String(visualData.focus ?? 'overview')} className={className} />);
+    case 'periodic_table_interactive':
+      return wrap(<PeriodicTableRenderer mode={(visualData.mode as PeriodicTableMode) ?? 'overview'} className={className} />);
+    default:
+      return wrap(<SemanticLessonRenderer context={lessonContext} className={className} />);
+  }
 });
 
 SmartBoardVisualRenderer.displayName = 'SmartBoardVisualRenderer';
@@ -928,21 +912,22 @@ ProjectileSimulationRenderer.displayName = 'ProjectileSimulationRenderer';
 // 3. MATHEMATICAL COORDINATE GRAPH RENDERER (QUADRATIC, REGRESSION, CALCULUS)
 // =========================================================================
 
-const GraphRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
+const GraphRenderer: React.FC<{
+  payload: SmartBoardVisualPayload;
+  variant: 'parabola' | 'regression' | 'derivative';
+  className?: string;
+}> = React.memo(({
   payload,
+  variant,
   className = '',
 }) => {
-  const conceptId = String(payload.metadata?.conceptId || '').toLowerCase();
-  const titleLower = payload.title.toLowerCase();
-  const isRegression = titleLower.includes('regression') || conceptId.includes('regression');
-  const isDerivative =
-    titleLower.includes('derivative') ||
-    titleLower.includes('calculus') ||
-    conceptId.includes('calculus') ||
-    conceptId.includes('derivative');
+  // Variant is chosen by the registry from the exact concept id, never from titles.
+  const isRegression = variant === 'regression';
+  const isDerivative = variant === 'derivative';
 
   // Interactive evaluation point for derivative tangent
-  const [tangentX, setTangentX] = useState<number>(0.8);
+  // Start on one of the selectable points so the highlighted button always matches the plotted tangent.
+  const [tangentX, setTangentX] = useState<number>(1.5);
 
   // Artwork toggle state
   const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
@@ -1109,7 +1094,7 @@ const GraphRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: st
                 type="button"
                 onClick={() => setTangentX(val)}
                 className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
-                  Math.abs(tangentX - val) < 0.2
+                  Math.abs(tangentX - val) < 1e-9
                     ? 'bg-indigo-600 text-white font-bold'
                     : 'bg-white/5 hover:bg-white/10 text-slate-400'
                 }`}
@@ -1297,45 +1282,33 @@ AnatomicalHeartRenderer.displayName = 'AnatomicalHeartRenderer';
 // 6. CHRONOLOGICAL TIMELINE RENDERER (HISTORY)
 // =========================================================================
 
+const FRENCH_REVOLUTION_MILESTONES: TimelineMilestone[] = [
+  { id: 'estates', year: 'May 1789', title: 'Estates-General', desc: 'King Louis XVI convenes assembly; Third Estate breaks away.' },
+  { id: 'bastille', year: 'Jul 14, 1789', title: 'Storming of Bastille', desc: 'Citizens seize the royal fortress and prison.' },
+  { id: 'rights', year: 'Aug 1789', title: 'Rights of Man', desc: 'National Assembly adopts the Declaration of the Rights of Man.' },
+  { id: 'republic', year: 'Sep 1792', title: 'First Republic', desc: 'Monarchy abolished; popular sovereignty proclaimed.' },
+];
+
 const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
   payload,
   className = '',
 }) => {
-  const conceptId = String(payload.metadata?.conceptId || '').toLowerCase();
-  const titleLower = payload.title.toLowerCase();
-
-  const isIndustrial = conceptId.includes('industrial') || titleLower.includes('industrial');
-  const isFrench = conceptId.includes('french') || titleLower.includes('french') || conceptId.includes('revolution');
+  // Milestones come from the ACTIVE lesson (visualData.milestones). The French
+  // Revolution lesson predates that field, so it is matched by EXACT concept id.
+  const conceptId = String(payload.metadata?.conceptId || '');
+  const visualData = (payload.visualData ?? {}) as { milestones?: TimelineMilestone[]; highlight?: string[] };
+  const highlight = visualData.highlight ?? [];
 
   // Artwork toggle state
   const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
   const hasRealArtwork = Boolean(payload.assetUrl);
   const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
 
-  const milestones = useMemo(() => {
-    if (isIndustrial) {
-      return [
-        { year: '1769', title: 'Watt Steam Condenser', desc: 'Separate condenser radically advances thermodynamic mechanical power.' },
-        { year: '1785', title: 'Power Loom & Factories', desc: 'Cartwright automates weaving, catalyzing industrialized textile production.' },
-        { year: '1830', title: 'Steam Locomotion', desc: 'Liverpool & Manchester Railway establishes rapid intercity freight & passenger transit.' },
-        { year: '1870', title: 'Second Industrial Wave', desc: 'Bessemer steel, chemical engineering, and electrical grid drive urban expansion.' },
-      ];
-    }
-    if (isFrench) {
-      return [
-        { year: 'May 1789', title: 'Estates-General', desc: 'King Louis XVI convenes assembly; Third Estate breaks away.' },
-        { year: 'Jul 14, 1789', title: 'Storming of Bastille', desc: 'Citizens seize the medieval royal weapons fortress.' },
-        { year: 'Aug 1789', title: 'Rights of Man', desc: 'National Assembly drafts Declaration of Equality.' },
-        { year: 'Sep 1792', title: 'First Republic', desc: 'Monarchy abolished; popular sovereignty proclaimed.' },
-      ];
-    }
-    return [
-      { year: 'Phase 1', title: 'Inception & Catalysts', desc: 'Foundational drivers, preconditions, and initial paradigm disruption.' },
-      { year: 'Phase 2', title: 'Structural Transformation', desc: 'Systemic institutional reorganization and rapid adoption of primary mechanisms.' },
-      { year: 'Phase 3', title: 'Scale & Diffusion', desc: 'Cross-regional propagation, secondary industrial effects, and consolidation.' },
-      { year: 'Phase 4', title: 'Modern Equilibrium', desc: 'Institutional integration, regulatory frameworks, and historical legacy.' },
-    ];
-  }, [isIndustrial, isFrench]);
+  const milestones: TimelineMilestone[] = useMemo(() => {
+    if (Array.isArray(visualData.milestones) && visualData.milestones.length > 0) return visualData.milestones;
+    if (conceptId === 'french_revolution') return FRENCH_REVOLUTION_MILESTONES;
+    return [];
+  }, [visualData.milestones, conceptId]);
 
   return (
     <div className={`relative w-full h-full flex flex-col items-center justify-between p-4 bg-[#140E05]/95 rounded-2xl border border-amber-500/30 overflow-hidden shadow-2xl ${className}`}>
@@ -1369,9 +1342,18 @@ const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?:
             className="w-full max-h-[220px] object-contain drop-shadow-xl"
           />
         ) : (
-          <div className="w-full flex items-center justify-between gap-2">
+          <div data-testid="history-timeline" className="w-full flex flex-wrap items-start justify-center gap-x-1.5 gap-y-3">
+            {milestones.length === 0 && (
+              <span className="text-xs text-slate-400">No timeline data is defined for this lesson.</span>
+            )}
             {milestones.map((m, idx) => (
-              <div key={idx} className="flex-1 flex flex-col items-center text-center relative">
+              <div
+                key={m.id ?? idx}
+                data-milestone={m.id}
+                className={`w-[74px] sm:w-[84px] flex flex-col items-center text-center relative transition-opacity ${
+                  highlight.length > 0 && !highlight.includes(m.id) ? 'opacity-40' : 'opacity-100'
+                }`}
+              >
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-bold mb-1">
                   {m.year}
                 </span>
@@ -1464,479 +1446,6 @@ const CodeVisualizerRenderer: React.FC<{ payload: SmartBoardVisualPayload; class
 });
 
 CodeVisualizerRenderer.displayName = 'CodeVisualizerRenderer';
-
-// =========================================================================
-// 8. CODE ARCHITECTURE & SOFTWARE DESIGN RENDERER (GENERIC PROGRAMMING / OOP)
-// =========================================================================
-
-const CodeArchitectureRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
-  payload,
-  className = '',
-}) => {
-  const conceptId = String(payload.metadata?.conceptId || '').toLowerCase();
-  const humanTitle = payload.title.replace(/^Overview:\s*/i, '').replace(/^Structural Mechanics:\s*/i, '');
-  const [selectedVariant, setSelectedVariant] = useState<'A' | 'B'>('A');
-
-  // Artwork toggle state
-  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
-  const hasRealArtwork = Boolean(payload.assetUrl);
-  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
-
-  const isPolymorphism = conceptId.includes('polymorph') || payload.title.toLowerCase().includes('polymorph');
-
-  return (
-    <div className={`relative w-full h-full flex flex-col items-center justify-between p-3 sm:p-4 bg-[#0A0D24]/95 rounded-2xl border border-indigo-500/30 overflow-hidden shadow-2xl ${className}`}>
-      {/* Header */}
-      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-indigo-300 select-none">
-        <span className="font-bold flex items-center gap-1.5">
-          <Code2 className="w-4 h-4 text-cyan-400" />
-          <span>SOFTWARE ARCHITECTURE: {humanTitle}</span>
-        </span>
-        <div className="flex items-center gap-2">
-          {hasRealArtwork && (
-            <button
-              type="button"
-              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
-              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
-            >
-              <Eye className="w-3 h-3 text-cyan-400" />
-              <span>{isDisplayingArtwork ? 'Architecture' : 'AI Render'}</span>
-            </button>
-          )}
-          <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-            {isPolymorphism ? 'Dynamic Dispatch • Virtual Binding' : 'Modular Contract'}
-          </span>
-        </div>
-      </div>
-
-      {/* Main Visual Schema */}
-      <div className="w-full flex-1 flex flex-col items-center justify-center my-1 select-none overflow-hidden">
-        {isDisplayingArtwork ? (
-          <Image
-            src={payload.assetUrl!}
-            alt={payload.title}
-            width={600}
-            height={260}
-            className="w-full max-h-[220px] object-contain drop-shadow-xl"
-          />
-        ) : (
-          <div className="w-full max-w-xl flex flex-col items-center gap-2">
-            {/* Base Interface / Contract Card */}
-            <div className="w-full max-w-md bg-[#10183B] border-2 border-cyan-400/50 rounded-xl p-2.5 shadow-lg flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-300 text-xs font-bold font-mono">
-                  &lt;I&gt;
-                </div>
-                <div>
-                  <div className="text-[11px] font-mono font-bold text-cyan-300">
-                    interface ComponentContract
-                  </div>
-                  <div className="text-[10px] font-mono text-slate-400">
-                    + execute(context): Result
-                  </div>
-                </div>
-              </div>
-              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/30">
-                Polymorphic Abstraction
-              </span>
-            </div>
-
-            {/* Connecting Dispatch Vectors */}
-            <div className="w-full max-w-md flex justify-around items-center px-8 text-slate-500 text-[10px] font-mono">
-              <div className="flex flex-col items-center text-cyan-400/80">
-                <span>▲ implements</span>
-                <span className="text-xs">│</span>
-              </div>
-              <div className="px-2 py-0.5 rounded bg-white/[0.03] border border-white/10 text-amber-300 text-[9px] font-semibold">
-                Dynamic Runtime Binding
-              </div>
-              <div className="flex flex-col items-center text-cyan-400/80">
-                <span>▲ implements</span>
-                <span className="text-xs">│</span>
-              </div>
-            </div>
-
-            {/* Derived Implementations */}
-            <div className="w-full grid grid-cols-2 gap-2.5 sm:gap-4 max-w-md">
-              {/* Variant A */}
-              <button
-                type="button"
-                onClick={() => setSelectedVariant('A')}
-                className={`text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
-                  selectedVariant === 'A'
-                    ? 'bg-indigo-950/80 border-cyan-400 shadow-md shadow-cyan-500/20 scale-[1.02]'
-                    : 'bg-[#0E1433]/70 border-white/10 hover:border-white/20 opacity-80'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-xs font-bold text-emerald-300">ConcreteVariantA</span>
-                  {selectedVariant === 'A' && (
-                    <span className="text-[9px] font-mono text-cyan-400 font-bold">● Active Dispatch</span>
-                  )}
-                </div>
-                <div className="font-mono text-[10px] text-slate-300">
-                  {"execute() { /* Specialized Algorithm A */ }"}
-                </div>
-                <div className="mt-1 text-[9px] text-slate-400">
-                  Decoupled client caller
-                </div>
-              </button>
-
-              {/* Variant B */}
-              <button
-                type="button"
-                onClick={() => setSelectedVariant('B')}
-                className={`text-left p-2.5 rounded-xl border transition-all cursor-pointer ${
-                  selectedVariant === 'B'
-                    ? 'bg-indigo-950/80 border-cyan-400 shadow-md shadow-cyan-500/20 scale-[1.02]'
-                    : 'bg-[#0E1433]/70 border-white/10 hover:border-white/20 opacity-80'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-xs font-bold text-amber-300">ConcreteVariantB</span>
-                  {selectedVariant === 'B' && (
-                    <span className="text-[9px] font-mono text-cyan-400 font-bold">● Active Dispatch</span>
-                  )}
-                </div>
-                <div className="font-mono text-[10px] text-slate-300">
-                  {"execute() { /* Specialized Algorithm B */ }"}
-                </div>
-                <div className="mt-1 text-[9px] text-slate-400">
-                  Interchangeable behavior
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer telemetry */}
-      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium pt-1">
-        {payload.purpose}
-      </div>
-    </div>
-  );
-});
-
-CodeArchitectureRenderer.displayName = 'CodeArchitectureRenderer';
-
-// =========================================================================
-// 9. PROCESS FLOW PIPELINE RENDERER (SEQUENTIAL TRANSFORMATION)
-// =========================================================================
-
-const ProcessFlowRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
-  payload,
-  className = '',
-}) => {
-  // Artwork toggle state
-  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
-  const hasRealArtwork = Boolean(payload.assetUrl);
-  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
-
-  const [activeStage, setActiveStage] = useState<number>(1);
-
-  const stages = [
-    { num: 1, title: 'Input & Stimulus', desc: 'Precondition state and activating input.' },
-    { num: 2, title: 'Transformation', desc: 'Core mechanical or biochemical pathway.' },
-    { num: 3, title: 'Phase Transition', desc: 'Intermediate reaction and state change.' },
-    { num: 4, title: 'Equilibrium', desc: 'Observable product and steady-state return.' },
-  ];
-
-  return (
-    <div className={`relative w-full h-full flex flex-col items-center justify-between p-3 sm:p-4 bg-[#061412]/95 rounded-2xl border border-teal-500/30 overflow-hidden shadow-2xl ${className}`}>
-      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-teal-300 select-none">
-        <span className="font-bold flex items-center gap-1.5">
-          <Activity className="w-4 h-4 text-teal-400" />
-          <span>PROCESS FLOW PIPELINE: {payload.title}</span>
-        </span>
-        <div className="flex items-center gap-2">
-          {hasRealArtwork && (
-            <button
-              type="button"
-              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
-              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
-            >
-              <Eye className="w-3 h-3 text-cyan-400" />
-              <span>{isDisplayingArtwork ? 'Process Flow' : 'AI Render'}</span>
-            </button>
-          )}
-          <span className="text-[10px] px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">
-            Sequential Pipeline
-          </span>
-        </div>
-      </div>
-
-      <div className="w-full flex-1 flex items-center justify-center my-2 px-2 overflow-hidden">
-        {isDisplayingArtwork ? (
-          <Image
-            src={payload.assetUrl!}
-            alt={payload.title}
-            width={600}
-            height={260}
-            className="w-full max-h-[220px] object-contain drop-shadow-xl"
-          />
-        ) : (
-          <div className="w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {stages.map((stg) => (
-              <button
-                key={stg.num}
-                type="button"
-                onClick={() => setActiveStage(stg.num)}
-                className={`flex flex-col p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  activeStage === stg.num
-                    ? 'bg-teal-950/80 border-teal-400 shadow-md shadow-teal-500/20 scale-[1.02]'
-                    : 'bg-white/[0.02] border-white/10 hover:border-white/20 opacity-80'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-bold">
-                    Stage {stg.num}
-                  </span>
-                  {activeStage === stg.num && <span className="w-2 h-2 rounded-full bg-teal-400" />}
-                </div>
-                <span className="font-bold text-xs text-white leading-tight">{stg.title}</span>
-                <span className="text-[10px] text-slate-400 mt-1 leading-snug">{stg.desc}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium">
-        {payload.purpose}
-      </div>
-    </div>
-  );
-});
-
-ProcessFlowRenderer.displayName = 'ProcessFlowRenderer';
-
-// =========================================================================
-// 10. COMPARATIVE MATRIX RENDERER (SIDE-BY-SIDE CONTRAST)
-// =========================================================================
-
-const ComparisonRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
-  payload,
-  className = '',
-}) => {
-  // Artwork toggle state
-  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
-  const hasRealArtwork = Boolean(payload.assetUrl);
-  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
-
-  return (
-    <div className={`relative w-full h-full flex flex-col items-center justify-between p-3 sm:p-4 bg-[#120D24]/95 rounded-2xl border border-purple-500/30 overflow-hidden shadow-2xl ${className}`}>
-      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-purple-300 select-none">
-        <span className="font-bold flex items-center gap-1.5">
-          <Columns className="w-4 h-4 text-purple-400" />
-          <span>COMPARATIVE ANALYSIS: {payload.title}</span>
-        </span>
-        <div className="flex items-center gap-2">
-          {hasRealArtwork && (
-            <button
-              type="button"
-              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
-              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
-            >
-              <Eye className="w-3 h-3 text-cyan-400" />
-              <span>{isDisplayingArtwork ? 'Comparison' : 'AI Render'}</span>
-            </button>
-          )}
-          <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            Side-by-Side Matrix
-          </span>
-        </div>
-      </div>
-
-      <div className="w-full flex-1 flex items-center justify-center my-2 px-2 overflow-hidden">
-        {isDisplayingArtwork ? (
-          <Image
-            src={payload.assetUrl!}
-            alt={payload.title}
-            width={600}
-            height={260}
-            className="w-full max-h-[220px] object-contain drop-shadow-xl"
-          />
-        ) : (
-          <div className="w-full max-w-xl grid grid-cols-2 gap-3 sm:gap-4">
-            <div className="p-3 bg-white/[0.03] border border-cyan-500/30 rounded-xl space-y-2">
-              <div className="text-xs font-mono font-bold text-cyan-300 flex items-center justify-between border-b border-white/10 pb-1">
-                <span>Model A / Baseline</span>
-                <span className="text-[9px] px-1.5 py-0.5 bg-cyan-950 rounded text-cyan-400">Class A</span>
-              </div>
-              <p className="text-[11px] text-slate-300 leading-snug">
-                Initial condition governed by standard analytical constraints.
-              </p>
-              <div className="text-[10px] font-mono text-emerald-300 bg-emerald-950/40 p-1.5 rounded border border-emerald-500/20">
-                Key Trait: High determinism & strict adherence.
-              </div>
-            </div>
-
-            <div className="p-3 bg-white/[0.03] border border-purple-500/30 rounded-xl space-y-2">
-              <div className="text-xs font-mono font-bold text-purple-300 flex items-center justify-between border-b border-white/10 pb-1">
-                <span>Model B / Transformed</span>
-                <span className="text-[9px] px-1.5 py-0.5 bg-purple-950 rounded text-purple-400">Class B</span>
-              </div>
-              <p className="text-[11px] text-slate-300 leading-snug">
-                Divergent or specialized variation under dynamic conditions.
-              </p>
-              <div className="text-[10px] font-mono text-amber-300 bg-amber-950/40 p-1.5 rounded border border-amber-500/20">
-                Key Trait: Dynamic adaptation & runtime flexibility.
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium">
-        {payload.purpose}
-      </div>
-    </div>
-  );
-});
-
-ComparisonRenderer.displayName = 'ComparisonRenderer';
-
-// =========================================================================
-// 11. GENERAL PEDAGOGICAL RELATIONSHIP DIAGRAM & VERIFIED ASSET RENDERER
-// =========================================================================
-
-const GeneralDiagramRenderer: React.FC<{
-  payload: SmartBoardVisualPayload;
-  isRotating: boolean;
-  onHotspotClick?: (id: string) => void;
-  className?: string;
-}> = React.memo(({ payload, isRotating, onHotspotClick, className = '' }) => {
-  const [selectedEntity, setSelectedEntity] = useState<string>('core');
-
-  // Artwork toggle state
-  const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
-  const hasRealArtwork = Boolean(payload.assetUrl);
-  const isDisplayingArtwork = userViewMode === 'artwork' && hasRealArtwork;
-
-  const subject = String(payload.metadata?.subject || 'Scientific Concept');
-  const stage = String(payload.metadata?.stage || 'explain');
-
-  return (
-    <div className={`relative w-full h-full flex flex-col items-center justify-between p-3 sm:p-4 bg-[#060D24]/95 rounded-2xl border border-cyan-500/30 overflow-hidden shadow-2xl ${className}`}>
-      {/* Header */}
-      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-cyan-300 select-none">
-        <span className="font-bold flex items-center gap-1.5">
-          <Layers className="w-4 h-4 text-cyan-400" />
-          <span>SYSTEM ARCHITECTURE & RELATIONSHIPS: {payload.title}</span>
-        </span>
-        <div className="flex items-center gap-2">
-          {hasRealArtwork && (
-            <button
-              type="button"
-              onClick={() => setUserViewMode(isDisplayingArtwork ? 'diagram' : 'artwork')}
-              className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 cursor-pointer"
-            >
-              <Eye className="w-3 h-3 text-cyan-400" />
-              <span>{isDisplayingArtwork ? 'Diagram' : 'AI Render'}</span>
-            </button>
-          )}
-          <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-            {subject} • {stage.toUpperCase()}
-          </span>
-        </div>
-      </div>
-
-      {/* Main Visual Surface */}
-      <div className="w-full flex-1 flex items-center justify-center my-1 select-none overflow-hidden">
-        {isDisplayingArtwork ? (
-          <Image
-            src={payload.assetUrl!}
-            alt={payload.title}
-            width={600}
-            height={280}
-            priority
-            className="w-full max-h-[240px] object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.9)]"
-          />
-        ) : (
-          <div className="w-full max-w-xl flex flex-col items-center justify-center gap-3">
-            {/* System Relationship Nodes */}
-            <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-stretch">
-              {/* 1. Governing Preconditions */}
-              <button
-                type="button"
-                onClick={() => setSelectedEntity('inputs')}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  selectedEntity === 'inputs'
-                    ? 'bg-sky-950/80 border-sky-400 shadow-md shadow-sky-500/20 scale-[1.02]'
-                    : 'bg-white/[0.02] border-white/10 hover:border-white/20'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-mono text-sky-400 font-bold">1. Governing Inputs</span>
-                  {selectedEntity === 'inputs' && <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />}
-                </div>
-                <div className="text-xs font-bold text-white mb-0.5">Preconditions</div>
-                <div className="text-[10px] text-slate-400 leading-tight">
-                  Boundary rules and essential conditions establishing systemic balance.
-                </div>
-              </button>
-
-              {/* 2. Core Operational Mechanism */}
-              <button
-                type="button"
-                onClick={() => setSelectedEntity('core')}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  selectedEntity === 'core'
-                    ? 'bg-cyan-950/80 border-cyan-400 shadow-md shadow-cyan-500/20 scale-[1.02]'
-                    : 'bg-white/[0.02] border-white/10 hover:border-white/20'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-mono text-cyan-300 font-bold">2. Core Dynamic</span>
-                  {selectedEntity === 'core' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
-                </div>
-                <div className="text-xs font-bold text-white mb-0.5">Operational Process</div>
-                <div className="text-[10px] text-slate-400 leading-tight">
-                  Active transformation and energy/data transfer mechanism.
-                </div>
-              </button>
-
-              {/* 3. Observable Outputs & Equilibrium */}
-              <button
-                type="button"
-                onClick={() => setSelectedEntity('outputs')}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  selectedEntity === 'outputs'
-                    ? 'bg-emerald-950/80 border-emerald-400 shadow-md shadow-emerald-500/20 scale-[1.02]'
-                    : 'bg-white/[0.02] border-white/10 hover:border-white/20'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold">3. Equilibrium</span>
-                  {selectedEntity === 'outputs' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-                </div>
-                <div className="text-xs font-bold text-white mb-0.5">Observable Output</div>
-                <div className="text-[10px] text-slate-400 leading-tight">
-                  Verifiable state resulting from consistent governing laws.
-                </div>
-              </button>
-            </div>
-
-            {/* Connecting Relationship Flow Bar */}
-            <div className="w-full flex items-center justify-between px-3 py-1.5 bg-[#09102E] border border-cyan-500/20 rounded-xl text-[10px] font-mono text-slate-300">
-              <span className="text-sky-300 font-semibold">Inputs / Causes</span>
-              <span className="text-cyan-400">───► Dynamic Transform ───►</span>
-              <span className="text-emerald-300 font-semibold">Outputs / Effects</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Principle Footer */}
-      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium pt-1">
-        {payload.purpose}
-      </div>
-    </div>
-  );
-});
-
-GeneralDiagramRenderer.displayName = 'GeneralDiagramRenderer';
 
 // =========================================================================
 // 12. SAFE STRUCTURED FALLBACK RENDERER

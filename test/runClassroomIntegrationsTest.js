@@ -54,11 +54,14 @@ assert(runtime.includes("/api/classroom/integrations"), 'Classroom runtime must 
 passed += 2;
 
 const smartBoard = read('components/classroom/SmartBoard.tsx');
-assert(smartBoard.includes('externalVisualPayload'), 'Smart Board must accept an external visual payload without changing its layout.');
+// Phase 1/2: external payloads are identity-gated upstream and may only supply optional artwork.
+assert(smartBoard.includes('artworkUrl'), 'Smart Board must accept identity-checked optional artwork without changing its layout.');
 passed += 1;
 
 const layout = read('components/classroom/ClassroomLayout.tsx');
-assert(layout.includes('classroom-master-reference.png'), 'Exact Class visual reference must remain in place.');
+// Phase 1/2: that PNG is a screenshot of the DC-motor class (baked-in motor text, a second
+// robot and duplicate dock labels) and was shown behind EVERY concept. It must not be the backdrop.
+assert(!layout.includes('classroom-master-reference.png'), 'Class backdrop must not reuse the baked DC-motor reference screenshot.');
 assert(layout.includes('ClassroomToolbar'), 'Existing Class toolbar must remain.');
 passed += 2;
 

@@ -132,6 +132,12 @@ export interface SmartBoardVisualPayload {
     hotspots?: Array<{ id: string; label: string; description: string }>;
     controls?: string[];
   };
+  /** Deterministic renderer data (lesson/step owned). */
+  visualData?: Record<string, unknown>;
+  /**
+   * Identity metadata. `conceptId`, `subject` are REQUIRED for any payload that
+   * reaches the Smart Board (see lib/classroom/visualIdentity.ts).
+   */
   metadata?: Record<string, unknown>;
 }
 

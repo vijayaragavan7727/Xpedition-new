@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClassSessionData, ClassStageId } from '@/lib/class/types';
 import { CLASS_STAGE_SEQUENCE, getClassData } from '@/lib/class/classCatalog';
+import { ClassLessonUnavailable } from '@/components/classroom/ClassLessonUnavailable';
 import { ClassHeader } from './ClassHeader';
 import { ClassFooter } from './ClassFooter';
 import { ClassExperienceRenderer } from './ClassExperienceRenderer';
@@ -19,22 +20,35 @@ import {
 import { ClassSkipConfirmModal } from './ClassSkipConfirmModal';
 
 export interface UnifiedClassContainerProps {
-  conceptId?: string;
+  conceptId: string;
   initialStage?: ClassStageId;
   onClassComplete?: () => void;
   backHref?: string;
   className?: string;
 }
 
-export const UnifiedClassContainer: React.FC<UnifiedClassContainerProps> = ({
-  conceptId = 'projectile_motion',
+/**
+ * Legacy class container. No longer used by the /class routes (which use
+ * ClassRoute + the single lesson resolver). Kept for legacy callers; an
+ * unknown concept renders the explicit unavailable state instead of another
+ * concept's class.
+ */
+export const UnifiedClassContainer: React.FC<UnifiedClassContainerProps> = (props) => {
+  const classData = getClassData(props.conceptId);
+  if (!classData) {
+    return <ClassLessonUnavailable requestedConceptId={props.conceptId} reason="unknown_concept" />;
+  }
+  return <UnifiedClassContainerInner {...props} classData={classData} />;
+};
+
+const UnifiedClassContainerInner: React.FC<UnifiedClassContainerProps & { classData: ClassSessionData }> = ({
+  classData,
   initialStage = 'introduce',
   onClassComplete,
   backHref = '/learn',
   className = '',
 }) => {
   const router = useRouter();
-  const classData: ClassSessionData = getClassData(conceptId);
 
   // 1. Stage Lifecycle State
   const [currentStage, setCurrentStage] = useState<ClassStageId>(initialStage);

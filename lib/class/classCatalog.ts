@@ -392,22 +392,14 @@ export const CANONICAL_CLASSES: Record<string, ClassSessionData> = {
   },
 };
 
-export function getClassData(conceptId: string): ClassSessionData {
+/**
+ * Legacy class data accessor (used by UnifiedClassContainer).
+ *
+ * EXACT lookup only. Returns null for any concept without legacy class data —
+ * it never substitutes the DC motor (or any other) class. The Class routes now
+ * use lib/concepts/lessonResolver.ts; this remains for legacy callers.
+ */
+export function getClassData(conceptId: string): ClassSessionData | null {
   const normalized = (conceptId || '').toLowerCase().trim();
-
-  if (CANONICAL_CLASSES[normalized]) {
-    return CANONICAL_CLASSES[normalized];
-  }
-  if (normalized.includes('motor') || normalized.includes('electric') || normalized.includes('commutat')) {
-    return CANONICAL_CLASSES.dc_motor;
-  }
-  if (normalized.includes('projectile') || normalized.includes('kinematic')) {
-    return CANONICAL_CLASSES.projectile_motion;
-  }
-  if (normalized.includes('heart') || normalized.includes('cardio') || normalized.includes('anatomy')) {
-    return CANONICAL_CLASSES.human_heart_anatomy;
-  }
-
-  // Default to dc_motor for teaching experience
-  return CANONICAL_CLASSES.dc_motor;
+  return CANONICAL_CLASSES[normalized] ?? null;
 }

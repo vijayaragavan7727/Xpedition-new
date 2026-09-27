@@ -70,16 +70,16 @@ async function runTests() {
   });
 
   // 2. Universal Topic Routing & Dynamic Lesson Resolution
-  test('2. Classroom catalog dynamically resolves any concept ID without hardcoding dc_motor', () => {
+  test('2. Classroom catalog delegates to the single exact resolver (no placeholder synthesis)', () => {
     const classroomCatalogPath = path.join(process.cwd(), 'lib/classroom/classroomCatalog.ts');
     assert(fs.existsSync(classroomCatalogPath), 'classroomCatalog.ts must exist');
     const content = fs.readFileSync(classroomCatalogPath, 'utf-8');
 
     assert(content.includes('getClassroomLesson'), 'Must export getClassroomLesson');
-    assert(
-      content.includes('Dynamic synthesis') || content.includes('humanTitle'),
-      'Must support dynamic lesson synthesis'
-    );
+    // Phase 1/2: the placeholder "Operational Dynamics" synthesis was the root cause of
+    // wrong content. Behavioural coverage lives in test/conceptIdentity.test.ts.
+    assert(content.includes('resolveClassLesson'), 'Must delegate to the single lesson resolver');
+    assert(!content.includes('Operational Dynamics'), 'Must not synthesize placeholder "Operational Dynamics" lessons');
     assert(content.includes('quadratic_equation'), 'Must contain canonical quadratic_equation lesson');
     assert(content.includes('projectile_motion'), 'Must contain canonical projectile_motion lesson');
     assert(content.includes('molecular_bonding'), 'Must contain canonical molecular_bonding lesson');

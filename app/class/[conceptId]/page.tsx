@@ -1,23 +1,27 @@
 'use client';
 
 import React from 'react';
-import { useParams } from 'next/navigation';
-import { UnifiedClassContainer } from '@/components/class';
-import { ClassroomLayout } from '@/components/classroom/ClassroomLayout';
-import { CANONICAL_CLASSROOM_LESSONS } from '@/lib/classroom/classroomCatalog';
+import { useParams, useSearchParams } from 'next/navigation';
+import { ClassRoute } from '@/components/classroom/ClassRoute';
+
+/**
+ * /class/<id>[?intent=<intent>]
+ *
+ * Uses exactly the same resolver and Class runtime as /class?concept=<id>.
+ * (Previously this route fell back to a separate container whose catalog
+ * defaulted every unknown concept to the DC motor lesson.)
+ */
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
 export default function ConceptClassPage() {
   const params = useParams();
-  const conceptId = (params?.conceptId as string) || 'dc_motor';
-
-  const isClassroomLesson =
-    conceptId === 'dc_motor' ||
-    conceptId.includes('motor') ||
-    Boolean(CANONICAL_CLASSROOM_LESSONS[conceptId]);
-
-  if (isClassroomLesson) {
-    return <ClassroomLayout conceptId={conceptId} backHref="/learn" />;
-  }
-
-  return <UnifiedClassContainer conceptId={conceptId} backHref="/learn" />;
+  const searchParams = useSearchParams();
+  const rawId = typeof params?.conceptId === 'string' ? safeDecode(params.conceptId) : '';
+  return <ClassRoute rawConceptId={rawId} rawIntent={searchParams?.get('intent')} backHref="/learn" />;
 }

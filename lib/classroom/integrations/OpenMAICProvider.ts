@@ -27,10 +27,11 @@ export class OpenMAICProvider implements ClassroomProvider {
     return {
       id: this.id,
       label: this.label,
-      status: this.bridgeUrl ? 'configured' : 'available',
+      // Not configured ≠ available: report honestly so the Class does not call it.
+      status: this.bridgeUrl ? 'configured' : 'unavailable',
       reason: this.bridgeUrl
-        ? 'OpenMAIC bridge configured.'
-        : 'OpenMAIC SDK/bridge is optional; Xpedition native classroom remains the fallback.',
+        ? 'OpenMAIC bridge configured (not verified by Xpedition until a scene succeeds).'
+        : 'OpenMAIC bridge is not configured (XPEDITION_OPENMAIC_BRIDGE_URL unset). The native Class runs without it.',
       capabilities: ['scene', 'interactive', 'whiteboard', 'simulation', 'playback'],
     };
   }

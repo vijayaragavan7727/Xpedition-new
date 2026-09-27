@@ -189,7 +189,8 @@ export async function runSkipSystemTests(): Promise<{ passed: number; failed: nu
   });
 
   test('Skipping an activity preserves current Class concept data', () => {
-    const classData = getClassData('projectile_motion');
+    const classData = getClassData('projectile_motion')!;
+    assert.ok(classData, 'projectile_motion legacy class data exists');
     assert.strictEqual(classData.conceptId, 'projectile_motion');
     assert.ok(classData.nextConcept.conceptId, 'Next concept must be preserved');
   });

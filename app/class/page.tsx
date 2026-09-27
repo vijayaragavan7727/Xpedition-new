@@ -2,16 +2,18 @@
 
 import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { UnifiedClassContainer } from '@/components/class';
-import { ClassroomLayout } from '@/components/classroom/ClassroomLayout';
-import { CANONICAL_CLASSROOM_LESSONS } from '@/lib/classroom/classroomCatalog';
+import { ClassRoute } from '@/components/classroom/ClassRoute';
 import { Skeleton } from '@/components/ui';
 
+/**
+ * /class?concept=<id>&intent=<intent>
+ *
+ * No default concept: a missing `concept` shows the explicit unavailable state.
+ * Resolution is done by the single resolver inside ClassRoute.
+ */
 function ClassPageContent() {
   const searchParams = useSearchParams();
-  const conceptParam = searchParams.get('concept') || 'dc_motor';
-
-  return <ClassroomLayout conceptId={conceptParam} backHref="/learn" />;
+  return <ClassRoute rawConceptId={searchParams.get('concept')} rawIntent={searchParams.get('intent')} backHref="/learn" />;
 }
 
 export default function ClassPage() {

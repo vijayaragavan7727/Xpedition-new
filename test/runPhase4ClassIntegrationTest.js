@@ -260,13 +260,21 @@ async function runPhase4ClassIntegrationTests() {
   // TEST GROUP K: Visual Failure Fallback (5 tests)
   // ---------------------------------------------------------------------------
   console.log('\nK. Testing Visual Failure Fallback');
-  // Unknown concept creates safe fallback
-  const fallbackSess = await orch.createSession('completely_unknown_concept_9999');
-  assert(fallbackSess.currentVisualPayload !== undefined, 'Fallback session provides a valid Smart Board payload');
-  assert(fallbackSess.currentVisualPayload.type === 'visual_requirement', 'Fallback payload has type "visual_requirement"');
-  assert(typeof fallbackSess.currentVisualPayload.title === 'string', 'Fallback payload has valid title');
-  assert(typeof fallbackSess.currentVisualPayload.purpose === 'string', 'Fallback payload has valid purpose');
-  assert(fallbackSess.currentStage === 'INTRODUCE', 'Fallback session successfully initializes at INTRODUCE');
+  // Phase 1/2 contract: an unknown concept is REFUSED explicitly. It must never
+  // become a session for another concept or a synthesized placeholder lesson.
+  let unknownError = null;
+  try {
+    await orch.createSession('completely_unknown_concept_9999');
+  } catch (err) {
+    unknownError = err;
+  }
+  assert(unknownError !== null, 'Unknown concept does not create a session');
+  assert(unknownError && unknownError.name === 'ConceptUnavailableError', 'Unknown concept raises ConceptUnavailableError');
+  const knownSess = await orch.createSession('periodic_table');
+  assert(knownSess.currentVisualPayload !== undefined, 'Known concept session provides a Smart Board payload');
+  assert(knownSess.currentVisualPayload.type === 'visual_requirement', 'Payload has type "visual_requirement"');
+  assert(knownSess.conceptId === 'periodic_table', 'Session keeps exact concept identity');
+  assert(knownSess.currentStage === 'INTRODUCE', 'Session initializes at INTRODUCE');
 
   // ---------------------------------------------------------------------------
   // TEST GROUP L: Regression Protection (6 tests)
@@ -275,9 +283,11 @@ async function runPhase4ClassIntegrationTests() {
   assert(CANONICAL_CLASSROOM_LESSONS['dc_motor'] !== undefined, 'Canonical dc_motor lesson preserved');
   assert(CANONICAL_CLASSROOM_LESSONS['projectile_motion'] !== undefined, 'Canonical projectile_motion lesson preserved');
   assert(CANONICAL_CLASSROOM_LESSONS['human_heart_anatomy'] !== undefined, 'Canonical human_heart_anatomy lesson preserved');
-  assert(getClassroomLesson('electric_motor').conceptId === 'dc_motor', 'Synonym electric_motor resolves to dc_motor');
-  assert(getClassroomLesson('kinematics').conceptId === 'projectile_motion', 'Synonym kinematics resolves to projectile_motion');
-  assert(getClassroomLesson('cardiac').conceptId === 'human_heart_anatomy', 'Synonym cardiac resolves to human_heart_anatomy');
+  // Exact lookup only: explicit aliases resolve, loose substring "synonyms" do not.
+  assert(getClassroomLesson('dc_electric_motor').conceptId === 'dc_motor', 'Explicit alias dc_electric_motor resolves to dc_motor');
+  assert(getClassroomLesson('heart_anatomy').conceptId === 'human_heart_anatomy', 'Explicit alias heart_anatomy resolves to human_heart_anatomy');
+  assert(getClassroomLesson('kinematics') === null, 'Substring-only id "kinematics" does not resolve to another lesson');
+  assert(getClassroomLesson('cardiac') === null, 'Substring-only id "cardiac" does not resolve to another lesson');
 
   // ---------------------------------------------------------------------------
   // END-TO-END DC MOTOR INTEGRATION SCENARIO (Step 21)

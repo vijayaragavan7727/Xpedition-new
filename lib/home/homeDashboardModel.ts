@@ -195,21 +195,21 @@ export function resolveHomeDashboardData(
   );
 
   const nextTitle = isDefaultOrEmpty
-    ? 'Magnetic Fields'
-    : nextConceptFromPathway?.name || 'Magnetic Fields';
+    ? 'Lorentz Force & Magnetic Fields'
+    : nextConceptFromPathway?.name || 'Lorentz Force & Magnetic Fields';
 
   const nextSubject = isDefaultOrEmpty
     ? 'Physics'
     : currentSubject;
 
   const nextUp: NextUpCardData = {
-    conceptId: isDefaultOrEmpty ? 'magnetic_fields' : (nextConceptFromPathway?.id || 'magnetic_fields'),
+    conceptId: isDefaultOrEmpty ? 'electromagnetic_force' : (nextConceptFromPathway?.id || 'electromagnetic_force'),
     title: nextTitle,
     subject: nextSubject,
     durationLabel: '5 min',
-    route: `/class?concept=${encodeURIComponent(isDefaultOrEmpty ? 'magnetic_fields' : (nextConceptFromPathway?.id || 'magnetic_fields'))}`,
+    route: `/class?concept=${encodeURIComponent(isDefaultOrEmpty ? 'electromagnetic_force' : (nextConceptFromPathway?.id || 'electromagnetic_force'))}`,
     buttonLabel: 'Start',
-    visualAsset: resolveConceptVisual(isDefaultOrEmpty ? 'magnetic_fields' : (nextConceptFromPathway?.id || 'magnetic_fields'), nextSubject, true),
+    visualAsset: resolveConceptVisual(isDefaultOrEmpty ? 'electromagnetic_force' : (nextConceptFromPathway?.id || 'electromagnetic_force'), nextSubject, true),
     badgeLabel: 'Next Up',
     iconType: 'magnet',
   };

@@ -246,6 +246,29 @@ export const SUBJECT_VISUAL_RULES: SubjectRule[] = [
 /**
  * Finds matching subject rules based on subject and topic keywords.
  */
+/**
+ * Whole-token keyword match. A keyword matches only when its tokens appear as a
+ * contiguous run of whole tokens in the topic. This prevents substring false
+ * positives such as "evolution" inside "revolution", "war" inside "software",
+ * or "sine" inside "business".
+ */
+export function topicHasKeyword(topic: string, keyword: string): boolean {
+  const topicTokens = topic.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const kwTokens = keyword.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  if (kwTokens.length === 0 || kwTokens.length > topicTokens.length) return false;
+  for (let i = 0; i <= topicTokens.length - kwTokens.length; i++) {
+    let ok = true;
+    for (let j = 0; j < kwTokens.length; j++) {
+      if (topicTokens[i + j] !== kwTokens[j]) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
 export function matchSubjectRule(subject?: string, topicOrConcept?: string): SubjectRule | null {
   const normSubject = (subject || '').toLowerCase().trim();
   const normTopic = (topicOrConcept || '').toLowerCase().trim();
@@ -254,7 +277,7 @@ export function matchSubjectRule(subject?: string, topicOrConcept?: string): Sub
   for (const rule of SUBJECT_VISUAL_RULES) {
     if (normSubject && rule.subject.toLowerCase() === normSubject) {
       for (const kw of rule.topicKeywords) {
-        if (normTopic.includes(kw)) {
+        if (topicHasKeyword(normTopic, kw)) {
           return rule;
         }
       }
@@ -264,7 +287,7 @@ export function matchSubjectRule(subject?: string, topicOrConcept?: string): Sub
   // 2. Global keyword match if subject is unspecified or mismatched
   for (const rule of SUBJECT_VISUAL_RULES) {
     for (const kw of rule.topicKeywords) {
-      if (normTopic.includes(kw)) {
+      if (topicHasKeyword(normTopic, kw)) {
         return rule;
       }
     }

@@ -30,3 +30,7 @@ public/art/*
 !public/art/README.md
 public/lottie/*
 !public/lottie/README.md
+
+# test artifacts
+/test/artifacts/
+/.test-dist*/

@@ -28,12 +28,32 @@ import {
   SmartBoardVisualPayload,
 } from '../visualIntelligence/types';
 import { BuddyState } from '@/components/buddy/BuddyState';
-import {
-  CANONICAL_CLASSROOM_LESSONS,
-  getClassroomLesson,
-} from './classroomCatalog';
 import { ClassroomLesson } from '@/components/classroom/types';
 import { getClassroomSessionStore, IClassroomSessionStore } from './ClassroomSessionStore';
+import { resolveClassLesson } from '../concepts/lessonResolver';
+import { getNextConceptId } from '../concepts/conceptRegistry';
+
+/** Thrown when a session is requested for a concept that is not in the registry. */
+export class ConceptUnavailableError extends Error {
+  constructor(public readonly requestedConceptId: string) {
+    super(`Concept is not available: ${requestedConceptId.slice(0, 100)}`);
+    this.name = 'ConceptUnavailableError';
+  }
+}
+
+/** Thrown when a session does not exist OR belongs to another learner (not distinguished, by design). */
+export class SessionNotFoundError extends Error {
+  constructor() {
+    super('Classroom session not found');
+    this.name = 'SessionNotFoundError';
+  }
+}
+
+function newSessionId(): string {
+  const cryptoApi = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (cryptoApi?.randomUUID) return `sess_${cryptoApi.randomUUID()}`;
+  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+}
 
 export class XiraClassroomOrchestrator {
   private static instance: XiraClassroomOrchestrator;
@@ -64,10 +84,16 @@ export class XiraClassroomOrchestrator {
    */
   public async createSession(
     conceptId: string,
-    initialStage: ClassroomStage = 'INTRODUCE'
+    initialStage: ClassroomStage = 'INTRODUCE',
+    options: { ownerId?: string; intent?: string } = {}
   ): Promise<ClassroomSessionState> {
-    const lesson: ClassroomLesson = getClassroomLesson(conceptId);
-    const sessionId = `sess_${conceptId}_${Date.now()}`;
+    // Single authoritative resolver: unknown concepts are refused, never substituted.
+    const resolution = resolveClassLesson(conceptId, options.intent);
+    if (resolution.status !== 'resolved') {
+      throw new ConceptUnavailableError(conceptId);
+    }
+    const lesson: ClassroomLesson = resolution.lesson;
+    const sessionId = newSessionId();
 
     // 1. Initial Visual Requirement & Smart Board Payload
     let currentVisualRequirement: VisualRequirement | undefined;
@@ -121,11 +147,13 @@ export class XiraClassroomOrchestrator {
       buddyState: state,
       isVisualLoading: false,
       visualError,
-      nextRecommendedConceptId: this.resolveNextConcept(lesson.conceptId),
+      nextRecommendedConceptId: getNextConceptId(lesson.conceptId) ?? undefined,
+      intent: resolution.intent,
+      ownerId: options.ownerId,
     };
 
     this.sessions.set(sessionId, sessionState);
-    await this.sessionStore.saveSession(sessionState);
+    await this.sessionStore.saveSession(sessionState, options.ownerId);
 
     // Record initial telemetry
     this.telemetryService.recordEvent({
@@ -150,8 +178,10 @@ export class XiraClassroomOrchestrator {
   /**
    * Retrieves active session by ID.
    */
-  public getSession(sessionId: string): ClassroomSessionState | null {
-    return this.sessions.get(sessionId) || null;
+  public getSession(sessionId: string, requesterId?: string): ClassroomSessionState | null {
+    const session = this.sessions.get(sessionId) || null;
+    if (session && session.ownerId && session.ownerId !== requesterId) return null;
+    return session;
   }
 
   /**
@@ -159,7 +189,8 @@ export class XiraClassroomOrchestrator {
    */
   public async processLearnerAction(
     sessionId: string,
-    action: ClassroomLearnerAction
+    action: ClassroomLearnerAction,
+    requesterId?: string
   ): Promise<ClassroomSessionState> {
     let session = this.sessions.get(sessionId);
     if (!session) {
@@ -169,10 +200,18 @@ export class XiraClassroomOrchestrator {
       }
     }
     if (!session) {
-      throw new Error(`Classroom session not found: ${sessionId}`);
+      throw new SessionNotFoundError();
+    }
+    // Ownership: a session created for learner A can never be driven by learner B.
+    if (session.ownerId && session.ownerId !== requesterId) {
+      throw new SessionNotFoundError();
     }
 
-    const lesson: ClassroomLesson = CANONICAL_CLASSROOM_LESSONS[session.conceptId] || getClassroomLesson(session.conceptId);
+    const resolution = resolveClassLesson(session.conceptId);
+    if (resolution.status !== 'resolved') {
+      throw new ConceptUnavailableError(session.conceptId);
+    }
+    const lesson: ClassroomLesson = resolution.lesson;
 
     switch (action.type) {
       case 'ADVANCE_STAGE': {
@@ -262,7 +301,7 @@ export class XiraClassroomOrchestrator {
           session.xiraIntervention = {
             type: 'praise',
             title: 'Mastery Confirmed',
-            message: 'Spot on! You correctly deduced the underlying electromagnetic interaction.',
+            message: lesson.buddyScript?.correct ?? 'Correct.',
             actionLabel: 'Continue to Practice',
           };
 
@@ -279,7 +318,7 @@ export class XiraClassroomOrchestrator {
           session.masteryScore = Math.max(0, session.masteryScore - 5);
           session.masteryState = this.calculateMasteryLevel(session.masteryScore);
 
-          const misconceptionExplanation = this.getMisconceptionAdvice(misconception);
+          const misconceptionExplanation = this.getMisconceptionAdvice(misconception, question?.explanation, lesson);
           session.xiraIntervention = {
             type: 'misconception',
             title: 'Mental Model Adjustment',
@@ -315,7 +354,11 @@ export class XiraClassroomOrchestrator {
         });
 
         const activeQ = session.questionState.activeQuestion;
-        const hintText = activeQ?.hint?.hints?.[0] || 'Observe the orientation of the magnetic poles and the direction of current in the coil.';
+        const hintText =
+          activeQ?.hint?.hints?.[0] ||
+          lesson.buddyScript?.hint ||
+          lesson.steps[0]?.hintText ||
+          `Re-read the key idea for ${lesson.topicTitle} on the Smart Board.`;
 
         session.xiraIntervention = {
           type: 'hint',
@@ -454,7 +497,8 @@ export class XiraClassroomOrchestrator {
   }
 
   /**
-   * Buddy companion reaction and concise voice synthesis.
+   * Buddy reaction for a stage. All wording comes from the ACTIVE lesson:
+   * its Buddy script and its own step dialogue. No concept-specific defaults.
    */
   private resolveBuddyReaction(
     stage: ClassroomStage,
@@ -462,86 +506,42 @@ export class XiraClassroomOrchestrator {
     stepIdx: number,
     context: { isCorrect?: boolean; retry?: boolean } = {}
   ): { dialogue: string; state: BuddyState } {
+    const script = lesson.buddyScript;
+    const steps = lesson.steps;
+    const stepAt = (i: number) => steps[Math.max(0, Math.min(steps.length - 1, i))];
     switch (stage) {
       case 'INTRODUCE':
-        return {
-          dialogue: `Welcome! Today we are exploring ${lesson.topicTitle}. Let's look at the Smart Board together.`,
-          state: 'INTRODUCING',
-        };
-
+        return { dialogue: script?.introduction ?? stepAt(0).buddyDialogue, state: 'INTRODUCING' };
       case 'EXPLAIN':
-        return {
-          dialogue: 'Notice the core physical components on the board. The permanent magnets create the field, while current drives rotation.',
-          state: 'EXPLAINING',
-        };
-
+        return { dialogue: stepAt(1).buddyDialogue, state: 'EXPLAINING' };
       case 'DEMONSTRATE':
+        return { dialogue: stepAt(2).buddyDialogue, state: 'EXPLAINING' };
+      case 'INTERACT': {
+        const interactStep = steps.find((s) => s.stage === 'interact') ?? stepAt(3);
+        return { dialogue: interactStep.buddyDialogue, state: 'ENCOURAGING' };
+      }
+      case 'QUESTION': {
+        const questionStep = steps.find((s) => s.checkQuestion) ?? stepAt(stepIdx);
+        const prompt = questionStep.checkQuestion ? `Predict: ${questionStep.checkQuestion.prompt}` : questionStep.buddyDialogue;
         return {
-          dialogue: 'Watch the rotation cycle. As the coil passes vertical, current reverses so torque keeps driving in the same direction.',
-          state: 'EXPLAINING',
-        };
-
-      case 'INTERACT':
-        return {
-          dialogue: 'Your turn! Tap the active components or toggle the rotation switch to inspect the electromagnetic couple.',
-          state: 'ENCOURAGING',
-        };
-
-      case 'QUESTION':
-        return {
-          dialogue: context.retry
-            ? 'Give it another shot! Consider which rotating part switches contact segments every half turn.'
-            : 'Predict what happens: which component reverses the current in the coil every half-turn?',
+          dialogue: context.retry ? script?.hint ?? prompt : prompt,
           state: 'THINKING',
         };
-
+      }
       case 'FEEDBACK':
         if (context.isCorrect) {
-          return {
-            dialogue: 'Spot on! The split-ring commutator switches contact with the brushes, keeping torque unidirectional!',
-            state: 'CELEBRATING',
-          };
+          return { dialogue: script?.correct ?? 'Correct!', state: 'CELEBRATING' };
         }
-        return {
-          dialogue: 'Not quite. Check the rotating copper ring connected to the axle on the Smart Board.',
-          state: 'THINKING',
-        };
-
+        return { dialogue: script?.incorrect ?? 'Not quite. Look at the Smart Board again.', state: 'THINKING' };
       case 'PRACTICE':
-        return {
-          dialogue: 'Great progress. Now let us apply this principle: if we double the loop current, how does torque respond?',
-          state: 'ENCOURAGING',
-        };
-
       case 'CHALLENGE':
-        return {
-          dialogue: 'Diagnostic Challenge! What happens if the commutator is permanently welded into a solid ring without a gap?',
-          state: 'THINKING',
-        };
-
       case 'ASSESS':
-        return {
-          dialogue: 'Final check. Solve this independent application without hints to cement your mastery.',
-          state: 'WAITING',
-        };
-
+        return { dialogue: script?.transition ?? stepAt(stepIdx).buddyDialogue, state: stage === 'ASSESS' ? 'WAITING' : 'ENCOURAGING' };
       case 'REWARD':
-        return {
-          dialogue: 'Outstanding work! You have completely mastered DC motor commutation and Lorentz force!',
-          state: 'CELEBRATING',
-        };
-
       case 'NEXT':
-        return {
-          dialogue: 'Lesson complete! You are ready to explore the next frontier in kinematics or electromechanics.',
-          state: 'INTRODUCING',
-        };
-
+        return { dialogue: script?.completion ?? stepAt(steps.length - 1).buddyDialogue, state: 'CELEBRATING' };
       default:
-        return {
-          dialogue: 'Observe the Smart Board carefully.',
-          state: 'EXPLAINING',
-        };
+        return { dialogue: stepAt(stepIdx).buddyDialogue, state: 'EXPLAINING' };
     }
   }
 
@@ -557,25 +557,16 @@ export class XiraClassroomOrchestrator {
   }
 
   /**
-   * Provides deterministic misconception guidance.
+   * Misconception guidance from the ACTIVE lesson: the question's own
+   * explanation, else the lesson's Buddy hint. Never another concept's advice.
    */
-  private getMisconceptionAdvice(tag?: string): string {
-    const adviceMap: Record<string, string> = {
-      commutator_vs_brushes:
-        'Notice the distinction: carbon brushes are stationary sliding contacts, whereas the split-ring commutator rotates with the axle and reverses current direction.',
-      linear_vs_quadratic_torque:
-        'Torque scales linearly with current: tau = N * I * A * B * sin(alpha). Doubling current doubles torque directly.',
-      continuous_force_inversion:
-        'Without a commutator, after 90 degrees the upward force acts on the opposite side, producing a counter-torque that pulls the rotor backward and stalls it.',
-    };
-
-    return tag && adviceMap[tag]
-      ? adviceMap[tag]
-      : 'Review the Smart Board diagram to trace how current flow direction relates to magnetic force.';
+  private getMisconceptionAdvice(_tag: string | undefined, explanation: string | undefined, lesson: ClassroomLesson): string {
+    return explanation || lesson.buddyScript?.hint || `Review the key idea for ${lesson.topicTitle} on the Smart Board.`;
   }
 
   /**
-   * Guaranteed safe visual fallback payload preventing broken boards.
+   * Safe fallback payload built from the ACTIVE lesson. No image asset from
+   * any other concept; the Class renders its deterministic visual instead.
    */
   private buildSafeVisualFallback(
     lesson: ClassroomLesson,
@@ -584,27 +575,10 @@ export class XiraClassroomOrchestrator {
     return {
       type: 'visual_requirement',
       visualType: 'scientific_diagram',
-      assetUrl: '/images/classroom/dc-motor-diagram-clean.png',
       title: lesson.topicTitle,
       purpose: `Pedagogical visualization for ${stage} stage: ${lesson.learningObjective}`,
-      interaction: {
-        isInteractive: stage === 'INTERACT',
-        hotspots: [
-          { id: 'h1', label: 'Stator Magnets', description: 'North & South magnetic poles' },
-          { id: 'h2', label: 'Armature Coil', description: 'Current-carrying rotor loop' },
-          { id: 'h3', label: 'Commutator', description: 'Split-ring polarity inverter' },
-        ],
-      },
+      metadata: { conceptId: lesson.conceptId, subject: lesson.subject, stage },
     };
-  }
-
-  /**
-   * Resolves the next recommended concept in the curriculum journey.
-   */
-  private resolveNextConcept(currentConceptId: string): string {
-    if (currentConceptId === 'dc_motor') return 'projectile_motion';
-    if (currentConceptId === 'projectile_motion') return 'human_heart_anatomy';
-    return 'dc_motor';
   }
 }
 

@@ -224,6 +224,7 @@ export class VisualRequirementEngine {
         accuracyLevel: requirement.accuracyLevel,
         isFromExistingAsset: requirement.isFromExistingAsset,
         conceptId: requirement.conceptId,
+        subject: requirement.subject,
       },
     };
 
@@ -243,8 +244,8 @@ export class VisualRequirementEngine {
   ): { purpose: PedagogicalPurpose; contentReqs: ContentRequirements } {
     const norm = conceptId.toLowerCase();
 
-    // Special grounding for canonical pilot concepts
-    if (norm.includes('motor')) {
+    // Special grounding for canonical pilot concepts — EXACT concept ids only.
+    if (norm === 'dc_motor') {
       return {
         purpose: {
           learnerNotice: [
@@ -285,7 +286,7 @@ export class VisualRequirementEngine {
       };
     }
 
-    if (norm.includes('projectile')) {
+    if (norm === 'projectile_motion') {
       return {
         purpose: {
           learnerNotice: [
@@ -311,7 +312,7 @@ export class VisualRequirementEngine {
       };
     }
 
-    if (norm.includes('heart') || norm.includes('cardio')) {
+    if (norm === 'human_heart_anatomy') {
       return {
         purpose: {
           learnerNotice: [
@@ -337,7 +338,7 @@ export class VisualRequirementEngine {
       };
     }
 
-    if (norm.includes('quadratic') || norm.includes('parabola')) {
+    if (norm === 'quadratic_equation') {
       return {
         purpose: {
           learnerNotice: [
@@ -364,7 +365,7 @@ export class VisualRequirementEngine {
       };
     }
 
-    if (norm.includes('molecule') || norm.includes('bonding') || norm.includes('covalent')) {
+    if (norm === 'molecular_bonding') {
       return {
         purpose: {
           learnerNotice: [
@@ -390,7 +391,7 @@ export class VisualRequirementEngine {
       };
     }
 
-    if (norm.includes('binary_search') || (norm.includes('binary') && norm.includes('search'))) {
+    if (norm === 'binary_search') {
       return {
         purpose: {
           learnerNotice: [
@@ -416,7 +417,7 @@ export class VisualRequirementEngine {
       };
     }
 
-    if (norm.includes('revolution') || norm.includes('french')) {
+    if (norm === 'french_revolution') {
       return {
         purpose: {
           learnerNotice: [

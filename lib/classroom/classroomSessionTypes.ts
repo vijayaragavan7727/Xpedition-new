@@ -180,6 +180,13 @@ export interface ClassroomSessionState {
   isVisualLoading: boolean;
   visualError?: string;
   nextRecommendedConceptId?: string;
+  /** Learner intent (e.g. 'revision'). Never changes conceptId. */
+  intent?: string;
+  /**
+   * Authenticated owner of the session. When set, only this user may act on
+   * the session (prevents cross-learner session access).
+   */
+  ownerId?: string;
 }
 
 /**

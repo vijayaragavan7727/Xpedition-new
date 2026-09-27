@@ -323,8 +323,9 @@ async function runPhase5Tests() {
   assert(lesson.conceptId === 'dc_motor', 'Canonical DC motor lesson is intact');
   assert(lesson.topicTitle.includes('DC') && lesson.topicTitle.includes('Motor'), 'Lesson title matches DC Motor');
 
-  const heartLesson = getClassroomLesson('cardiac');
-  assert(heartLesson.conceptId === 'human_heart_anatomy', 'Cardiac synonym resolves cleanly');
+  const heartLesson = getClassroomLesson('heart_anatomy');
+  assert(heartLesson && heartLesson.conceptId === 'human_heart_anatomy', 'Explicit heart_anatomy alias resolves cleanly');
+  assert(getClassroomLesson('cardiac') === null, 'Substring-only id does not resolve (exact lookup)');
 
   const envExamplePath = path.join(rootDir, '.env.example');
   const envContent = fs.readFileSync(envExamplePath, 'utf8');

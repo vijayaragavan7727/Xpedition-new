@@ -6,9 +6,16 @@
  */
 
 import { ClassroomLesson } from '@/components/classroom/types';
-import { matchSubjectRule } from '../visualIntelligence/rules/SubjectVisualRules';
+import { applyLessonPedagogy } from './lessons/lessonPedagogy';
+import { PERIODIC_TABLE_LESSON } from './lessons/periodicTable';
+import { POLYMORPHISM_LESSON } from './lessons/polymorphism';
+import { CALCULUS_DERIVATIVES_LESSON } from './lessons/calculusDerivatives';
+import { INDUSTRIAL_REVOLUTION_LESSON } from './lessons/industrialRevolution';
+// Module cycle note: the resolver imports this catalog too. That is safe because
+// the concept registry is built lazily on first use, never at module evaluation.
+import { resolveClassLesson } from '../concepts/lessonResolver';
 
-export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
+const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
   dc_motor: {
     id: 'lesson_dc_motor',
     conceptId: 'dc_motor',
@@ -432,6 +439,79 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         },
         hintText: 'Find where the trigonometric term sin(2θ) reaches its crest of 1.0.',
       },
+      {
+        id: 'step_3_proj_time',
+        stepNumber: 3,
+        stage: 'question',
+        title: 'Time of Flight',
+        subtitle: 'Vertical Motion Sets the Clock',
+        buddyDialogue:
+          'How long does a projectile stay in the air? Only the vertical motion decides that. Horizontal speed just sets how far it travels in that time.',
+        buddyState: 'EXPLAINING',
+        boardTitle: 'Vertical Motion Decides Flight Time',
+        boardSummary:
+          'For launch and landing at the same height, the time of flight is t = 2·v₀·sin θ / g. It depends only on the vertical component of the launch velocity.',
+        keyPrinciple:
+          'Horizontal speed never changes the flight time. It only sets how far the projectile travels during that time.',
+        formulaSnippet: 't_flight = 2·v₀·sin θ / g',
+        visualType: 'interactive_simulation',
+        checkQuestion: {
+          id: 'q_proj_step_drop',
+          prompt: 'From the same table height, ball A is dropped while ball B is launched horizontally at the same instant. Which lands first?',
+          options: [
+            { id: 'p_t1', text: 'They land at the same time', isCorrect: true, feedback: 'Correct. Both start with zero vertical velocity and fall with the same g.' },
+            { id: 'p_t2', text: 'Ball A (dropped)', isCorrect: false, feedback: 'B’s horizontal speed does not slow its vertical fall.' },
+            { id: 'p_t3', text: 'Ball B (launched)', isCorrect: false, feedback: 'Horizontal speed does not speed up the vertical fall either.' },
+          ],
+        },
+        hintText: 'Compare only the vertical motion of the two balls.',
+      },
+      {
+        id: 'step_4_proj_apex',
+        stepNumber: 4,
+        stage: 'interact',
+        title: 'The Apex',
+        subtitle: 'Top of the Arc',
+        buddyDialogue:
+          'At the very top of the arc, the vertical velocity is zero for an instant, but the projectile is still moving forward. Fire one and watch the top of the path.',
+        buddyState: 'ENCOURAGING',
+        boardTitle: 'Maximum Height',
+        boardSummary:
+          'At the apex the vertical velocity is momentarily zero, while the horizontal velocity v₀·cos θ is unchanged.',
+        keyPrinciple:
+          'Maximum height H = (v₀·sin θ)² / (2g). The apex is reached at half the time of flight on level ground.',
+        formulaSnippet: 'H = (v₀·sin θ)² / (2g)',
+        visualType: 'interactive_simulation',
+        hintText: 'Only the vertical component slows to zero.',
+      },
+      {
+        id: 'step_5_proj_predict',
+        stepNumber: 5,
+        stage: 'reward',
+        title: 'Predict and Test',
+        subtitle: 'Using the Range Equation',
+        buddyDialogue:
+          'Brilliant work! Now you can predict where a projectile lands before you launch it. Make a prediction, then test it on the board.',
+        buddyState: 'CELEBRATING',
+        boardTitle: 'Predict the Landing Point',
+        boardSummary:
+          'Use R = v₀²·sin 2θ / g. Example: v₀ = 20 m/s at 30° gives R = 400 × sin 60° / 9.8 ≈ 35.3 m.',
+        keyPrinciple:
+          'Split the motion, find the flight time from the vertical motion, then multiply by the constant horizontal velocity.',
+        formulaSnippet: 'R = v₀²·sin 2θ / g',
+        visualType: 'interactive_simulation',
+        checkQuestion: {
+          id: 'q_proj_step_predict',
+          prompt: 'A ball is launched at 15 m/s at 45° on level ground (g = 9.8 m/s²). About how far does it land?',
+          options: [
+            { id: 'p_r1', text: 'About 23 m', isCorrect: true, feedback: 'Correct. R = 225 × sin 90° / 9.8 ≈ 23 m.' },
+            { id: 'p_r2', text: 'About 11.5 m', isCorrect: false, feedback: 'That is half the range. Check that you used sin(90°) = 1.' },
+            { id: 'p_r3', text: 'About 46 m', isCorrect: false, feedback: 'That is double the range. Divide v₀² by g once.' },
+            { id: 'p_r4', text: '15 m', isCorrect: false, feedback: 'The launch speed is not the range.' },
+          ],
+        },
+        hintText: 'At 45°, sin 2θ = 1, so R = v₀² / g.',
+      },
     ],
     formulas: [
       {
@@ -459,6 +539,19 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
           { symbol: 'g', description: 'Gravity', unit: '9.8 m/s²' },
         ],
         example: 'If v_0 = 20 m/s and θ = 30°: t = (2 × 20 × sin 30°) / 9.8 = 20 / 9.8 ≈ 2.04 s',
+      },
+      {
+        id: 'f_max_height',
+        name: 'Maximum Height',
+        formula: 'H = (v_0 · sin θ)² / (2g)',
+        description: 'Peak height above the launch point, reached when the vertical velocity is zero.',
+        variables: [
+          { symbol: 'H', description: 'Maximum height', unit: 'meters (m)' },
+          { symbol: 'v_0', description: 'Initial velocity', unit: 'm/s' },
+          { symbol: 'θ', description: 'Launch angle', unit: 'degrees' },
+          { symbol: 'g', description: 'Gravity', unit: '9.8 m/s²' },
+        ],
+        example: 'If v_0 = 20 m/s and θ = 30°: H = (10)² / 19.6 ≈ 5.1 m',
       },
     ],
     flashcards: [
@@ -563,6 +656,7 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
       {
         id: 'step_1_heart_intro',
         stepNumber: 1,
+        stage: 'introduce',
         title: 'The Dual Muscular Pump',
         subtitle: 'Pulmonary vs Systemic Circuit',
         buddyDialogue:
@@ -580,6 +674,94 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
             'The left ventricle wall is ~3x thicker than the right because it must pump against systemic arterial resistance all the way to your toes!',
         },
         hintText: 'Blood always flows from Atrium (receiver) to Ventricle (pump) and out through arteries.',
+      },
+      {
+        id: 'step_2_heart_chambers',
+        stepNumber: 2,
+        stage: 'explain',
+        title: 'Four Chambers',
+        subtitle: 'Atria Receive, Ventricles Pump',
+        buddyDialogue:
+          'The heart has four chambers. The two atria on top receive blood; the two ventricles below pump it out. A muscular wall called the septum keeps the right and left sides apart.',
+        buddyState: 'EXPLAINING',
+        boardTitle: 'Atria and Ventricles',
+        boardSummary:
+          'The right atrium and right ventricle handle oxygen-poor blood from the body. The left atrium and left ventricle handle oxygen-rich blood from the lungs.',
+        keyPrinciple:
+          'The septum separates the two sides so oxygen-poor and oxygen-rich blood do not mix.',
+        visualType: 'anatomical_visual',
+        hintText: 'Top chambers receive; bottom chambers pump.',
+      },
+      {
+        id: 'step_3_heart_valves',
+        stepNumber: 3,
+        stage: 'question',
+        title: 'Valves Keep Flow One-Way',
+        subtitle: 'Tricuspid, Pulmonary, Mitral, Aortic',
+        buddyDialogue:
+          'Four valves act like one-way doors. They open and close as pressure changes, so blood can only move forward.',
+        buddyState: 'EXPLAINING',
+        boardTitle: 'Four One-Way Valves',
+        boardSummary:
+          'Tricuspid (right atrium → right ventricle), pulmonary (right ventricle → pulmonary artery), mitral (left atrium → left ventricle) and aortic (left ventricle → aorta).',
+        keyPrinciple:
+          'Valves prevent backflow. The “lub-dub” heart sounds are made by the valves closing.',
+        visualType: 'anatomical_visual',
+        checkQuestion: {
+          id: 'q_heart_step_mitral',
+          prompt: 'Which valve stops blood flowing back from the left ventricle into the left atrium?',
+          options: [
+            { id: 'h_v1', text: 'Mitral valve', isCorrect: true, feedback: 'Correct. The mitral (bicuspid) valve sits between the left atrium and left ventricle.' },
+            { id: 'h_v2', text: 'Aortic valve', isCorrect: false, feedback: 'The aortic valve sits between the left ventricle and the aorta.' },
+            { id: 'h_v3', text: 'Tricuspid valve', isCorrect: false, feedback: 'The tricuspid valve is on the right side of the heart.' },
+            { id: 'h_v4', text: 'Pulmonary valve', isCorrect: false, feedback: 'The pulmonary valve guards the exit from the right ventricle.' },
+          ],
+        },
+        hintText: 'It is on the left side, between the two left chambers.',
+      },
+      {
+        id: 'step_4_heart_pathway',
+        stepNumber: 4,
+        stage: 'interact',
+        title: 'Trace the Pathway',
+        subtitle: 'One Complete Loop',
+        buddyDialogue:
+          'Your turn: follow one red blood cell from the body, through the heart and lungs, and back out to the body.',
+        buddyState: 'ENCOURAGING',
+        boardTitle: 'Body → Heart → Lungs → Heart → Body',
+        boardSummary:
+          'Venae cavae → right atrium → right ventricle → pulmonary artery → lungs → pulmonary veins → left atrium → left ventricle → aorta → body.',
+        keyPrinciple:
+          'Arteries carry blood away from the heart and veins carry blood towards it. The pulmonary arteries are arteries that carry oxygen-poor blood.',
+        visualType: 'anatomical_visual',
+        checkQuestion: {
+          id: 'q_heart_step_after_rv',
+          prompt: 'Where does blood go immediately after leaving the right ventricle?',
+          options: [
+            { id: 'h_p1', text: 'Into the pulmonary artery, towards the lungs', isCorrect: true, feedback: 'Correct. The right ventricle pumps oxygen-poor blood to the lungs.' },
+            { id: 'h_p2', text: 'Into the aorta', isCorrect: false, feedback: 'The aorta leaves the left ventricle.' },
+            { id: 'h_p3', text: 'Into the left atrium', isCorrect: false, feedback: 'The septum separates the sides; blood reaches the left atrium only after the lungs.' },
+            { id: 'h_p4', text: 'Into the vena cava', isCorrect: false, feedback: 'The venae cavae bring blood into the right atrium.' },
+          ],
+        },
+        hintText: 'The right side of the heart serves the lungs.',
+      },
+      {
+        id: 'step_5_heart_synthesis',
+        stepNumber: 5,
+        stage: 'reward',
+        title: 'Two Circuits, One Heartbeat',
+        subtitle: 'Double Circulation',
+        buddyDialogue:
+          'Outstanding! With every beat the heart pumps blood through both circuits at once: to the lungs and to the whole body.',
+        buddyState: 'CELEBRATING',
+        boardTitle: 'Double Circulation',
+        boardSummary:
+          'Pulmonary circuit: right heart ↔ lungs. Systemic circuit: left heart ↔ body. Both ventricles contract together.',
+        keyPrinciple:
+          'The left ventricle has the thickest wall because it must push blood around the whole body.',
+        visualType: 'anatomical_visual',
+        hintText: 'Pulmonary = lungs; systemic = body.',
       },
     ],
     flashcards: [
@@ -751,6 +933,11 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         visualType: 'graph',
       },
     ],
+    flashcards: [
+      { id: 'fc_quad_1', conceptId: 'quadratic_equation', front: 'Axis of symmetry of y = ax² + bx + c', back: 'x = −b / (2a), the vertical line through the vertex.', category: 'Vertex' },
+      { id: 'fc_quad_2', conceptId: 'quadratic_equation', front: 'Discriminant', back: 'Δ = b² − 4ac. Δ > 0: two real roots; Δ = 0: one repeated root; Δ < 0: no real roots.', category: 'Roots' },
+      { id: 'fc_quad_3', conceptId: 'quadratic_equation', front: 'Quadratic formula', back: 'x = (−b ± √(b² − 4ac)) / (2a)', category: 'Formula' },
+    ],
   },
 
   molecular_bonding: {
@@ -848,6 +1035,11 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
           'Form dictates function in molecular chemistry.',
         visualType: 'molecular_visual',
       },
+    ],
+    flashcards: [
+      { id: 'fc_mol_1', conceptId: 'molecular_bonding', front: 'Covalent bond', back: 'A shared pair of electrons between two nonmetal atoms.', category: 'Bonding' },
+      { id: 'fc_mol_2', conceptId: 'molecular_bonding', front: 'VSEPR idea', back: 'Electron pairs around a central atom repel and spread out to minimise repulsion.', category: 'Geometry' },
+      { id: 'fc_mol_3', conceptId: 'molecular_bonding', front: 'Water bond angle', back: 'About 104.5°, compressed from 109.5° by two lone pairs on oxygen.', category: 'Geometry' },
     ],
   },
 
@@ -952,13 +1144,18 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         visualType: 'code_visual',
       },
     ],
+    flashcards: [
+      { id: 'fc_bin_1', conceptId: 'binary_search', front: 'Precondition for binary search', back: 'The data must be sorted.', category: 'Rules' },
+      { id: 'fc_bin_2', conceptId: 'binary_search', front: 'Worst-case comparisons', back: 'About log₂ n: 1,024 items need at most 11 comparisons.', category: 'Complexity' },
+      { id: 'fc_bin_3', conceptId: 'binary_search', front: 'Safe midpoint', back: 'mid = low + (high − low) / 2 avoids integer overflow.', category: 'Implementation' },
+    ],
   },
 
   french_revolution: {
     id: 'lesson_french_revolution',
     conceptId: 'french_revolution',
     topicTitle: 'The French Revolution & Republic (1789)',
-    subject: 'History/GK',
+    subject: 'History',
     gradeLevel: 'World History',
     estimatedMinutes: 10,
     hasFormulas: false,
@@ -1049,6 +1246,11 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
           'Power derives from the consent and rights of the governed.',
         visualType: 'timeline',
       },
+    ],
+    flashcards: [
+      { id: 'fc_fr_1', conceptId: 'french_revolution', front: 'Storming of the Bastille', back: '14 July 1789, now France’s national holiday.', category: 'Events' },
+      { id: 'fc_fr_2', conceptId: 'french_revolution', front: 'Declaration of the Rights of Man', back: 'August 1789: proclaimed that men are born free and equal in rights.', category: 'Ideas' },
+      { id: 'fc_fr_3', conceptId: 'french_revolution', front: 'First French Republic', back: 'Proclaimed September 1792 after the monarchy was abolished.', category: 'Events' },
     ],
   },
 
@@ -1153,140 +1355,44 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         visualType: 'graph',
       },
     ],
+    flashcards: [
+      { id: 'fc_lr_1', conceptId: 'linear_regression', front: 'Residual', back: 'e = y − ŷ: the actual value minus the predicted value.', category: 'Errors' },
+      { id: 'fc_lr_2', conceptId: 'linear_regression', front: 'Ordinary Least Squares', back: 'Chooses the slope and intercept that minimise the sum of squared residuals.', category: 'Fitting' },
+      { id: 'fc_lr_3', conceptId: 'linear_regression', front: 'R²', back: 'Share of variation in y explained by the model: 1 − SS_res / SS_tot.', category: 'Evaluation' },
+    ],
   },
 };
 
 /**
- * Retrieves the classroom lesson data for a given concept.
- * Gracefully handles synonyms and generates dynamic structured lessons for curriculum catalog topics.
+ * Authored lessons keyed by their exact canonical concept id.
+ *
+ * Every entry's key MUST equal `lesson.conceptId` (enforced by the concept
+ * identity tests). Lesson-owned pedagogy (Try This, Buddy script, Xira prompts)
+ * is merged in here so no shared component needs subject-specific defaults.
  */
-export function getClassroomLesson(conceptId: string): ClassroomLesson {
-  const normalized = conceptId.toLowerCase().trim();
+export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = Object.fromEntries(
+  [
+    ...Object.values(BASE_CLASSROOM_LESSONS),
+    PERIODIC_TABLE_LESSON,
+    POLYMORPHISM_LESSON,
+    CALCULUS_DERIVATIVES_LESSON,
+    INDUSTRIAL_REVOLUTION_LESSON,
+  ].map((lesson) => {
+    const enriched = applyLessonPedagogy(lesson);
+    return [enriched.conceptId, enriched];
+  })
+);
 
-  // 1. Direct match in canonical dictionary
-  if (CANONICAL_CLASSROOM_LESSONS[normalized]) {
-    return CANONICAL_CLASSROOM_LESSONS[normalized];
-  }
-
-  // 2. Academic synonyms and alias matching
-  if (normalized.includes('motor') || normalized.includes('electric') || normalized.includes('commutation')) {
-    return CANONICAL_CLASSROOM_LESSONS.dc_motor;
-  }
-  if (normalized.includes('projectile') || normalized.includes('kinematic')) {
-    return CANONICAL_CLASSROOM_LESSONS.projectile_motion;
-  }
-  if (
-    normalized.includes('heart') ||
-    normalized.includes('cardio') ||
-    normalized.includes('cardiac') ||
-    normalized.includes('anatomy')
-  ) {
-    return CANONICAL_CLASSROOM_LESSONS.human_heart_anatomy;
-  }
-  if (normalized.includes('quadratic') || normalized.includes('parabola')) {
-    return CANONICAL_CLASSROOM_LESSONS.quadratic_equation;
-  }
-  if (normalized.includes('molecule') || normalized.includes('bonding') || normalized.includes('covalent')) {
-    return CANONICAL_CLASSROOM_LESSONS.molecular_bonding;
-  }
-  if (normalized.includes('binary_search') || normalized.includes('search') || normalized.includes('algorithm')) {
-    return CANONICAL_CLASSROOM_LESSONS.binary_search;
-  }
-  if (normalized === 'french_revolution' || normalized.includes('french') || normalized.includes('bastille')) {
-    return CANONICAL_CLASSROOM_LESSONS.french_revolution;
-  }
-  if (normalized.includes('regression') || normalized.includes('scatter') || normalized.includes('least_squares')) {
-    return CANONICAL_CLASSROOM_LESSONS.linear_regression;
-  }
-
-  // 3. Dynamic synthesis for any recognized curriculum topic
-  const humanTitle = normalized
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-
-  const matchedRule = matchSubjectRule(undefined, normalized);
-  const inferredSubject = matchedRule?.subject || 'General Science';
-  const inferredVisualType = (matchedRule?.recommendedType as any) || 'scientific_diagram';
-
-  return {
-    id: `lesson_${normalized}`,
-    conceptId: normalized,
-    topicTitle: humanTitle,
-    subject: inferredSubject,
-    gradeLevel: 'Foundational Curriculum',
-    estimatedMinutes: 8,
-    hasFormulas: false,
-    learningObjective: `Master the foundational ${inferredSubject.toLowerCase()} and analytical principles of ${humanTitle}.`,
-    steps: [
-      {
-        id: `step_1_${normalized}_intro`,
-        stepNumber: 1,
-        title: `Introduction to ${humanTitle}`,
-        subtitle: 'Core Foundations',
-        buddyDialogue: `Welcome to class! Today we explore ${humanTitle}. Let's examine how this fundamental concept works step by step.`,
-        buddyState: 'INTRODUCING',
-        boardTitle: `Overview: ${humanTitle}`,
-        boardSummary: `Foundational study of ${humanTitle} and its governing mechanisms in academic study.`,
-        keyPrinciple: `Understanding the essential relationships that define ${humanTitle}.`,
-        visualType: inferredVisualType,
-      },
-      {
-        id: `step_2_${normalized}_explain`,
-        stepNumber: 2,
-        title: 'Core Mechanisms',
-        subtitle: 'Structural Breakdown',
-        buddyDialogue: `Let's break down the key parts that make ${humanTitle} work in practice!`,
-        buddyState: 'EXPLAINING',
-        boardTitle: `Structural Mechanics: ${humanTitle}`,
-        boardSummary: `Detailed analysis of structural components, governing inputs, and observable outputs.`,
-        keyPrinciple: `Every element plays a specific role in maintaining equilibrium.`,
-        visualType: inferredVisualType,
-      },
-      {
-        id: `step_3_${normalized}_demonstrate`,
-        stepNumber: 3,
-        title: 'Active Demonstration',
-        subtitle: 'Observable Dynamics',
-        buddyDialogue: `Observe how variables shift and interact under changing experimental conditions!`,
-        buddyState: 'EXPLAINING',
-        boardTitle: `Operational Dynamics`,
-        boardSummary: `Observing the functional transformation in real time.`,
-        keyPrinciple: `Causes lead predictably to observable physical effects.`,
-        visualType: inferredVisualType,
-      },
-      {
-        id: `step_4_${normalized}_interact`,
-        stepNumber: 4,
-        title: 'Active Check',
-        subtitle: 'Testing Your Understanding',
-        buddyDialogue: `Think carefully about how this principle applies to real-world scenarios!`,
-        buddyState: 'THINKING',
-        boardTitle: 'Knowledge Check',
-        boardSummary: `Apply the core principle to verify your intuition.`,
-        keyPrinciple: `Verifying foundational understanding before advanced synthesis.`,
-        visualType: inferredVisualType,
-        checkQuestion: {
-          id: `q_${normalized}_1`,
-          prompt: `Which principle is most critical to understanding ${humanTitle}?`,
-          options: [
-            { id: 'opt_syn_1', text: `Systematic principles and structural relationships govern ${humanTitle}`, isCorrect: true, feedback: 'Correct! Systematic principles govern every physical and mathematical model.' },
-            { id: 'opt_syn_2', text: 'Outcomes happen completely at random without underlying rules', isCorrect: false, feedback: 'Natural and analytical systems adhere to strict governing laws.' },
-          ],
-        },
-      },
-      {
-        id: `step_5_${normalized}_summary`,
-        stepNumber: 5,
-        title: 'Synthesis & Mastery',
-        subtitle: 'Key Takeaways',
-        buddyDialogue: `Outstanding effort! You now have a firm grasp of ${humanTitle}!`,
-        buddyState: 'CELEBRATING',
-        boardTitle: 'Summary of Key Principles',
-        boardSummary: `Reviewing the essential concepts and real-world implications of ${humanTitle}.`,
-        keyPrinciple: `Mastery builds cumulative intuition for more complex explorations.`,
-        visualType: inferredVisualType,
-      },
-    ],
-  };
+/**
+ * Backwards-compatible accessor used by older call sites.
+ *
+ * EXACT lookup only (after canonical-id normalisation and explicit aliases).
+ * Returns `null` for anything that is not an authored or curriculum concept.
+ * It never substitutes another concept's lesson and never synthesises
+ * placeholder content. New code should call `resolveClassLesson()` from
+ * `lib/concepts/lessonResolver.ts`, which also reports why a lookup failed.
+ */
+export function getClassroomLesson(conceptId: string): ClassroomLesson | null {
+  const resolution = resolveClassLesson(conceptId);
+  return resolution.status === 'resolved' ? resolution.lesson : null;
 }
