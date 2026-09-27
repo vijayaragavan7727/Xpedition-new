@@ -15,11 +15,12 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Sparkles, HelpCircle, CheckCircle2, RotateCw, Lightbulb } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Sparkles, HelpCircle, CheckCircle2, RotateCw, Lightbulb, Trophy, ArrowRight } from 'lucide-react';
 import type { ClassroomLesson, ClassroomToolType } from './types';
 import type { AdaptiveDirective } from '@/lib/classroom/classroomIntelligence';
 import type { CanonicalConcept } from '@/lib/concepts/types';
-import type { ClassAnswerState, StepEvidence } from '@/lib/classroom/classRuntime';
+import type { ClassAnswerState, StepEvidence, LessonEvidenceSummary } from '@/lib/classroom/classRuntime';
 import { REVEAL_AFTER_ATTEMPTS } from '@/lib/classroom/classRuntime';
 import { orderOptions } from '@/lib/classroom/optionOrder';
 import { StickyNote } from '@/components/learning-objects';
@@ -52,8 +53,100 @@ export interface SmartBoardProps {
   adaptiveDirective?: AdaptiveDirective;
   /** Optional artwork already identity-checked for this concept + step. */
   artworkUrl?: string;
+  /**
+   * Set once the learner finishes the lesson: the board shows the class result
+   * built from the recorded evidence (never step XP or invented mastery).
+   */
+  completion?: {
+    summary: LessonEvidenceSummary;
+    onRevisit: (stepIndex: number) => void;
+    onReviewCards?: () => void;
+    nextHref: string;
+  } | null;
   className?: string;
 }
+
+const REVIEW_LABEL: Record<LessonEvidenceSummary['review'][number]['outcome'], string> = {
+  after_retry: 'right after a retry',
+  revealed: 'answer was shown',
+  activity_skipped: 'board activity not finished',
+};
+
+/** Class result on the board. Every number comes from the learner's recorded evidence. */
+const CompletionPanel: React.FC<{ topicTitle: string; completion: NonNullable<SmartBoardProps['completion']> }> = ({ topicTitle, completion }) => {
+  const { summary } = completion;
+  const allFirstTry = summary.totalChecks > 0 && summary.firstTryCorrect === summary.totalChecks && summary.activitiesCompleted === summary.activitiesTotal;
+  const stats: Array<[string, string]> = [];
+  if (summary.totalChecks > 0) stats.push(['Right first try', `${summary.firstTryCorrect} of ${summary.totalChecks}`]);
+  if (summary.correctAfterRetry > 0) stats.push(['Right after retry', String(summary.correctAfterRetry)]);
+  if (summary.revealed > 0) stats.push(['Answer shown', String(summary.revealed)]);
+  if (summary.activitiesTotal > 0) stats.push(['Board activities', `${summary.activitiesCompleted} of ${summary.activitiesTotal}`]);
+  if (summary.hintsUsed > 0) stats.push(['Hints opened', String(summary.hintsUsed)]);
+  return (
+    <section
+      data-testid="class-completion"
+      aria-label="Class result"
+      className="shrink-0 rounded-2xl border border-emerald-400/35 bg-gradient-to-br from-emerald-500/[0.12] via-[#071430] to-[#071430] p-3.5 sm:p-4 space-y-3 shadow-[0_0_30px_-10px_rgba(52,211,153,0.6)]"
+    >
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300">
+          <Trophy className="w-[18px] h-[18px]" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-300">Class complete</p>
+          <p className="font-sans font-bold text-sm sm:text-base text-white truncate">{topicTitle}</p>
+        </div>
+      </div>
+      {stats.length > 0 && (
+        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {stats.map(([label, value]) => (
+            <div key={label} className="rounded-xl bg-black/25 border border-white/[0.08] px-3 py-2">
+              <dt className="text-[10px] font-sans text-slate-400">{label}</dt>
+              <dd className="font-mono text-sm font-bold text-white">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {summary.review.length > 0 ? (
+        <div className="space-y-1">
+          <p className="text-[11px] font-sans font-semibold text-amber-200">Worth another look</p>
+          {summary.review.map((r) => (
+            <button
+              key={`${r.index}-${r.outcome}`}
+              type="button"
+              data-completion-revisit={r.index}
+              onClick={() => completion.onRevisit(r.index)}
+              className="w-full min-h-[36px] text-left px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.07] text-[12px] text-slate-200 flex items-center justify-between gap-2 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300"
+            >
+              <span className="truncate">Step {r.index + 1}: {r.title}</span>
+              <span className="text-[10px] font-mono text-amber-300 shrink-0">{REVIEW_LABEL[r.outcome]}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        allFirstTry && <p className="text-[12px] text-emerald-200">Every check right on the first try, and every board activity done.</p>
+      )}
+      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        {completion.onReviewCards && (
+          <button
+            type="button"
+            onClick={completion.onReviewCards}
+            className="min-h-[40px] px-3.5 py-2 rounded-xl border border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-200 text-xs font-semibold cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+          >
+            Review with flashcards
+          </button>
+        )}
+        <Link
+          href={completion.nextHref}
+          data-testid="next-concept-link"
+          className="min-h-[40px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white text-xs font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-300"
+        >
+          Choose your next concept <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+    </section>
+  );
+};
 
 export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
   concept,
@@ -74,6 +167,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
   onOpenTool,
   adaptiveDirective,
   artworkUrl,
+  completion,
   className = '',
 }) => {
   const step = lesson.steps[stepIndex];
@@ -112,6 +206,12 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
     [onBoardActivity, step.id]
   );
   const activity = stepEvidence?.activity;
+  const surfaceRef = React.useRef<HTMLDivElement>(null);
+  const isComplete = Boolean(completion);
+  React.useEffect(() => {
+    // Finishing the class: bring the result (top of the board) into view.
+    if (isComplete) surfaceRef.current?.scrollTo({ top: 0 });
+  }, [isComplete]);
   const handleNext = useCallback(() => {
     if (nextBlocked) {
       // Learning by doing: bring the unanswered check into view instead of skipping it.
@@ -119,8 +219,13 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
       questionRef.current?.querySelector<HTMLButtonElement>('button[data-option-id]:not([disabled])')?.focus({ preventScroll: true });
       return;
     }
+    if (isComplete) {
+      // Already finished: the button shows the class result again.
+      surfaceRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     onNextStep();
-  }, [nextBlocked, onNextStep]);
+  }, [nextBlocked, onNextStep, isComplete]);
 
   return (
     <div
@@ -130,21 +235,18 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
       data-step-id={step.id}
       data-step-index={stepIndex}
       data-stage={stage}
-      className={`relative flex flex-col justify-between rounded-3xl bg-[#060B1E]/90 border-2 border-cyan-500/40 shadow-[0_12px_48px_rgba(0,0,0,0.8)] backdrop-blur-md overflow-hidden ${className}`}
-      style={{ boxShadow: '0 0 35px -5px rgba(6,182,212,0.3), inset 0 1px 0 rgba(255,255,255,0.12)' }}
+      className={`relative flex flex-col justify-between rounded-[18px] lg:rounded-[20px] bg-[radial-gradient(ellipse_at_top,#0B1A40_0%,#060C22_55%,#050A1C_100%)] border border-sky-300/20 overflow-hidden ${className}`}
+      style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 60px rgba(2,6,23,0.8)' }}
     >
-      <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-cyan-400/70 rounded-tl-3xl pointer-events-none" />
-      <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-cyan-400/70 rounded-tr-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-cyan-400/70 rounded-bl-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-cyan-400/70 rounded-br-3xl pointer-events-none" />
+      {/* Screen glare */}
+      <div aria-hidden="true" className="pointer-events-none absolute -top-24 -right-20 w-72 h-72 rounded-full bg-[radial-gradient(circle,rgba(125,211,252,0.10),transparent_65%)]" />
 
       {/* Header */}
-      <div className="w-full px-5 pt-4 pb-2 flex items-center justify-between border-b border-white/[0.06] select-none shrink-0">
+      <div className="w-full px-4 sm:px-5 pt-2.5 sm:pt-3.5 pb-2 flex items-center justify-between border-b border-white/[0.06] select-none shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-400 font-mono text-xs font-black tracking-widest uppercase">› SMART BOARD</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          <span data-testid="stage-chip" className="ml-1 px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-[10px] font-mono text-cyan-200 uppercase">
-            {CLASS_STAGE_LABELS[stage]}
+          <span className="text-sky-300 font-sans text-[11px] font-bold tracking-[0.18em] uppercase">Smart Board</span>
+          <span data-testid="stage-chip" className="ml-1 px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/[0.12] text-[10px] font-mono text-slate-200 uppercase tracking-wide">
+            {completion ? 'Complete' : CLASS_STAGE_LABELS[stage]}
           </span>
         </div>
         {concept.visualKind === 'dc_motor_diagram' && (
@@ -160,7 +262,9 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
       </div>
 
       {/* Teaching surface */}
-      <div className="flex-1 p-3.5 sm:p-5 overflow-y-auto overflow-x-hidden flex flex-col gap-2 min-h-0">
+      <div ref={surfaceRef} data-testid="board-surface" className="flex-1 p-3 sm:p-5 overflow-y-auto overflow-x-hidden flex flex-col gap-2.5 min-h-0">
+        {completion && <CompletionPanel topicTitle={lesson.topicTitle} completion={completion} />}
+
         {lesson.isOutline && (
           <div data-testid="outline-notice" className="px-3 py-1.5 rounded-xl bg-slate-800/70 border border-slate-600/50 text-[11px] text-slate-300">
             Outline lesson: built from this topic’s curriculum summary. A full interactive lesson has not been authored yet.
@@ -177,9 +281,9 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                 type="button"
                 onClick={() => onOpenTool('formula')}
                 title="Inspect formula card"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/35 hover:bg-amber-500/25 text-amber-200 text-xs font-mono font-bold transition-all cursor-pointer shadow-sm"
+                className="inline-flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 max-w-full text-left px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/35 hover:bg-amber-500/25 text-amber-200 text-xs font-mono font-bold transition-all cursor-pointer shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300"
               >
-                <span>📐 Formula:</span>
+                <span className="shrink-0">📐 Formula:</span>
                 <span className="text-white font-bold">{step.formulaSnippet}</span>
               </button>
             )}
@@ -434,7 +538,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                 : 'bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 shadow-[0_0_16px_rgba(14,165,233,0.4)] border-sky-400/40'
             }`}
           >
-            <span>{nextBlocked ? 'Answer the check' : stepIndex === totalSteps - 1 ? 'Complete' : 'Next'}</span>
+            <span>{nextBlocked ? 'Answer the check' : isComplete ? 'See result' : stepIndex === totalSteps - 1 ? 'Complete' : 'Next'}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>

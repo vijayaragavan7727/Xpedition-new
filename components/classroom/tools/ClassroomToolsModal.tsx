@@ -21,6 +21,8 @@ import {
   Volume2,
   AlertCircle,
   Sparkles,
+  Download,
+  Lock,
 } from 'lucide-react';
 import {
   ClassroomToolType,
@@ -51,6 +53,10 @@ export interface ClassroomToolsModalProps {
   onSelectStep: (stepIndex: number) => void;
   onOpenTool?: (tool: ClassroomToolType) => void;
   onTelemetry?: (event: ClassroomTelemetryEvent) => void;
+  /** Highest step the learner may open (steps past an unanswered check stay locked). */
+  maxReachableStep?: number;
+  /** Save the active tool as a printable PNG card (formula cards, flashcards, study note). */
+  onDownload?: (kind: 'formula' | 'flashcards' | 'notes', notes?: string) => void;
 }
 
 export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
@@ -63,6 +69,8 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
   onSelectStep,
   onOpenTool,
   onTelemetry,
+  maxReachableStep,
+  onDownload,
 }) => {
   // =========================================================================
   // 1. QUESTIONS STATE & MASTERY EVIDENCE
@@ -179,16 +187,14 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
     if (lesson.progressiveHints && lesson.progressiveHints.length > 0) {
       return lesson.progressiveHints[0];
     }
-    // High-quality fallback derived from step hint text
-    const base = currentStep.hintText || 'Consider the physical laws and relationships governing this step.';
+    // Fallback built only from THIS step's own authored content (never a
+    // subject-specific default: a physics nudge on a history lesson is wrong).
+    const hints = [currentStep.hintText, currentStep.tryThis, currentStep.keyPrinciple && `Key idea: ${currentStep.keyPrinciple}`]
+      .filter((h): h is string => Boolean(h && h.trim()));
     return {
       id: `hint_${currentStep.id}`,
       conceptId: lesson.conceptId,
-      hints: [
-        `Think about the key principle: ${currentStep.title}. Notice what variable is changing.`,
-        base,
-        `Observe the Smart Board visualization carefully to connect the cause with the observed effect.`,
-      ],
+      hints: hints.length > 0 ? hints : [`Re-read the Smart Board for “${currentStep.title}” and look at what the visual is showing.`],
     };
   }, [activeQuestion, currentStep, lesson]);
 
@@ -381,7 +387,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
     },
     formula: {
       title: 'Formula Sheet',
-      subtitle: `${lesson.subject} • Mathematical Equations & Units`,
+      subtitle: `${lesson.subject} • Formulas, variables and units`,
       icon: <Calculator className="w-4 h-4 text-indigo-400" />,
     },
     flashcards: {
@@ -390,8 +396,8 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
       icon: <Layers className="w-4 h-4 text-purple-400" />,
     },
     sources: {
-      title: 'Verified Sources',
-      subtitle: `${lesson.topicTitle} • Academic & Curriculum References`,
+      title: 'Sources',
+      subtitle: `${lesson.topicTitle} • References for this lesson`,
       icon: <Bookmark className="w-4 h-4 text-cyan-400" />,
     },
   };
@@ -406,6 +412,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
       subtitle={activeMeta.subtitle}
       icon={activeMeta.icon}
       position="bottom"
+      tone="classroom"
     >
       <div className="space-y-4 pb-2">
         {/* ===================================================================
@@ -415,15 +422,18 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
           <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
             {lesson.steps.map((st, idx) => {
               const isCurrent = idx === currentStepIndex;
+              const locked = typeof maxReachableStep === 'number' && idx > maxReachableStep;
               return (
                 <button
                   key={st.id}
                   type="button"
+                  disabled={locked}
+                  aria-label={locked ? `Step ${idx + 1}: ${st.title} (locked until you answer the current check)` : undefined}
                   onClick={() => {
                     onSelectStep(idx);
                     onClose();
                   }}
-                  className={`w-full min-h-[44px] p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${
+                  className={`w-full min-h-[44px] p-3 rounded-xl border text-left flex items-start gap-3 transition-all disabled:opacity-45 disabled:cursor-not-allowed ${
                     isCurrent
                       ? 'bg-indigo-600/20 border-indigo-500/40 text-white font-semibold'
                       : 'bg-white/[0.03] border-white/[0.06] text-slate-300 hover:bg-white/[0.06]'
@@ -446,6 +456,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                           Current
                         </span>
                       )}
+                      {locked && <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" />}
                     </div>
                     <p className="font-sans text-[11px] text-slate-400 line-clamp-1 mt-0.5">
                       {st.boardSummary}
@@ -783,7 +794,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
 
             {/* Pedagogic invariant note */}
             <p className="text-[11px] font-sans text-slate-500 text-center italic">
-              Hints guide your thinking step-by-step. Asking for hints will never decrease your mastery score.
+              Hints guide your thinking step by step. Hints you open are listed in your class summary.
             </p>
           </div>
         )}
@@ -864,6 +875,19 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                 </div>
               </div>
             </div>
+            {onDownload && (
+              <div className="flex justify-center pt-1">
+                <button
+                  type="button"
+                  data-testid="tool-download-notes"
+                  onClick={() => onDownload('notes', studentNotes)}
+                  className="min-h-[40px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-200 text-xs font-semibold cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download note card
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -874,7 +898,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
           <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
             <div className="text-center pb-1">
               <span className="text-[11px] font-mono text-cyan-300 uppercase tracking-wider">
-                Physical Scientific Reference Cards • Tap copy or inspect
+                Formula cards for {lesson.topicTitle}
               </span>
             </div>
             {lesson.formulas && lesson.formulas.length > 0 ? (
@@ -902,11 +926,21 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
             ) : (
               <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-center space-y-2">
                 <p className="text-sm font-sans text-slate-300 font-medium">
-                  No mathematical formulas required for this qualitative topic.
+                  This lesson has no formulas.
                 </p>
-                <p className="text-xs text-slate-500">
-                  Topics without mathematical equations do not clutter your workspace with formulas.
-                </p>
+              </div>
+            )}
+            {onDownload && lesson.formulas && lesson.formulas.length > 0 && (
+              <div className="flex justify-center pt-1">
+                <button
+                  type="button"
+                  data-testid="tool-download-formula"
+                  onClick={() => onDownload('formula')}
+                  className="min-h-[40px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-200 text-xs font-semibold cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download formula cards
+                </button>
               </div>
             )}
           </div>
@@ -951,7 +985,6 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                     illustrationAlt: currentCard.category || lesson.topicTitle,
                     front: {
                       question: currentCard.front,
-                      answerPreview: currentCard.back,
                     },
                     back: {
                       answer: currentCard.back,
@@ -1013,6 +1046,19 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
             ) : (
               <div className="p-4 text-center text-xs text-slate-400">No flashcards available.</div>
             )}
+            {onDownload && currentCard && (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  data-testid="tool-download-flashcards"
+                  onClick={() => onDownload('flashcards')}
+                  className="min-h-[40px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-200 text-xs font-semibold cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download all flashcards
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1053,7 +1099,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:underline pt-1 min-h-[32px]"
                     >
-                      <span>Verified Reference</span>
+                      <span>Open source</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   ) : null}
@@ -1065,7 +1111,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                   Sources not provided for this lesson.
                 </p>
                 <p className="text-xs text-slate-500 font-sans">
-                  Academic citations are only displayed when verified curriculum material is bound to the lesson.
+                  Sources appear here only when the lesson lists them.
                 </p>
               </div>
             )}

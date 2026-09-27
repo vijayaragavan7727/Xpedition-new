@@ -157,7 +157,7 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = Rea
     <div
       data-testid="xira-panel"
       data-concept-id={conceptId}
-      className={`flex flex-col rounded-3xl bg-[#090F24]/85 border border-cyan-500/30 shadow-2xl backdrop-blur-md overflow-hidden select-none ${className}`}
+      className={`flex flex-col rounded-[22px] bg-[#0A1230]/85 border border-sky-400/25 shadow-2xl backdrop-blur-md overflow-hidden select-none ${className}`}
       style={{
         boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
       }}
@@ -178,9 +178,9 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = Rea
 
         <div className="flex items-center gap-2">
           {/* Contextual Assistant Green Status Indicator */}
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-mono text-emerald-400 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Contextual Assistant</span>
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[10px] font-mono text-emerald-400 font-medium whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Contextual<span className="hidden xl:inline"> Assistant</span></span>
           </span>
 
           {onCloseMobileDrawer && (

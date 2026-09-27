@@ -48,14 +48,14 @@ export const LESSON_PEDAGOGY: Record<string, LessonPedagogy> = {
       step_1_intro: { tryThis: 'Predict what happens to the direction of rotation when the current reverses.' },
       step_2_components: {
         tryThis: 'Click the component callouts on the board to inspect what each part does.',
-        commonMistake: 'Carbon brushes only make sliding contact. The split-ring commutator is the part that reverses the current.',
+        commonMistake: 'Carbon brushes only make sliding contact with the spinning part. On their own they never change which way the current flows.',
       },
       step_3_mechanism: {
         tryThis: 'Use Fleming’s Left-Hand Rule: thumb = force, first finger = field, second finger = current.',
       },
       step_4_commutation: {
         tryThis: 'Watch how the commutator swaps contacts exactly as the coil passes vertical.',
-        commonMistake: 'Without commutation the coil does not spin faster. It oscillates and stalls near the vertical position.',
+        commonMistake: 'It is tempting to think the coil simply keeps turning. Ask which way the torque pushes once the coil has passed the vertical and the current has NOT been switched.',
       },
       step_5_summary: { tryThis: 'Predict: will reversing the magnet polarity reverse the direction of rotation?' },
     },

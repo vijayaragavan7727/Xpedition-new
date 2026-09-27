@@ -14,10 +14,11 @@
 
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, Search, Check } from 'lucide-react';
+import { Sparkles, Search, Check, LogOut } from 'lucide-react';
 import type { ClassroomToolType } from './types';
 import { SmartBoard } from './SmartBoard';
 import { BuddyTeacherStage } from './BuddyTeacherStage';
+import { ClassroomEnvironment } from './ClassroomEnvironment';
 import { ClassroomXiraAssistant } from './ClassroomXiraAssistant';
 import { ClassroomToolbar } from './ClassroomToolbar';
 import { ClassroomToolsModal } from './tools/ClassroomToolsModal';
@@ -54,6 +55,17 @@ export interface ClassroomLayoutProps {
   onClassComplete?: () => void;
   className?: string;
 }
+
+/** Room/board accent per teaching stage (see ClassroomEnvironment). */
+const STAGE_ACCENT: Record<string, string> = {
+  default: '#38BDF8',
+  question: '#818CF8',
+  practice: '#818CF8',
+  challenge: '#F59E0B',
+  assess: '#A78BFA',
+  reward: '#34D399',
+  complete: '#34D399',
+};
 
 const INTENT_LABELS: Partial<Record<ClassIntent, string>> = {
   revision: 'Revision',
@@ -176,17 +188,10 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
 
   // ---- Tools / UI state -----------------------------------------------------
   const [activeTool, setActiveTool] = useState<ClassroomToolType | null>(null);
-  const [mobileCompanionTab, setMobileCompanionTab] = useState<'buddy' | 'xira'>('buddy');
   const [isMobileXiraOpen, setIsMobileXiraOpen] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
-
-  // On a wrong answer, surface Xira's observation on small screens.
-  useEffect(() => {
-    if (xiraObservation && (xiraObservation.kind === 'misconception' || xiraObservation.kind === 'scaffold')) {
-      setMobileCompanionTab('xira');
-    }
-  }, [xiraObservation?.kind, xiraObservation]);
+  const xiraNeedsAttention = Boolean(xiraObservation && (xiraObservation.kind === 'misconception' || xiraObservation.kind === 'scaffold'));
 
   const completedRef = useRef(false);
   useEffect(() => {
@@ -214,6 +219,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
 
   const handleNextStep = useCallback(() => dispatch({ type: 'NEXT_STEP' }), []);
   const handlePreviousStep = useCallback(() => dispatch({ type: 'PREVIOUS_STEP' }), []);
+  const handleGoToStep = useCallback((index: number) => dispatch({ type: 'GO_TO_STEP', index }), []);
   const handleSelectOption = useCallback((stepId: string, optionId: string) => dispatch({ type: 'SELECT_OPTION', stepId, optionId }), []);
   const handleRetryAnswer = useCallback((stepId: string) => dispatch({ type: 'RETRY_ANSWER', stepId }), []);
   const handleRevealAnswer = useCallback((stepId: string) => dispatch({ type: 'REVEAL_ANSWER', stepId }), []);
@@ -259,35 +265,34 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
     window.setTimeout(() => setDownloadNotice(null), 2600);
   };
 
-  const handleOpenTool = useCallback(
-    async (tool: ClassroomToolType) => {
-      if (tool === 'formula' && lesson.formulas && lesson.formulas.length > 0) {
+  // Every tool opens INSIDE the class (focused sheet). Saving a card as a file
+  // is an explicit action inside the tool, never a surprise download.
+  const handleOpenTool = useCallback((tool: ClassroomToolType) => setActiveTool(tool), []);
+
+  const handleDownload = useCallback(
+    async (kind: 'formula' | 'flashcards' | 'notes', notes?: string) => {
+      if (kind === 'formula' && lesson.formulas && lesson.formulas.length > 0) {
         await downloadFormulaCards(lesson.topicTitle, lesson.formulas);
-        flashNotice('Formula cards generated & downloaded');
-        return;
-      }
-      if (tool === 'flashcards' && lesson.flashcards && lesson.flashcards.length > 0) {
+        flashNotice('Formula cards downloaded');
+      } else if (kind === 'flashcards' && lesson.flashcards && lesson.flashcards.length > 0) {
         await downloadFlashcards(
           lesson.topicTitle,
           lesson.flashcards.map((card, idx) => ({ title: card.front.slice(0, 30) || `Card ${idx + 1}`, front: card.front, back: card.back, number: idx + 1 }))
         );
-        flashNotice('Flashcards generated & downloaded');
-        return;
-      }
-      if (tool === 'notes') {
+        flashNotice('Flashcards downloaded');
+      } else if (kind === 'notes') {
         const noteContent = [
           `Step: ${step.title}`,
           step.boardSummary,
           step.keyPrinciple ? `Key Principle: ${step.keyPrinciple}` : '',
           step.formulaSnippet ? `Formula: ${step.formulaSnippet}` : '',
+          notes?.trim() ? `My notes: ${notes.trim()}` : '',
         ]
           .filter(Boolean)
           .join('\n\n');
         await downloadStudyNote(lesson.topicTitle, noteContent);
-        flashNotice('Study note card generated & downloaded');
-        return;
+        flashNotice('Study note card downloaded');
       }
-      setActiveTool(tool);
     },
     [lesson, step]
   );
@@ -298,14 +303,42 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   const hasFlashcards = Boolean(lesson.flashcards && lesson.flashcards.length > 0);
   const hasSources = Boolean(lesson.sources && lesson.sources.length > 0);
   const conceptProgress = Math.round(((state.stepIndex + 1) / totalSteps) * 100);
-  const nextActionLabel = nextBlocked ? 'Answer the check' : state.stepIndex === totalSteps - 1 ? 'Finish Lesson' : 'Next Step';
   const intentLabel = INTENT_LABELS[intent];
+
+  // The room answers the teaching stage: the board glow and wall wash change
+  // colour for challenge / assessment / the class result.
+  const accent = state.completed
+    ? STAGE_ACCENT.complete
+    : STAGE_ACCENT[stage] ?? STAGE_ACCENT.default;
+  const completion = state.completed
+    ? {
+        summary: evidenceSummary,
+        onRevisit: handleGoToStep,
+        onReviewCards: hasFlashcards ? () => setActiveTool('flashcards') : undefined,
+        nextHref: '/learn?tab=explore',
+      }
+    : null;
+
+  const xiraButton = (
+    <button
+      type="button"
+      data-testid="xira-open"
+      onClick={() => setIsMobileXiraOpen(true)}
+      aria-label={xiraNeedsAttention ? 'Open Xira: Xira has a note on your answer' : 'Open Xira'}
+      className="relative shrink-0 w-[52px] self-stretch rounded-2xl border border-indigo-400/35 bg-indigo-500/15 text-indigo-200 flex flex-col items-center justify-center gap-1 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-300"
+    >
+      <Sparkles className="w-4 h-4" />
+      <span className="text-[10px] font-semibold">Xira</span>
+      {xiraNeedsAttention && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+    </button>
+  );
 
   return (
     <div
       data-testid="classroom"
       data-persistence={persistence}
-      className={`h-[100dvh] max-h-[100dvh] w-full bg-[#040714] text-slate-100 flex flex-col justify-between overflow-hidden relative pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] ${className}`}
+      data-class-stage={state.completed ? 'complete' : stage}
+      className={`h-[100dvh] max-h-[100dvh] w-full bg-[#040714] text-slate-100 flex flex-col overflow-hidden relative pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] ${className}`}
     >
       {/* Identity probe: read by browser tests to assert the identity chain. */}
       <div
@@ -323,31 +356,18 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
         data-rejected-count={state.rejectedCount}
       />
 
-      {/* Neutral classroom atmosphere (CSS only — no baked-in lesson imagery). */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.14),transparent_60%),linear-gradient(180deg,#060B1E_0%,#040714_70%)]" />
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(148,163,184,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.6) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-          }}
-        />
-        <div className="absolute bottom-12 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
-      </div>
+      {/* The classroom itself (DOM/SVG + reused interior render; no screenshot). */}
+      <ClassroomEnvironment accent={accent} />
 
       {/* Top bar */}
-      <header className="sticky top-0 z-40 h-12 sm:h-14 border-b border-white/[0.08] bg-[#060A18]/90 backdrop-blur-md flex items-center justify-between px-2.5 sm:px-6 select-none shrink-0 shadow-lg">
-        <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-tr from-cyan-400 via-sky-500 to-indigo-600 flex items-center justify-center shadow-[0_0_12px_rgba(6,182,212,0.6)]">
-              <span className="font-sans font-black text-white text-[11px] sm:text-xs tracking-tighter">XP</span>
-            </div>
-            <span className="hidden sm:inline font-sans font-black text-sm text-white tracking-widest uppercase">XPEDITION</span>
+      <header className="relative z-40 h-12 lg:h-14 border-b border-white/[0.07] bg-[#050A1A]/80 backdrop-blur-md flex items-center justify-between gap-2 px-3 sm:px-5 lg:px-7 select-none shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-2 shrink-0">
+            <span aria-hidden="true" className="font-sans font-black text-lg lg:text-xl leading-none text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.7)]">✕</span>
+            <span className="hidden sm:inline font-sans font-semibold text-sm lg:text-[15px] text-white tracking-[0.28em] uppercase">Xpedition</span>
           </div>
-          <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-xl bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-sans text-[11px] sm:text-xs font-semibold shrink-0">
-            <span className="text-cyan-400 text-xs">⊞</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 lg:py-1.5 rounded-xl bg-sky-500/10 border border-sky-400/30 text-sky-200 font-sans text-xs font-semibold shrink-0">
+            <span aria-hidden="true" className="text-sky-300 text-[11px]">⊞</span>
             <span>Classroom</span>
           </div>
           {intentLabel && (
@@ -355,22 +375,22 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
               {intentLabel}
             </span>
           )}
-          <div data-testid="class-breadcrumb" className="hidden md:flex items-center gap-2 font-sans text-xs min-w-0">
-            <span className="text-slate-400 font-medium truncate">
+          <div data-testid="class-breadcrumb" className="hidden md:flex items-center gap-3 font-sans text-xs lg:text-[13px] min-w-0">
+            <span className="text-slate-300 font-medium truncate">
               {lesson.subject}
               {lesson.category ? ` • ${lesson.category}` : ''}
             </span>
-            <span className="text-slate-600">›</span>
-            <span data-testid="lesson-title" className="text-slate-200 font-semibold truncate max-w-[260px]">{lesson.topicTitle}</span>
+            <span aria-hidden="true" className="w-px h-4 bg-white/15" />
+            <span data-testid="lesson-title" className="text-white font-semibold truncate max-w-[280px]">{lesson.topicTitle}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <div className="flex items-center gap-1.5 sm:gap-2.5 font-sans text-xs">
-            <span className="text-slate-300 font-mono font-medium text-[10px] sm:text-[11px] whitespace-nowrap">
-              Step {state.stepIndex + 1}/{totalSteps}
+          <div className="flex items-center gap-2 lg:gap-3 font-sans text-xs">
+            <span className="text-slate-200 font-semibold text-[11px] lg:text-[13px] whitespace-nowrap">
+              Step {state.stepIndex + 1} / {totalSteps}
             </span>
-            <div className="hidden sm:flex items-center">
+            <div className="hidden sm:flex items-center" role="group" aria-label="Lesson steps">
               {lesson.steps.map((s, idx) => (
                 <React.Fragment key={s.id}>
                   <button
@@ -378,15 +398,20 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
                     onClick={() => dispatch({ type: 'GO_TO_STEP', index: idx })}
                     disabled={idx > reachable}
                     aria-label={`Jump to step ${idx + 1}`}
-                    className={`rounded-full transition-all cursor-pointer ${
-                      idx === state.stepIndex
-                        ? 'w-2.5 h-2.5 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)]'
-                        : idx < state.stepIndex
-                        ? 'w-2 h-2 bg-sky-500'
-                        : 'w-2 h-2 bg-slate-700'
-                    }`}
-                  />
-                  {idx < totalSteps - 1 && <div className={`w-3 h-0.5 ${idx < state.stepIndex ? 'bg-sky-500' : 'bg-slate-800'}`} />}
+                    aria-current={idx === state.stepIndex ? 'step' : undefined}
+                    className="p-1 rounded-full cursor-pointer disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
+                  >
+                    <span
+                      className={`block rounded-full transition-all ${
+                        idx === state.stepIndex
+                          ? 'w-3 h-3 bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.9)]'
+                          : idx < state.stepIndex
+                          ? 'w-2 h-2 bg-sky-500/80'
+                          : 'w-2 h-2 bg-slate-600'
+                      }`}
+                    />
+                  </button>
+                  {idx < totalSteps - 1 && <span aria-hidden="true" className={`w-3 lg:w-4 h-px ${idx < state.stepIndex ? 'bg-sky-500/80' : 'bg-slate-600/70'}`} />}
                 </React.Fragment>
               ))}
             </div>
@@ -394,128 +419,91 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
           <Link
             href="/learn?tab=explore"
             aria-label="Search and learn a new concept"
-            className="flex items-center justify-center w-7 h-7 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.1] text-slate-300 hover:text-white"
+            className="flex items-center justify-center w-8 h-8 lg:w-auto lg:h-auto lg:px-3 lg:py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/[0.1] text-slate-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
           >
-            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline ml-1.5 text-xs font-semibold">New concept</span>
+            <Search className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline ml-1.5 text-xs font-semibold">New concept</span>
           </Link>
-          <button
-            type="button"
-            onClick={() => {
-              setMobileCompanionTab('xira');
-              setIsMobileXiraOpen(true);
-            }}
-            className="flex lg:hidden items-center gap-1 px-2 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-sans text-xs font-semibold"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden min-[400px]:inline">Ask Xira</span>
-          </button>
           <Link
             href={backHref}
             aria-label="Exit Classroom"
-            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-slate-300 hover:text-white border border-white/[0.12] font-sans text-xs font-semibold shrink-0"
+            className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 lg:h-auto lg:py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] text-slate-200 hover:text-white border border-white/[0.14] font-sans text-xs font-semibold shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300"
           >
-            <span className="text-xs">⎋</span>
+            <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Exit Class</span>
           </Link>
         </div>
       </header>
 
-      {/* Main stage */}
-      <main className="flex-1 min-h-0 w-full max-w-[1700px] mx-auto px-2 sm:px-4 lg:px-6 py-1 sm:py-2 flex flex-col justify-center relative z-10 overflow-hidden">
-        <div className="flex lg:hidden items-center justify-between px-2.5 py-1 rounded-xl bg-[#080E24]/85 border border-white/[0.08] mb-1 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setMobileCompanionTab('buddy')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
-                mobileCompanionTab === 'buddy' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'text-slate-400 border border-transparent'
-              }`}
-            >
-              <span>🤖</span>
-              <span>Buddy</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileCompanionTab('xira')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
-                mobileCompanionTab === 'xira' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' : 'text-slate-400 border border-transparent'
-              }`}
-            >
-              <span>✨</span>
-              <span>Xira</span>
-              {xiraObservation && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
-            </button>
-          </div>
-          <button type="button" onClick={() => setIsMobileXiraOpen(true)} className="text-[11px] font-mono text-indigo-300 cursor-pointer">
-            Chat ↗
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[20%_60%_20%] xl:grid-cols-[18%_64%_18%] gap-2 sm:gap-3 xl:gap-4 items-stretch h-full max-h-full min-h-0">
+      {/* Classroom stage: Buddy · Smart Board · Xira */}
+      <main className="relative z-10 flex-1 min-h-0 w-full max-w-[1680px] mx-auto px-2.5 sm:px-4 lg:px-6 pt-2 lg:pt-4 pb-1">
+        <div className="h-full min-h-0 grid grid-cols-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-rows-1 lg:grid-cols-[minmax(200px,19%)_minmax(0,1fr)_minmax(232px,18%)] gap-2 lg:gap-5 xl:gap-6">
+          {/* Buddy: standing beside the board (desktop) / on the strip under it (phones). */}
           <div
             data-testid="buddy-column"
-            className={`order-2 lg:order-1 min-h-0 flex-col justify-end items-center overflow-hidden ${
-              mobileCompanionTab === 'buddy' ? 'flex h-[26vh] sm:h-[30vh] lg:h-full' : 'hidden lg:flex lg:h-full'
-            }`}
+            className="order-2 lg:order-1 min-h-0 h-[108px] sm:h-[116px] lg:h-full flex lg:flex-col lg:justify-end"
           >
-            <BuddyTeacherStage
-              dialogue={buddy.dialogue}
-              state={buddy.mood}
-              onNextAction={handleNextStep}
-              nextActionLabel={nextActionLabel}
-              className="h-full w-full"
-            />
+            <BuddyTeacherStage dialogue={buddy.dialogue} state={buddy.mood} variant="stage" className="hidden lg:flex" />
+            <BuddyTeacherStage dialogue={buddy.dialogue} state={buddy.mood} variant="compact" className="lg:hidden" accessory={xiraButton} />
           </div>
 
-          <div className="order-1 lg:order-2 flex-1 min-h-[260px] sm:min-h-[320px] lg:h-full lg:min-h-0 flex flex-col overflow-hidden min-w-0">
-            <SmartBoard
-              concept={concept}
-              lesson={lesson}
-              stepIndex={state.stepIndex}
-              answer={state.answer}
-              onSelectOption={handleSelectOption}
-              onSubmitAnswer={handleSubmitAnswer}
-              onRetryAnswer={handleRetryAnswer}
-              onRevealAnswer={handleRevealAnswer}
-              boardView={boardView}
-              stepEvidence={stepEvidence}
-              nextBlocked={nextBlocked}
-              onBoardActivity={handleBoardActivity}
-              activityKind={stepActivityKind(step)}
-              onPreviousStep={handlePreviousStep}
-              onNextStep={handleNextStep}
-              onOpenTool={handleOpenTool}
-              artworkUrl={state.artwork?.conceptId === state.conceptId && state.artwork.stepIndex === state.stepIndex ? state.artwork.assetUrl : undefined}
-              className="h-full w-full"
-            />
+          {/* Smart Board: the main teaching surface, framed as a wall display. */}
+          <div className="order-1 lg:order-2 min-h-0 min-w-0 flex flex-col">
+            <div
+              data-testid="smartboard-frame"
+              className="relative flex-1 min-h-0 rounded-[22px] lg:rounded-[26px] p-[4px] lg:p-[7px] bg-gradient-to-b from-[#1A2448] via-[#0B1230] to-[#070B1D] border border-slate-400/20 transition-shadow duration-700"
+              style={{ boxShadow: `0 24px 60px rgba(0,0,0,0.65), 0 0 0 1px ${accent}40, 0 0 36px -6px ${accent}80` }}
+            >
+              <div aria-hidden="true" className="pointer-events-none absolute top-0 right-6 left-1/3 h-px" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
+              <SmartBoard
+                concept={concept}
+                lesson={lesson}
+                stepIndex={state.stepIndex}
+                answer={state.answer}
+                onSelectOption={handleSelectOption}
+                onSubmitAnswer={handleSubmitAnswer}
+                onRetryAnswer={handleRetryAnswer}
+                onRevealAnswer={handleRevealAnswer}
+                boardView={boardView}
+                stepEvidence={stepEvidence}
+                nextBlocked={nextBlocked}
+                onBoardActivity={handleBoardActivity}
+                activityKind={stepActivityKind(step)}
+                onPreviousStep={handlePreviousStep}
+                onNextStep={handleNextStep}
+                onOpenTool={handleOpenTool}
+                artworkUrl={state.artwork?.conceptId === state.conceptId && state.artwork.stepIndex === state.stepIndex ? state.artwork.assetUrl : undefined}
+                completion={completion}
+                className="h-full w-full"
+              />
+            </div>
+            {/* Board mount */}
+            <div aria-hidden="true" className="hidden lg:block mx-auto w-[42%] h-2 rounded-b-xl bg-gradient-to-b from-[#1A2448] to-[#070B1D] border-x border-b border-slate-400/15" />
           </div>
 
-          <div
-            className={`order-3 min-h-0 flex-col overflow-hidden ${
-              mobileCompanionTab === 'xira' ? 'flex h-[26vh] sm:h-[30vh] lg:h-full' : 'hidden lg:flex lg:h-full'
-            }`}
-          >
+          {/* Xira: contextual assistance beside the board (desktop). Phones open it as a sheet. */}
+          <div className="order-3 hidden lg:flex min-h-0 flex-col self-start max-h-full">
             <ClassroomXiraAssistant
               context={xiraContext}
               prompts={lesson.xiraPrompts}
               observation={xiraObservation}
               onObservationAction={handleObservationAction}
               onOpenTool={handleOpenTool}
-              className="h-full w-full"
+              className="max-h-full w-full"
             />
           </div>
         </div>
       </main>
 
       {downloadNotice && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-16 z-[70] inline-flex items-center gap-2 rounded-full bg-emerald-500/95 text-white px-4 py-2 text-xs font-semibold shadow-xl">
+        <div role="status" className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-24 z-[70] inline-flex items-center gap-2 rounded-full bg-emerald-500/95 text-white px-4 py-2 text-xs font-semibold shadow-xl">
           <Check className="w-4 h-4" />
           {downloadNotice}
         </div>
       )}
 
-      <footer className="w-full px-2 sm:px-3 py-1 shrink-0 select-none relative z-30 flex justify-center pb-1">
+      {/* Learning dock */}
+      <footer className="relative z-30 w-full px-2 sm:px-3 pt-1 pb-1.5 lg:pb-3 shrink-0 select-none flex justify-center">
         <ClassroomToolbar
           activeTool={activeTool}
           onSelectTool={handleOpenTool}
@@ -539,22 +527,36 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
         lesson={lesson}
         currentStep={step}
         currentStepIndex={state.stepIndex}
-        onSelectStep={(idx) => dispatch({ type: 'GO_TO_STEP', index: idx })}
+        onSelectStep={handleGoToStep}
         onOpenTool={handleOpenTool}
         onTelemetry={handleTelemetry}
+        maxReachableStep={reachable}
+        onDownload={handleDownload}
       />
 
       {isMobileXiraOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm lg:hidden">
-          <div className="w-full max-h-[85vh] rounded-t-3xl overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-[#02040C]/70 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileXiraOpen(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Xira"
+            className="w-full max-h-[85dvh] rounded-t-3xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <ClassroomXiraAssistant
               context={xiraContext}
               prompts={lesson.xiraPrompts}
               observation={xiraObservation}
-              onObservationAction={handleObservationAction}
-              onOpenTool={handleOpenTool}
+              onObservationAction={(a) => {
+                handleObservationAction(a);
+                if (a.kind !== 'hint') setIsMobileXiraOpen(false);
+              }}
+              onOpenTool={(t) => {
+                setIsMobileXiraOpen(false);
+                handleOpenTool(t);
+              }}
               onCloseMobileDrawer={() => setIsMobileXiraOpen(false)}
-              className="h-[75vh]"
+              className="max-h-[80dvh] rounded-b-none"
             />
           </div>
         </div>

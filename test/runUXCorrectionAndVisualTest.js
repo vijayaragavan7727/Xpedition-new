@@ -185,8 +185,8 @@ async function runTests() {
 
     // Smart Board must have dominant center space (60-64% width in landscape)
     assert(
-      layoutContent.includes('grid-cols-[20%_60%_20%]') || layoutContent.includes('xl:grid-cols-[18%_64%_18%]'),
-      'Smart Board center column must dominate grid width (60-64%)'
+      layoutContent.includes('lg:grid-cols-[minmax(200px,19%)_minmax(0,1fr)_minmax(232px,18%)]'),
+      'Smart Board centre column must take the remaining width between Buddy (~19%) and Xira (~18%)'
     );
 
     // Buddy has physical grounding dais / pedestal

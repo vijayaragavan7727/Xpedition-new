@@ -11,6 +11,8 @@ export interface DrawerProps {
   icon?: React.ReactNode;
   children: React.ReactNode;
   position?: 'bottom' | 'right';
+  /** Colour tone of the sheet. 'classroom' matches the Class (navy + cyan). */
+  tone?: 'default' | 'classroom';
   className?: string;
 }
 
@@ -22,8 +24,27 @@ export const Drawer: React.FC<DrawerProps> = ({
   icon,
   children,
   position = 'bottom',
+  tone = 'default',
   className = '',
 }) => {
+  const t =
+    tone === 'classroom'
+      ? {
+          panel: 'bg-[#0A1230]/[0.97] border-sky-400/25 shadow-[0_-20px_60px_rgba(0,0,0,0.7),0_0_40px_-12px_rgba(56,189,248,0.45)]',
+          line: 'border-white/[0.08]',
+          iconBox: 'bg-[#060B1E] border-sky-400/25 text-sky-300',
+          sub: 'text-slate-400',
+          body: 'text-slate-200',
+          backdrop: 'bg-[#02040C]/70',
+        }
+      : {
+          panel: 'bg-[#151B1B] border-[#263130] shadow-2xl',
+          line: 'border-[#263130]',
+          iconBox: 'bg-[#080B0D] border-[#263130] text-[#0B7066]',
+          sub: 'text-[#8E9693]',
+          body: 'text-[#E5E0D5]',
+          backdrop: 'bg-[#080B0D]/80',
+        };
   // Prevent body scrolling when open
   useEffect(() => {
     if (isOpen) {
@@ -53,7 +74,7 @@ export const Drawer: React.FC<DrawerProps> = ({
     <div className="fixed inset-0 z-50 flex select-none">
       {/* Backdrop overlay */}
       <div
-        className="fixed inset-0 bg-[#080B0D]/80 backdrop-blur-sm transition-opacity duration-200"
+        className={`fixed inset-0 ${t.backdrop} backdrop-blur-sm transition-opacity duration-200`}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -64,7 +85,7 @@ export const Drawer: React.FC<DrawerProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className={`relative mt-auto w-full max-w-2xl mx-auto rounded-t-2xl bg-[#151B1B] border-t border-x border-[#263130] shadow-2xl flex flex-col max-h-[85vh] z-10 transition-transform duration-200 ease-out transform translate-y-0 ${className}`}
+          className={`relative mt-auto w-full max-w-2xl mx-auto rounded-t-2xl border-t border-x ${t.panel} flex flex-col max-h-[85vh] z-10 transition-transform duration-200 ease-out transform translate-y-0 ${className}`}
         >
           {/* Swipe / drag indicator pill */}
           <div className="w-full flex justify-center pt-3 pb-1 shrink-0 cursor-grab active:cursor-grabbing">
@@ -72,10 +93,10 @@ export const Drawer: React.FC<DrawerProps> = ({
           </div>
 
           {/* Drawer Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[#263130] shrink-0">
+          <div className={`flex items-center justify-between px-5 py-3 border-b ${t.line} shrink-0`}>
             <div className="flex items-center gap-2.5">
               {icon && (
-                <div className="w-8 h-8 rounded-lg bg-[#080B0D] border border-[#263130] flex items-center justify-center text-[#0B7066]">
+                <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${t.iconBox}`}>
                   {icon}
                 </div>
               )}
@@ -84,7 +105,7 @@ export const Drawer: React.FC<DrawerProps> = ({
                   {title}
                 </h3>
                 {subtitle && (
-                  <p className="font-sans text-xs text-[#8E9693] font-normal">{subtitle}</p>
+                  <p className={`font-sans text-xs font-normal ${t.sub}`}>{subtitle}</p>
                 )}
               </div>
             </div>
@@ -93,14 +114,14 @@ export const Drawer: React.FC<DrawerProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close drawer"
-              className="w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white flex items-center justify-center transition-colors cursor-pointer border border-[#263130]"
+              className={`w-8 h-8 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white flex items-center justify-center transition-colors cursor-pointer border ${t.line} focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300`}
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Drawer Scrollable Content */}
-          <div className="p-5 overflow-y-auto flex-1 text-[#E5E0D5] select-text">
+          <div className={`p-5 overflow-y-auto flex-1 select-text ${t.body}`}>
             {children}
           </div>
         </div>

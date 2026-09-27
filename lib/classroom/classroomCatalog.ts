@@ -142,7 +142,7 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
           options: [
             { id: 'c_1', text: 'The torque opposes forward motion, causing it to oscillate and stall', isCorrect: true, feedback: 'Spot on! Counter-torque acts like a magnetic brake, trapping the coil vertically.' },
             { id: 'c_2', text: 'The motor spins twice as fast', isCorrect: false, feedback: 'Incorrect: Opposing forces decelerate the rotor.' },
-            { id: 'c_3', text: 'The battery runs out of charge instantly', isCorrect: false, feedback: 'Current continues flowing; the mechanical torque simply opposes rotation.' },
+            { id: 'c_3', text: 'The battery runs out of charge instantly', isCorrect: false, feedback: 'The battery is fine: current keeps flowing. Think about the direction of that current after the coil passes the vertical.' },
           ],
         },
         hintText:

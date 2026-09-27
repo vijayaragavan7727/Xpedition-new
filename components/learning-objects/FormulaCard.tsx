@@ -109,7 +109,7 @@ export const FormulaCard: React.FC<FormulaCardProps> = ({
 
         {/* Formula Rendering Box (KaTeX mathematical notation) */}
         <div className="relative z-10 my-3 py-3 px-2 rounded-xl bg-[#F2EDE1]/90 border border-[#DDD3BF] flex items-center justify-center text-center shadow-inner min-h-[64px]">
-          <div className="w-full text-base sm:text-lg font-bold text-[#14120F]">
+          <div className="w-full max-w-full overflow-x-auto text-base sm:text-lg font-bold text-[#14120F]">
             <KaTeXRenderer math={card.formulaTex} block />
           </div>
         </div>

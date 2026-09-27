@@ -244,7 +244,8 @@ export const LearningFlashcard: React.FC<LearningFlashcardProps> = ({
                 </span>
               </div>
               <p className="font-sans text-[11px] sm:text-[11.5px] font-bold text-slate-900 leading-snug truncate mt-0.5">
-                {card.front.answerPreview || card.back.answer}
+                {/* Recall first: the answer is never printed on the front unless a preview is authored. */}
+                {card.front.answerPreview || 'Say your answer, then flip the card.'}
               </p>
             </div>
           </div>

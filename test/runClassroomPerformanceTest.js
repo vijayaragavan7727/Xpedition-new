@@ -90,7 +90,11 @@ test('7. ClassroomLayout replaces 64px Gaussian blur with hardware-accelerated r
   const layoutPath = path.join(__dirname, '../components/classroom/ClassroomLayout.tsx');
   const content = fs.readFileSync(layoutPath, 'utf8');
   assert(!content.includes('w-[900px] h-[350px] bg-gradient-to-b from-sky-400/15 via-indigo-500/5 to-transparent blur-3xl'), 'ClassroomLayout must not use blur-3xl spotlight');
-  assert(content.includes('radial-gradient('), 'ClassroomLayout must use radial-gradient spotlight');
+  // The room (and its spotlight) moved into ClassroomEnvironment, which the layout renders.
+  const env = fs.readFileSync(path.join(__dirname, '../components/classroom/ClassroomEnvironment.tsx'), 'utf8');
+  assert(content.includes('<ClassroomEnvironment'), 'ClassroomLayout must render the classroom environment');
+  assert(env.includes('radial-gradient('), 'ClassroomEnvironment must use radial-gradient spotlights');
+  assert(!/blur-(2xl|3xl)|filter:\s*blur/.test(env), 'ClassroomEnvironment must not use large Gaussian blur layers');
 });
 
 // 8. ClassroomLayout deduplicates /api/classroom/session
