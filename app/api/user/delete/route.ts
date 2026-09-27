@@ -1,3 +1,4 @@
+import '@/lib/supabase/serverDb';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { defaultSupabasePersistence } from '@/lib/persistence';

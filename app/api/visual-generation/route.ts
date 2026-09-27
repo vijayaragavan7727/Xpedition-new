@@ -1,22 +1,19 @@
+import '@/lib/supabase/serverDb';
 import { NextResponse } from 'next/server';
 import { requireServerAuth } from '@/lib/auth/serverAuth';
 import {
-  visualGenerationEngine,
   VisualGenerationError,
   ComfyUIUnavailableError,
   ComfyUITimeoutError,
   WorkflowExecutionError,
   WorkflowNotFoundError,
   VisualGenerationRequest,
-  LocalAssetStore,
   CachePolicy,
 } from '@/lib/visualGeneration';
-import {
-  rateLimiter,
-  getClientRateLimitKey,
-  createRateLimitExceededResponse,
-  applyRateLimitHeaders,
-} from '@/lib/security/rateLimiter';
+import { learnerVisualEngine, toClientJob } from '@/lib/visualGeneration/learnerVisualGeneration';
+import { visualGenerationEngine } from '@/lib/visualGeneration';
+import { createRateLimitExceededResponse, applyRateLimitHeaders } from '@/lib/security/rateLimiter';
+import { checkUserRateLimit } from '@/lib/security/distributedRateLimit';
 import { getProductionConfig } from '@/lib/config/productionConfig';
 import { logger } from '@/lib/observability/productionLogger';
 
@@ -25,18 +22,19 @@ export const runtime = 'nodejs';
 export async function POST(request: Request) {
   try {
     const { user, errorResponse } = await requireServerAuth(request);
-    if (errorResponse) {
-      return errorResponse;
+    if (errorResponse || !user) {
+      return errorResponse!;
     }
 
     const config = getProductionConfig();
-    const rateLimitKey = getClientRateLimitKey(request, user?.id, 'visual-generation');
-    const rateResult = await rateLimiter.checkLimit(rateLimitKey, {
+    const rateResult = await checkUserRateLimit({
+      userId: user.id,
+      bucket: 'visual-generation',
       maxRequests: config.rateLimit.visualGenerationMaxPerMin,
       windowMs: 60000,
     });
     if (!rateResult.allowed) {
-      logger.warn('[API:visual-generation] Rate limit exceeded', { rateLimitKey });
+      logger.warn('[API:visual-generation] Rate limit exceeded', { backend: rateResult.backend });
       return createRateLimitExceededResponse(rateResult);
     }
 
@@ -117,27 +115,12 @@ export async function POST(request: Request) {
       cachePolicy: (cachePolicy as CachePolicy) || 'reuse',
     };
 
-    const result = await visualGenerationEngine.generateVisual(genRequest);
+    // Learner jobs are owned by the requester, cache-isolated per owner, and
+    // stored privately. The response never carries prompt, metadata, cache keys,
+    // storage paths or a static URL — only an owner-checked asset URL.
+    const result = await learnerVisualEngine().generateVisual(genRequest, { ownerId: user.id });
 
-    // Sanitize result to ensure server paths are strictly hidden from clients
-    const sanitizedAsset = result.asset ? LocalAssetStore.sanitizeForClient(result.asset) : undefined;
-
-    const response = NextResponse.json({
-      success: true,
-      data: {
-        jobId: result.jobId,
-        requestId: result.requestId,
-        conceptId: result.conceptId,
-        workflowId: result.workflowId,
-        status: result.status,
-        reused: Boolean(result.reused),
-        asset: sanitizedAsset,
-        output: result.output,
-        metadata: result.metadata,
-        createdAt: result.createdAt,
-        completedAt: result.completedAt,
-      },
-    });
+    const response = NextResponse.json({ success: true, data: toClientJob(result) });
 
     return applyRateLimitHeaders(response, rateResult);
   } catch (error: any) {
@@ -225,42 +208,22 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const jobId = url.searchParams.get('jobId');
 
-  // If querying specific job status, require auth
+  // Job status: authenticated requester AND job owner, otherwise 404.
   if (jobId) {
     const { user, errorResponse } = await requireServerAuth(request);
-    if (errorResponse) {
-      return errorResponse;
+    if (errorResponse || !user) {
+      return errorResponse!;
     }
 
-    const job = await visualGenerationEngine.getJob(jobId);
+    const job = await learnerVisualEngine().getJobForOwner(jobId, user.id);
     if (!job) {
       return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: `Job ${jobId} not found.`,
-          },
-        },
+        { success: false, error: { code: 'NOT_FOUND', message: 'Job not found.' } },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        jobId: job.jobId,
-        requestId: job.requestId,
-        conceptId: job.conceptId,
-        workflowId: job.workflowId,
-        status: job.status,
-        reused: Boolean(job.reused),
-        publicUrl: job.asset?.publicUrl || job.output?.url,
-        createdAt: job.createdAt,
-        completedAt: job.completedAt,
-        errorCode: job.errorCode,
-      },
-    });
+    return NextResponse.json({ success: true, data: toClientJob(job) });
   }
 
   // Safe health status check without leaking internals

@@ -34,6 +34,8 @@ import {
 } from '@/lib/classroom/classRuntime';
 import { resolveStepStage } from '@/lib/classroom/classStage';
 import { currentAuthMode } from '@/lib/auth/authMode';
+import { supabase } from '@/lib/supabase';
+import { shouldRequestServerSession, type ClassPersistence } from '@/lib/classroom/classPersistence';
 import type { CanonicalConcept, ClassIntent } from '@/lib/concepts/types';
 import type { ClassroomLesson } from './types';
 
@@ -83,32 +85,46 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   // ---- Server session (identity-checked; never drives content) -------------
   // One create per concept|intent; the request is aborted on unmount.
   const initializedConceptRef = useRef<string | null>(null);
+  const [persistence, setPersistence] = useState<ClassPersistence>('pending');
   useEffect(() => {
     const sessionKey = `${lesson.conceptId}|${intent}`;
     if (initializedConceptRef.current === sessionKey) return;
     initializedConceptRef.current = sessionKey;
-    // Sessions are owner-scoped. With no auth service there is no learner
-    // identity, so no server session is requested (the API would fail closed
-    // with 503). The lesson itself is fully client-side and unaffected.
-    if (currentAuthMode() === 'unavailable') return;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-    fetch('/api/classroom/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create', conceptId: lesson.conceptId, intent }),
-      signal: controller.signal,
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.success && data.session) dispatch({ type: 'SESSION_CREATED', session: data.session });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // See lib/classroom/classPersistence.ts: only an authenticated learner gets a
+    // server session; guests are explicitly ephemeral (nothing persisted).
+    shouldRequestServerSession(currentAuthMode(), supabase ? supabase.auth : null).then((eligible) => {
+      if (controller.signal.aborted) return;
+      if (!eligible) {
+        setPersistence('guest_ephemeral');
+        return;
+      }
+      timer = setTimeout(() => controller.abort(), 3000);
+      fetch('/api/classroom/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', conceptId: lesson.conceptId, intent }),
+        signal: controller.signal,
       })
-      .catch((err) => {
-        if (err?.name !== 'AbortError') console.warn('[ClassroomLayout] Session init warning:', err?.message);
-      })
-      .finally(() => clearTimeout(timer));
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.success && data.session) {
+            dispatch({ type: 'SESSION_CREATED', session: data.session });
+            setPersistence('server_session');
+          } else {
+            setPersistence('guest_ephemeral');
+          }
+        })
+        .catch((err) => {
+          if (err?.name !== 'AbortError') console.warn('[ClassroomLayout] Session init warning:', err?.message);
+        })
+        .finally(() => {
+          if (timer) clearTimeout(timer);
+        });
+    });
     return () => {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       controller.abort();
       initializedConceptRef.current = null;
     };
@@ -256,6 +272,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   return (
     <div
       data-testid="classroom"
+      data-persistence={persistence}
       className={`h-[100dvh] max-h-[100dvh] w-full bg-[#040714] text-slate-100 flex flex-col justify-between overflow-hidden relative pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] ${className}`}
     >
       {/* Identity probe: read by browser tests to assert the identity chain. */}

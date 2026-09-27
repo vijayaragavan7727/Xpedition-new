@@ -11,6 +11,21 @@
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { LEARNER_A, signInAs } from './support/stubIdentities';
+
+/**
+ * Two modes (Phase 4):
+ *  - default: production build WITHOUT Supabase → guest-only, auth fails closed.
+ *  - CLASS_E2E_AUTH=stub (test/playwright.auth.config.ts): production build pointed
+ *    at the local auth stub; every test runs as signed-in learner A, so the Class
+ *    creates a real server session and may issue integration requests.
+ */
+const AUTH = process.env.CLASS_E2E_AUTH === 'stub';
+const EXPECTED_PERSISTENCE = AUTH ? 'server_session' : 'guest_ephemeral';
+
+test.beforeEach(async ({ context, baseURL }) => {
+  if (AUTH) await signInAs(context, baseURL!, LEARNER_A);
+});
 
 const CONCEPTS = [
   'periodic_table',
@@ -51,7 +66,7 @@ const EXPECTED_VISUAL: Record<string, string> = {
 const DC_MOTOR_MARKERS = /fleming|commutat|armature|lorentz|dc motor|split-ring/i;
 const GENERIC_PLACEHOLDERS = /operational dynamics|governing inputs|dynamic transform|structural mechanics/i;
 
-const ARTIFACT_DIR = path.join(__dirname, 'artifacts', 'class-concept-identity');
+const ARTIFACT_DIR = path.join(__dirname, 'artifacts', AUTH ? 'class-concept-identity-auth' : 'class-concept-identity');
 fs.mkdirSync(path.join(ARTIFACT_DIR, 'screenshots'), { recursive: true });
 
 interface Probe {
@@ -187,6 +202,11 @@ async function openClass(page: Page, url: string) {
   await page.waitForSelector('[data-testid="smart-board"]', { timeout: 30000 });
 }
 
+/** Phase 4: the Class states truthfully whether anything is persisted. */
+async function expectPersistence(page: Page, expected: string) {
+  await expect(page.locator('[data-testid="classroom"]')).toHaveAttribute('data-persistence', expected, { timeout: 15000 });
+}
+
 async function clientNavigate(page: Page, url: string) {
   // App Router listens to history changes; this is a client-side (no reload) navigation.
   await page.evaluate((u) => window.history.pushState(null, '', u), url);
@@ -204,6 +224,7 @@ test('A. concept × viewport matrix: identity chain, content, layout', async ({ 
     await page.setViewportSize({ width: vp.width, height: vp.height });
     for (const concept of CONCEPTS) {
       await openClass(page, `/class?concept=${concept}`);
+      await expectPersistence(page, EXPECTED_PERSISTENCE);
       const p = await probe(page);
       assertIdentityChain(p, concept);
       assertNoContamination(p, concept);
@@ -362,7 +383,25 @@ test('E. journey: navigate, reload, revision, next/prev, answer, switch', async 
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
+test('F0. guest Class sends no session or integration requests (nothing persisted, nothing to fail)', async ({ page }) => {
+  test.skip(AUTH, 'guest-only property; the signed-in run exercises F instead');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const gated: string[] = [];
+  page.on('request', (r) => {
+    if (/\/api\/classroom\/(session|integrations)/.test(r.url())) gated.push(`${r.method()} ${r.url()}`);
+  });
+  await openClass(page, '/class?concept=dc_motor');
+  await expectPersistence(page, 'guest_ephemeral');
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Next step', exact: true }).click();
+  await clientNavigate(page, '/class?concept=periodic_table');
+  await page.waitForTimeout(1500);
+  expect(gated, gated.join('\n')).toEqual([]);
+});
+
 test('F. stale async responses are rejected (delayed scene + session for a previous concept)', async ({ page }) => {
+  // Only a signed-in learner issues session/scene requests (Phase 4 persistence model),
+  // so the stale-response path can only be exercised in the authenticated run.
+  test.skip(!AUTH, 'requires a signed-in learner (run with test/playwright.auth.config.ts)');
   await page.setViewportSize({ width: 1440, height: 900 });
   let staleSceneRequests = 0;
   // Delay every integration scene response by 2.5s and tag it with dc_motor + an artwork URL.
@@ -400,8 +439,10 @@ test('F. stale async responses are rejected (delayed scene + session for a previ
     });
   });
   // Delay session creation so it resolves after the concept switch.
+  let staleSessionRequests = 0;
   await page.route('**/api/classroom/session', async (route) => {
     const body = route.request().postDataJSON() as { conceptId?: string };
+    if (body.conceptId === 'dc_motor') staleSessionRequests++;
     await new Promise((r) => setTimeout(r, body.conceptId === 'dc_motor' ? 2000 : 0));
     await route.continue();
   });
@@ -429,6 +470,11 @@ test('F. stale async responses are rejected (delayed scene + session for a previ
   }
   // Prove the stale path was exercised: a dc_motor scene request was in flight at switch time.
   expect(staleSceneRequests, 'a dc_motor scene request was issued before the switch').toBeGreaterThan(0);
+  expect(staleSessionRequests, 'a dc_motor session request was issued before the switch').toBeGreaterThan(0);
+  const final = await probe(page);
+  // The fresh periodic_table session landed; the delayed dc_motor one was rejected.
+  expect(final.sessionConcept, 'session belongs to the current concept').toBe('periodic_table');
+  await expectPersistence(page, 'server_session');
   fs.writeFileSync(path.join(ARTIFACT_DIR, 'stale-async.json'), JSON.stringify(snapshots, null, 2));
 });
 
@@ -460,6 +506,7 @@ test('G. multi-timing stability of the deterministic visual (0–3000 ms)', asyn
 // a production build with NO Supabase configuration (auth must fail closed).
 // ---------------------------------------------------------------------------
 test('H. Phase 3: fail-closed auth, honest public Passport, registry-gated /learn and /tutor', async ({ page, request }) => {
+  test.skip(AUTH, 'regression for a production build WITHOUT Supabase');
   const log: Record<string, unknown> = {};
 
   // Protected learner routes redirect to login with an explicit auth_unavailable state.

@@ -74,36 +74,34 @@ export class MemoryCacheAdapter implements ICacheAdapter {
 }
 
 /**
- * Cloud Redis Cache Adapter with transparent in-memory fallback
+ * REDIS_URL placeholder — NOT a Redis client.
+ *
+ * Phase 4 finding: this adapter previously set `isConnected = true` when
+ * REDIS_URL was present but stored everything in process memory, so a deployment
+ * could believe it had shared state when it did not. No Redis client is bundled
+ * (no dependency is added for appearance), so this adapter is now honest: it is
+ * process-local and says so via `distributed = false`, and it logs once.
+ *
+ * Security-sensitive state does NOT depend on it being shared:
+ *  - rate limits → lib/security/distributedRateLimit.ts (Postgres, shared)
+ *  - Canvas conversation ownership → signed learner-bound handles (stateless)
+ *  - classroom sessions → owner-checked; Postgres (RLS) is the durable store
  */
 export class RedisCacheAdapter implements ICacheAdapter {
+  readonly distributed = false;
   private readonly memoryFallback: MemoryCacheAdapter;
-  private readonly redisUrl: string | null;
-  private isConnected = false;
+  private static warned = false;
 
   constructor(redisUrl: string | null) {
-    this.redisUrl = redisUrl;
     this.memoryFallback = new MemoryCacheAdapter(1000);
-
-    if (this.redisUrl) {
-      // In production, instantiate ioredis or @upstash/redis here
-      // For resilience without forced native binary requirements, we maintain graceful fallback
-      this.isConnected = true;
+    if (redisUrl && !RedisCacheAdapter.warned) {
+      RedisCacheAdapter.warned = true;
+      console.warn('[cache] REDIS_URL is set but no Redis client is bundled; cache is process-local.');
     }
   }
 
   public async get<T>(key: string): Promise<T | null> {
-    if (!this.isConnected || !this.redisUrl) {
-      return this.memoryFallback.get<T>(key);
-    }
-
-    try {
-      // Cloud Redis query abstraction
-      return await this.memoryFallback.get<T>(key);
-    } catch (err) {
-      console.warn('[RedisCacheAdapter] Error reading from Redis, using fallback:', err);
-      return this.memoryFallback.get<T>(key);
-    }
+    return this.memoryFallback.get<T>(key);
   }
 
   public async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {

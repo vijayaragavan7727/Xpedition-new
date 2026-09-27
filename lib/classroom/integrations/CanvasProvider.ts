@@ -7,11 +7,19 @@ import type {
   ClassroomScene,
   ClassroomSceneRequest,
 } from './types';
+import { boundedTimeoutMs, fetchJsonWithTimeout, type BoundedResponse } from '../../security/fetchWithTimeout';
+
+export const CANVAS_DEFAULT_TIMEOUT_MS = 8000;
 
 /**
  * Canvas REST adapter for AI Experiences / AI Conversations.
  *
- * The token is server-side only. No Canvas credential is exposed to the browser.
+ * CREDENTIAL BOUNDARY: this adapter holds ONE school-wide Canvas credential
+ * (CANVAS_API_TOKEN). It is server-side only and never reaches the browser.
+ * Xpedition learner identity is NOT equivalent to a per-user Canvas identity:
+ * every Canvas call is made as the school credential, on behalf of an
+ * authenticated Xpedition learner that Xpedition itself has authorized
+ * (see integrationAuthorization.ts). There is no per-student Canvas OAuth.
  */
 export class CanvasProvider implements ClassroomProvider {
   readonly id = 'canvas' as const;
@@ -35,17 +43,25 @@ export class CanvasProvider implements ClassroomProvider {
     };
   }
 
-  private async request(path: string, init: RequestInit = {}): Promise<Response> {
+  /** Bounded server-side deadline for each Canvas call (CANVAS_TIMEOUT_MS, clamped). */
+  readonly timeoutMs = boundedTimeoutMs(process.env.CANVAS_TIMEOUT_MS, CANVAS_DEFAULT_TIMEOUT_MS);
+
+  private async request<T = unknown>(path: string, init: RequestInit = {}): Promise<BoundedResponse<T>> {
     if (!this.baseUrl || !this.token) throw new Error('Canvas integration is not configured.');
-    return fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        Accept: 'application/json',
-        ...(init.headers || {}),
+    return fetchJsonWithTimeout<T>(
+      'Canvas',
+      `${this.baseUrl}${path}`,
+      {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          Accept: 'application/json',
+          ...(init.headers || {}),
+        },
+        cache: 'no-store',
       },
-      cache: 'no-store',
-    });
+      this.timeoutMs
+    );
   }
 
   async initialize(_context: ClassroomIntegrationContext): Promise<void> {
@@ -56,17 +72,15 @@ export class CanvasProvider implements ClassroomProvider {
   async generateScene(request: ClassroomSceneRequest): Promise<ClassroomScene | null> {
     if (!this.baseUrl || !this.token || !this.courseId || !this.experienceId) return null;
 
-    const response = await this.request(
-      `/api/v1/courses/${encodeURIComponent(this.courseId)}/ai_experiences/${encodeURIComponent(this.experienceId)}`
-    );
-    if (!response.ok) throw new Error(`Canvas AI Experience returned HTTP ${response.status}`);
-
-    const experience = (await response.json()) as {
+    const response = await this.request<{
       id: number;
       title: string;
       description?: string;
       learning_objective?: string;
-    };
+    }>(`/api/v1/courses/${encodeURIComponent(this.courseId)}/ai_experiences/${encodeURIComponent(this.experienceId)}`);
+    if (!response.ok || !response.data) throw new Error(`Canvas AI Experience returned HTTP ${response.status}`);
+
+    const experience = response.data;
 
     return {
       provider: 'canvas',
@@ -92,7 +106,7 @@ export class CanvasProvider implements ClassroomProvider {
         { method: 'POST' }
       );
       if (!response.ok) return { ok: false, provider: this.id, message: `Canvas conversation returned HTTP ${response.status}` };
-      return { ok: true, provider: this.id, payload: await response.json() };
+      return { ok: true, provider: this.id, payload: (response.data ?? {}) as Record<string, unknown> };
     }
 
     const conversationId = String(action.payload?.conversationId || '');
@@ -107,6 +121,6 @@ export class CanvasProvider implements ClassroomProvider {
       { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body }
     );
     if (!response.ok) return { ok: false, provider: this.id, message: `Canvas message returned HTTP ${response.status}` };
-    return { ok: true, provider: this.id, payload: await response.json() };
+    return { ok: true, provider: this.id, payload: (response.data ?? {}) as Record<string, unknown> };
   }
 }

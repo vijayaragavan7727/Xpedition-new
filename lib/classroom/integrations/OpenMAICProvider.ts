@@ -1,5 +1,6 @@
 import type { ClassroomProvider } from './ClassroomProvider';
 import { sanitizeExternalUrl } from './urlSecurity';
+import { boundedTimeoutMs, fetchJsonWithTimeout } from '../../security/fetchWithTimeout';
 import type {
   ClassroomAction,
   ClassroomActionResult,
@@ -17,11 +18,45 @@ import type {
  * the external runtime is absent. A separately hosted OpenMAIC bridge can be
  * connected through XPEDITION_OPENMAIC_BRIDGE_URL without changing the Class UI.
  */
+/** Default hard deadline for one bridge exchange (headers + body). */
+// Below the Class client deadline (3000 ms) so the server always finishes first.
+export const OPENMAIC_DEFAULT_TIMEOUT_MS = 2500;
+
+export interface OpenMAICProviderOptions {
+  bridgeUrl?: string;
+  timeoutMs?: number;
+  fetchImpl?: typeof fetch;
+}
+
 export class OpenMAICProvider implements ClassroomProvider {
   readonly id = 'openmaic' as const;
   readonly label = 'OpenMAIC';
 
-  private readonly bridgeUrl = process.env.XPEDITION_OPENMAIC_BRIDGE_URL?.trim() || '';
+  private readonly bridgeUrl: string;
+  /** Bounded server-side deadline (XPEDITION_OPENMAIC_TIMEOUT_MS, clamped). */
+  readonly timeoutMs: number;
+  private readonly fetchImpl: typeof fetch | undefined;
+
+  constructor(options: OpenMAICProviderOptions = {}) {
+    this.bridgeUrl = (options.bridgeUrl ?? process.env.XPEDITION_OPENMAIC_BRIDGE_URL ?? '').trim();
+    this.timeoutMs = boundedTimeoutMs(options.timeoutMs ?? process.env.XPEDITION_OPENMAIC_TIMEOUT_MS, OPENMAIC_DEFAULT_TIMEOUT_MS);
+    this.fetchImpl = options.fetchImpl;
+  }
+
+  private post<T>(path: string, body: unknown) {
+    return fetchJsonWithTimeout<T>(
+      'OpenMAIC bridge',
+      `${this.bridgeUrl.replace(/\/$/, '')}${path}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+      },
+      this.timeoutMs,
+      this.fetchImpl
+    );
+  }
 
   status(): ClassroomProviderStatus {
     return {
@@ -44,23 +79,19 @@ export class OpenMAICProvider implements ClassroomProvider {
   async generateScene(request: ClassroomSceneRequest): Promise<ClassroomScene | null> {
     if (!this.bridgeUrl) return null;
 
-    const response = await fetch(`${this.bridgeUrl.replace(/\/$/, '')}/scene`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        source: 'xpedition',
-        contractVersion: 1,
-        request,
-      }),
-      cache: 'no-store',
+    // Hard deadline: throws UpstreamTimeoutError (aborted) instead of hanging.
+    const response = await this.post<Partial<ClassroomScene>>('/scene', {
+      source: 'xpedition',
+      contractVersion: 1,
+      request,
     });
 
     if (!response.ok) {
       throw new Error(`OpenMAIC bridge returned HTTP ${response.status}`);
     }
 
-    const data = (await response.json()) as Partial<ClassroomScene>;
-    if (!data.title || data.provider !== 'openmaic') {
+    const data = response.data;
+    if (!data || !data.title || data.provider !== 'openmaic') {
       throw new Error('OpenMAIC bridge returned an invalid scene contract.');
     }
 
@@ -81,18 +112,12 @@ export class OpenMAICProvider implements ClassroomProvider {
       return { ok: false, provider: this.id, message: 'OpenMAIC bridge is not configured.' };
     }
 
-    const response = await fetch(`${this.bridgeUrl.replace(/\/$/, '')}/action`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source: 'xpedition', contractVersion: 1, action }),
-      cache: 'no-store',
-    });
+    const response = await this.post<Record<string, unknown>>('/action', { source: 'xpedition', contractVersion: 1, action });
 
     if (!response.ok) {
       return { ok: false, provider: this.id, message: `OpenMAIC bridge returned HTTP ${response.status}` };
     }
 
-    const payload = (await response.json()) as Record<string, unknown>;
-    return { ok: true, provider: this.id, payload };
+    return { ok: true, provider: this.id, payload: response.data ?? {} };
   }
 }

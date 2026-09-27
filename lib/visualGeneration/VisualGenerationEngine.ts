@@ -146,10 +146,26 @@ export class VisualGenerationEngine {
   }
 
   /**
+   * Owner-checked job lookup. Returns null (indistinguishable from "not found")
+   * unless the job exists AND was requested by `ownerId`. Jobs without an owner
+   * (internal/curriculum jobs) are never returned to a learner.
+   */
+  public async getJobForOwner(jobId: string, ownerId: string): Promise<VisualGenerationJob | null> {
+    if (typeof jobId !== 'string' || !jobId || jobId.length > 128 || !ownerId) return null;
+    const job = await this.jobStore.getJob(jobId);
+    if (!job || !job.ownerId || job.ownerId !== ownerId) return null;
+    return job;
+  }
+
+  /**
    * Primary entry point:
    * Validates -> Computes Cache Identity -> Checks Existing Asset -> Concurrency Check -> Generates
    */
-  public async generateVisual(request: VisualGenerationRequest): Promise<VisualGenerationJob> {
+  public async generateVisual(
+    request: VisualGenerationRequest,
+    options: { ownerId?: string } = {}
+  ): Promise<VisualGenerationJob> {
+    const ownerId = options.ownerId;
     const startTime = Date.now();
     this.validateRequest(request);
 
@@ -161,11 +177,17 @@ export class VisualGenerationEngine {
     const workflow = this.registry.resolve(workflowId);
 
     // Compute deterministic cache identity
-    const { promptHash, cacheKey } = buildCacheKeyFromRequest(request, {
+    const built = buildCacheKeyFromRequest(request, {
       workflowId: workflow.workflowId,
       version: workflow.version,
       model: workflow.targetModel,
     });
+    const promptHash = built.promptHash;
+    // Learner jobs are cache-isolated per owner: one learner's request never
+    // joins, reuses or reveals another learner's job or output.
+    const cacheKey = ownerId
+      ? `${built.cacheKey}::o:${crypto.createHash('sha256').update(ownerId).digest('hex').slice(0, 16)}`
+      : built.cacheKey;
 
     const requestId = request.requestId || `req_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
@@ -188,7 +210,8 @@ export class VisualGenerationEngine {
         };
 
         const cachedJob: VisualGenerationJob = {
-          jobId: `job_cached_${cachedAsset.assetId}`,
+          jobId: ownerId ? `job_${Date.now()}_${crypto.randomBytes(8).toString('hex')}` : `job_cached_${cachedAsset.assetId}`,
+          ownerId,
           requestId,
           conceptId: request.conceptId,
           workflowId: workflow.workflowId,
@@ -222,6 +245,7 @@ export class VisualGenerationEngine {
           },
         };
 
+        if (ownerId) await this.jobStore.createJob(cachedJob);
         return cachedJob;
       }
 
@@ -235,9 +259,10 @@ export class VisualGenerationEngine {
     // -------------------------------------------------------------------------
     // STEP 5: Create Job Record
     // -------------------------------------------------------------------------
-    const initialJobId = `job_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    const initialJobId = `job_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
     const initialJob: VisualGenerationJob = {
       jobId: initialJobId,
+      ownerId,
       requestId,
       conceptId: request.conceptId,
       workflowId: workflow.workflowId,

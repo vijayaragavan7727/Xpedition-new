@@ -4,6 +4,7 @@ import { updateTheta, thetaToPercent } from './engine/mastery';
 import {
   getActiveLearnerId,
   purgeLearnerLocalData,
+  purgeAllLearnerLocalDataExcept,
   purgeLegacyGlobalKeys,
   setActiveLearnerId,
 } from './security/learnerStorage';
@@ -270,11 +271,12 @@ export function registerStoreSyncListener(listener: StoreSyncListener): void {
 
 export function setActiveStoreUser(userId: string | null): void {
   const previous = getActiveLearnerId();
-  if (previous !== userId) guestStore = null;
-  // Switching directly from learner A to learner B on the same device (no
-  // explicit logout): remove A's local copy so B can never see it.
-  if (previous && userId && previous !== userId) {
-    purgeLearnerLocalData(previous);
+  if (previous !== userId) {
+    guestStore = null;
+    // Any identity change (A → B, A → logged out, logged out → B) removes every
+    // OTHER learner's local copy on this device, including copies left behind by
+    // a sign-out this tab never observed. B can never see A's local state.
+    purgeAllLearnerLocalDataExcept(userId);
   }
   setActiveLearnerId(userId);
 }

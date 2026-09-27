@@ -126,6 +126,40 @@ export function purgeLearnerLocalData(userId: string | null): void {
   toRemove.forEach((k) => local.removeItem(k));
 }
 
+const LEARNER_KEY_PATTERNS: RegExp[] = [
+  /__u_(.+)$/, // learnerKey(base, uid)
+  /^xpedition_user_state_(.+)$/, // local persistence adapter per learner
+  /^xpedition_user_(.+)$/, // store snapshot per learner
+  /^xpedition_notes_([^_].*?)_/, // legacy per-learner notes
+];
+
+/**
+ * Removes every learner-scoped key on this device that does NOT belong to
+ * `keepUserId` (null → removes all learners' data). Used on logout and whenever
+ * the authenticated identity changes, including changes this tab did not see
+ * (sign-out in another tab, expired session, direct sign-in as someone else).
+ */
+export function purgeAllLearnerLocalDataExcept(keepUserId: string | null): string[] {
+  guestMemory.clear();
+  const local = storage('local');
+  if (!local) return [];
+  const toRemove: string[] = [];
+  for (let i = 0; i < local.length; i++) {
+    const key = local.key(i);
+    if (!key || key === ACTIVE_USER_KEY) continue;
+    for (const re of LEARNER_KEY_PATTERNS) {
+      const m = key.match(re);
+      if (m) {
+        const owner = m[1];
+        if (!keepUserId || (owner !== keepUserId && !key.endsWith(`__u_${keepUserId}`))) toRemove.push(key);
+        break;
+      }
+    }
+  }
+  toRemove.forEach((k) => local.removeItem(k));
+  return toRemove;
+}
+
 /** Legacy unscoped keys that could hold ANOTHER learner's data. Never read; always removed. */
 export const LEGACY_GLOBAL_KEYS = ['xpedition_user_store_v3', 'xpedition_user_store_v2'];
 

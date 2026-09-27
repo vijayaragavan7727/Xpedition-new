@@ -481,9 +481,10 @@ CREATE POLICY "Users can manage own goals" ON public.goals
   FOR ALL USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+-- Phase 4: skills belong to a learner's goal (goal_id → goals.user_id), so they are
+-- learner data. The former public-read policy (USING (true)) exposed every
+-- learner's goal skills to anyone, including anon. Owner access below only.
 DROP POLICY IF EXISTS "Allow public read for skills" ON public.skills;
-CREATE POLICY "Allow public read for skills" ON public.skills
-  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Users can manage own goal skills" ON public.skills;
 CREATE POLICY "Users can manage own goal skills" ON public.skills
@@ -729,7 +730,9 @@ CREATE POLICY "Users can manage own classroom sessions" ON public.classroom_sess
 
 DROP POLICY IF EXISTS "Users can insert own classroom telemetry" ON public.classroom_telemetry;
 CREATE POLICY "Users can insert own classroom telemetry" ON public.classroom_telemetry
-  FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.role() = 'authenticated');
+  -- Phase 4: the former check also accepted ANY authenticated role, which let a
+  -- signed-in learner write telemetry attributed to another learner.
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can view own classroom telemetry" ON public.classroom_telemetry;
 CREATE POLICY "Users can view own classroom telemetry" ON public.classroom_telemetry
@@ -747,3 +750,66 @@ DROP POLICY IF EXISTS "Authenticated users can create generation jobs" ON public
 CREATE POLICY "Authenticated users can create generation jobs" ON public.generation_jobs
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+-- =============================================================================
+-- 11. PHASE 4 — SHARED (MULTI-INSTANCE) PER-LEARNER RATE LIMITING
+-- =============================================================================
+-- Called by lib/security/distributedRateLimit.ts with the learner's own JWT.
+-- The key is derived from auth.uid() inside the function, so a caller can only
+-- ever count against its OWN bucket. The table is not directly accessible.
+
+CREATE TABLE IF NOT EXISTS public.rate_limit_hits (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID NOT NULL,
+  bucket TEXT NOT NULL,
+  hit_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_rate_limit_hits_user_bucket ON public.rate_limit_hits(user_id, bucket, hit_at);
+ALTER TABLE public.rate_limit_hits ENABLE ROW LEVEL SECURITY;
+-- No policies: learners cannot read or write the table directly.
+REVOKE ALL ON public.rate_limit_hits FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.xp_rate_limit_hit(p_bucket TEXT, p_window_seconds INT, p_max INT)
+RETURNS TABLE (allowed BOOLEAN, hits INT, reset_at TIMESTAMPTZ)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_count INT;
+  v_oldest TIMESTAMPTZ;
+  v_window INTERVAL;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'authentication required' USING ERRCODE = '42501';
+  END IF;
+  IF p_bucket IS NULL OR p_bucket !~ '^[a-z0-9_.:-]{1,64}$'
+     OR p_window_seconds IS NULL OR p_window_seconds < 1 OR p_window_seconds > 3600
+     OR p_max IS NULL OR p_max < 1 OR p_max > 10000 THEN
+    RAISE EXCEPTION 'invalid rate limit arguments' USING ERRCODE = '22023';
+  END IF;
+  v_window := make_interval(secs => p_window_seconds);
+
+  -- Serialize concurrent hits for the same learner+bucket across all instances.
+  PERFORM pg_advisory_xact_lock(hashtext(v_uid::TEXT || ':' || p_bucket));
+
+  DELETE FROM public.rate_limit_hits
+   WHERE user_id = v_uid AND bucket = p_bucket AND hit_at <= clock_timestamp() - v_window;
+
+  SELECT COUNT(*)::INT, MIN(hit_at) INTO v_count, v_oldest
+    FROM public.rate_limit_hits
+   WHERE user_id = v_uid AND bucket = p_bucket;
+
+  IF v_count >= p_max THEN
+    RETURN QUERY SELECT FALSE, v_count, v_oldest + v_window;
+    RETURN;
+  END IF;
+
+  INSERT INTO public.rate_limit_hits (user_id, bucket, hit_at) VALUES (v_uid, p_bucket, clock_timestamp());
+  RETURN QUERY SELECT TRUE, v_count + 1, COALESCE(v_oldest, clock_timestamp()) + v_window;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.xp_rate_limit_hit(TEXT, INT, INT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.xp_rate_limit_hit(TEXT, INT, INT) FROM anon;
+GRANT EXECUTE ON FUNCTION public.xp_rate_limit_hit(TEXT, INT, INT) TO authenticated;

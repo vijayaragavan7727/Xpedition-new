@@ -3,6 +3,22 @@ import type { SmartBoardVisualPayload } from '@/lib/visualIntelligence/types';
 import type { ClassroomStage } from './types';
 import type { ClassStepStage } from '@/components/classroom/types';
 import { resolveStepStage } from '../classStage';
+import { supabase } from '../../supabase';
+import { currentAuthMode } from '../../auth/authMode';
+import { shouldRequestServerSession } from '../classPersistence';
+
+/**
+ * Integration endpoints require an authenticated learner. A guest (or a
+ * deployment without an auth service) never calls them, so a guest Class makes
+ * no failing 401/503 requests and falls back to native visuals directly.
+ */
+let integrationEligibility: () => Promise<boolean> = () =>
+  shouldRequestServerSession(currentAuthMode(), supabase ? supabase.auth : null);
+
+/** Test hook. */
+export function __setIntegrationEligibilityForTests(fn: (() => Promise<boolean>) | null): void {
+  integrationEligibility = fn ?? (() => shouldRequestServerSession(currentAuthMode(), supabase ? supabase.auth : null));
+}
 
 const VISUAL_STAGES = new Set<ClassroomStage>(['EXPLAIN', 'VISUALIZE', 'INTERACT', 'FEEDBACK']);
 
@@ -40,8 +56,9 @@ let openMaicConfiguredPromise: Promise<boolean> | null = null;
 
 function isOpenMaicConfigured(): Promise<boolean> {
   if (!openMaicConfiguredPromise) {
-    openMaicConfiguredPromise = fetch('/api/classroom/integrations', { method: 'GET' })
-      .then((res) => (res.ok ? res.json() : null))
+    openMaicConfiguredPromise = integrationEligibility()
+      .then((eligible) => (eligible ? fetch('/api/classroom/integrations', { method: 'GET' }) : null))
+      .then((res) => (res && res.ok ? res.json() : null))
       .then((data: { providers?: Array<{ id: string; status: string }> } | null) =>
         Boolean(data?.providers?.some((p) => p.id === 'openmaic' && p.status === 'configured'))
       )

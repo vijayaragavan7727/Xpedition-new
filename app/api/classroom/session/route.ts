@@ -1,3 +1,4 @@
+import '@/lib/supabase/serverDb';
 import { NextResponse } from 'next/server';
 import { requireServerAuth } from '@/lib/auth/serverAuth';
 import {
@@ -9,12 +10,8 @@ import {
 import { getCanonicalConcept } from '@/lib/concepts/conceptRegistry';
 import { parseClassIntent } from '@/lib/concepts/lessonResolver';
 import { ClassroomLearnerAction, ClassroomStage } from '@/lib/classroom/classroomSessionTypes';
-import {
-  rateLimiter,
-  getClientRateLimitKey,
-  createRateLimitExceededResponse,
-  applyRateLimitHeaders,
-} from '@/lib/security/rateLimiter';
+import { createRateLimitExceededResponse, applyRateLimitHeaders } from '@/lib/security/rateLimiter';
+import { checkUserRateLimit } from '@/lib/security/distributedRateLimit';
 import { getProductionConfig } from '@/lib/config/productionConfig';
 import { logger } from '@/lib/observability/productionLogger';
 
@@ -31,13 +28,14 @@ export async function POST(request: Request) {
     }
 
     const config = getProductionConfig();
-    const rateLimitKey = getClientRateLimitKey(request, user?.id, 'classroom-session');
-    const rateResult = await rateLimiter.checkLimit(rateLimitKey, {
+    const rateResult = await checkUserRateLimit({
+      userId: user.id,
+      bucket: 'classroom-session',
       maxRequests: config.rateLimit.classroomSessionMaxPerMin,
       windowMs: 60000,
     });
     if (!rateResult.allowed) {
-      logger.warn('[API:classroom:session] Rate limit exceeded', { rateLimitKey });
+      logger.warn('[API:classroom:session] Rate limit exceeded', { backend: rateResult.backend });
       return createRateLimitExceededResponse(rateResult);
     }
 

@@ -110,6 +110,8 @@ export interface VisualGenerationMetadata {
 
 export interface VisualGenerationJob {
   jobId: string;                         // ComfyUI prompt_id or internal UUID
+  /** Authenticated learner who requested the job. Every read is owner-checked. */
+  ownerId?: string;
   requestId: string;                     // Request tracking ID
   conceptId: string;
   workflowId: string;

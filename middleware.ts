@@ -6,6 +6,11 @@ import { isProtectedPath } from '@/lib/auth/routeProtection';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // 0. Internal asset manifests (prompts, internal storage paths) are never public.
+  if (pathname.endsWith('/assets-manifest.json')) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   // 1. Exclude static files, images, auth callbacks, and signout routes
   if (
     pathname.startsWith('/_next') ||

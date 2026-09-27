@@ -34,6 +34,8 @@ Kept impossible (tested): `industrial_revolution → evolution`, `research_metho
 
 ## Remaining (not fixed in Phase 3)
 
+> Phase 4 update: most items below are addressed. See `docs/phase-4-production-security.md` and the Phase 4 review in `docs/security-backlog-p0.md`.
+
 - Canvas uses one school server token; per-learner Canvas OAuth does not exist. Ownership is enforced in Xpedition only.
 - Rate limiter and the Canvas ownership store fall back to per-instance memory without a shared cache.
 - `ClassroomSessionStore` uses the anon Supabase client on the server; DB persistence under RLS is unverified.

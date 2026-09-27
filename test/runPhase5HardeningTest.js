@@ -302,16 +302,17 @@ async function runPhase5Tests() {
   const visGenContent = fs.readFileSync(visGenRoutePath, 'utf8');
 
   assert(visGenContent.includes('requireServerAuth'), 'POST /api/visual-generation requires server authentication');
-  assert(visGenContent.includes('rateLimiter.checkLimit'), 'POST /api/visual-generation enforces rate limiting');
+  // Phase 4: shared (multi-instance) per-learner limiter replaces the process-only one.
+  assert(visGenContent.includes('checkUserRateLimit({') && !visGenContent.includes('rateLimiter.checkLimit'), 'POST /api/visual-generation enforces shared per-learner rate limiting');
   assert(visGenContent.includes('createRateLimitExceededResponse'), 'POST /api/visual-generation returns 429 when rate limited');
   assert(visGenContent.includes('applyRateLimitHeaders'), 'POST /api/visual-generation sets rate limit headers');
-  assert(visGenContent.includes('LocalAssetStore.sanitizeForClient'), 'POST /api/visual-generation sanitizes asset server paths');
+  assert(visGenContent.includes('toClientJob(result)') && !visGenContent.includes('filePath'), 'POST /api/visual-generation returns only the owner-scoped client projection (no server paths)');
 
   const classSessionRoutePath = path.join(rootDir, 'app', 'api', 'classroom', 'session', 'route.ts');
   const classSessionContent = fs.readFileSync(classSessionRoutePath, 'utf8');
 
   assert(classSessionContent.includes('requireServerAuth'), 'POST /api/classroom/session requires server authentication');
-  assert(classSessionContent.includes('rateLimiter.checkLimit'), 'POST /api/classroom/session enforces rate limiting');
+  assert(classSessionContent.includes('checkUserRateLimit({') && !classSessionContent.includes('rateLimiter.checkLimit'), 'POST /api/classroom/session enforces shared per-learner rate limiting');
   assert(classSessionContent.includes('createRateLimitExceededResponse'), 'POST /api/classroom/session returns 429 when rate limited');
   assert(classSessionContent.includes('applyRateLimitHeaders'), 'POST /api/classroom/session sets rate limit headers');
 

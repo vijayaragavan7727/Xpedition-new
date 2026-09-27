@@ -34,3 +34,6 @@ public/lottie/*
 # test artifacts
 /test/artifacts/
 /.test-dist*/
+
+# private learner-generated assets (never under public/)
+/.data/

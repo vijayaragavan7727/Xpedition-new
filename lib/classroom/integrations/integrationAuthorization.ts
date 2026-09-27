@@ -10,14 +10,23 @@
  *                     SERVER-SIDE from the canonical lesson (client lesson text is
  *                     never forwarded to an external provider).
  *   execute_action  → only explicitly allow-listed action types:
- *                       canvas.START_AI_CONVERSATION  (records the caller as owner)
- *                       canvas.POST_AI_MESSAGE        (caller must own conversationId)
+ *                       canvas.START_AI_CONVERSATION  (returns a signed, learner-bound conversationHandle)
+ *                       canvas.POST_AI_MESSAGE        (requires a conversationHandle bound to the caller)
  *                       miro.OPEN_WORKSPACE           (returns the configured, sanitized URL)
  *                     Everything else is 403. There is no OpenMAIC/LiveGenie learner action.
  *
- * Canvas note: the adapter uses one server token for the whole course, so Canvas
- * itself cannot tell learners apart. Ownership of each conversation is therefore
- * enforced HERE, and fails closed if the ownership record cannot be found.
+ * Canvas credential boundary:
+ *
+ *   Xpedition identity (Supabase session)
+ *     → Xpedition authorization (this module: allow-list + learner-bound handles)
+ *       → server-side Canvas school credential (CanvasProvider, never sent to the browser)
+ *         → allowed Canvas action
+ *
+ * Xpedition learner identity is NOT equivalent to a per-user Canvas identity. The
+ * adapter uses one school token, so Canvas itself cannot tell learners apart.
+ * Raw Canvas conversation ids are never accepted from the client: START returns
+ * an HMAC-signed handle bound to the learner, and POST verifies it (fails closed).
+ * Canvas response bodies are projected to a minimal shape before leaving the server.
  */
 
 import type { ClassroomProvider } from './ClassroomProvider';
@@ -25,7 +34,8 @@ import type { ClassroomIntegrationId, ClassroomScene, ClassroomSceneRequest } fr
 import { sanitizeExternalUrl } from './urlSecurity';
 import { resolveClassLesson } from '../../concepts/lessonResolver';
 import { resolveStepStage } from '../classStage';
-import { getCacheAdapter } from '../../cache/cacheAdapter';
+import type { ResourceHandleSigner } from '../../security/resourceHandle';
+import { UpstreamTimeoutError } from '../../security/fetchWithTimeout';
 
 export const INTEGRATION_MAX_BODY_BYTES = 16 * 1024;
 const ALLOWED_PROVIDERS = new Set<ClassroomIntegrationId>(['openmaic', 'livegenie', 'canvas', 'miro']);
@@ -47,33 +57,26 @@ export interface ProviderLookup {
   all(): ClassroomProvider[];
 }
 
-/** Records which learner owns an external resource (e.g. a Canvas conversation). */
-export interface IntegrationOwnershipStore {
-  recordOwner(provider: ClassroomIntegrationId, resourceId: string, userId: string): Promise<void>;
-  ownerOf(provider: ClassroomIntegrationId, resourceId: string): Promise<string | null>;
-}
-
-export class CacheBackedOwnershipStore implements IntegrationOwnershipStore {
-  private key(provider: string, resourceId: string) {
-    return `integration:owner:${provider}:${resourceId}`;
+/**
+ * Canvas bodies are made with the school credential and may carry Canvas-side
+ * identifiers (users, courses, SIS ids). Only message content survives; any key
+ * that names a user/account/credential identifier is removed recursively.
+ */
+const CANVAS_SENSITIVE_KEY = /(user|author|account|login|email|sis|token|course|enrollment|workflow_state|_id$|^id$)/i;
+export function projectCanvasPayload(payload: unknown, depth = 0): Record<string, unknown> | undefined {
+  if (!isRecord(payload) || depth > 4) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (CANVAS_SENSITIVE_KEY.test(key)) continue;
+    if (Array.isArray(value)) {
+      out[key] = value.slice(0, 50).map((v) => (isRecord(v) ? projectCanvasPayload(v, depth + 1) : typeof v === 'string' ? v.slice(0, 4000) : v));
+    } else if (isRecord(value)) {
+      out[key] = projectCanvasPayload(value, depth + 1);
+    } else {
+      out[key] = typeof value === 'string' ? value.slice(0, 4000) : value;
+    }
   }
-  async recordOwner(provider: ClassroomIntegrationId, resourceId: string, userId: string): Promise<void> {
-    await getCacheAdapter().set(this.key(provider, resourceId), userId, 12 * 3600);
-  }
-  async ownerOf(provider: ClassroomIntegrationId, resourceId: string): Promise<string | null> {
-    const owner = await getCacheAdapter().get<string>(this.key(provider, resourceId));
-    return typeof owner === 'string' ? owner : null;
-  }
-}
-
-export class InMemoryOwnershipStore implements IntegrationOwnershipStore {
-  private readonly owners = new Map<string, string>();
-  async recordOwner(provider: ClassroomIntegrationId, resourceId: string, userId: string): Promise<void> {
-    this.owners.set(`${provider}:${resourceId}`, userId);
-  }
-  async ownerOf(provider: ClassroomIntegrationId, resourceId: string): Promise<string | null> {
-    return this.owners.get(`${provider}:${resourceId}`) ?? null;
-  }
+  return out;
 }
 
 export interface IntegrationResponse {
@@ -144,9 +147,10 @@ export async function handleIntegrationRequest(args: {
   user: AuthenticatedLearner | null;
   body?: unknown;
   registry: ProviderLookup;
-  ownership: IntegrationOwnershipStore;
+  /** Signs/verifies learner-bound resource handles; null → handle-based actions fail closed. */
+  handles: ResourceHandleSigner | null;
 }): Promise<IntegrationResponse> {
-  const { method, user, body, registry, ownership } = args;
+  const { method, user, body, registry, handles } = args;
 
   // Defence in depth: the route already requires auth, but never proceed without a learner.
   if (!user || typeof user.id !== 'string' || !user.id) {
@@ -191,37 +195,51 @@ export async function handleIntegrationRequest(args: {
     }
     const actionPayload = isRecord(providerAction?.payload) ? providerAction!.payload : {};
 
+    const isCanvasConversation = providerId === 'canvas';
+    if (isCanvasConversation && !handles) {
+      // No signing secret in production: Canvas conversations cannot be bound to a learner.
+      return fail(503, 'INTEGRATION_NOT_CONFIGURED', 'Classroom integration is not available');
+    }
+
+    let conversationId = '';
     if (providerId === 'canvas' && actionType === 'POST_AI_MESSAGE') {
-      const conversationId = String(actionPayload.conversationId ?? '');
-      if (!conversationId) return fail(400, 'INVALID_REQUEST', 'conversationId is required');
-      const owner = await ownership.ownerOf('canvas', conversationId);
-      // Fail closed: unknown ownership is treated exactly like someone else's conversation.
-      if (!owner || owner !== user.id) {
-        return fail(404, 'NOT_FOUND', 'Conversation not found');
-      }
+      // Never trust a raw conversation id (or any user id) from the client.
+      const verified = handles!.verify(actionPayload.conversationHandle, { provider: 'canvas', userId: user.id });
+      // Fail closed: forged, expired, re-targeted or another learner's handle all look "not found".
+      if (!verified) return fail(404, 'NOT_FOUND', 'Conversation not found');
+      conversationId = verified;
+      const message = String(actionPayload.message ?? '').trim();
+      if (!message) return fail(400, 'INVALID_REQUEST', 'message is required');
     }
 
     const result = await provider.executeAction?.({
       type: actionType,
-      payload: providerId === 'canvas' && actionType === 'POST_AI_MESSAGE'
-        ? { conversationId: String(actionPayload.conversationId), message: String(actionPayload.message ?? '').slice(0, 2000) }
+      payload: conversationId
+        ? { conversationId, message: String(actionPayload.message ?? '').trim().slice(0, 2000) }
         : {},
     });
 
+    let safePayload: Record<string, unknown> | undefined;
     if (result?.ok && providerId === 'canvas' && actionType === 'START_AI_CONVERSATION') {
-      const conversationId = isRecord(result.payload) && result.payload.id !== undefined ? String(result.payload.id) : '';
-      if (conversationId) await ownership.recordOwner('canvas', conversationId, user.id);
-    }
-
-    const safePayload = isRecord(result?.payload) ? { ...result!.payload } : undefined;
-    if (safePayload && typeof safePayload.url === 'string') {
-      safePayload.url = sanitizeExternalUrl(safePayload.url) || '';
+      const startedId = isRecord(result.payload) && result.payload.id !== undefined ? String(result.payload.id) : '';
+      if (!startedId) return fail(502, 'PROVIDER_ERROR', 'Classroom integration request failed');
+      // Only the learner-bound handle leaves the server; never the raw Canvas object.
+      safePayload = { conversationHandle: handles!.sign({ provider: 'canvas', resourceId: startedId, userId: user.id }) };
+    } else if (result?.ok && providerId === 'canvas') {
+      safePayload = projectCanvasPayload(result.payload);
+    } else if (isRecord(result?.payload)) {
+      safePayload = { ...result!.payload };
+      if (typeof safePayload.url === 'string') safePayload.url = sanitizeExternalUrl(safePayload.url) || '';
     }
     return {
       status: 200,
       body: { success: Boolean(result?.ok), result: result ? { ok: result.ok, provider: result.provider, payload: safePayload } : null },
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof UpstreamTimeoutError) {
+      // Deterministic, bounded failure: the Class keeps its native visuals.
+      return fail(504, 'PROVIDER_TIMEOUT', 'Classroom integration timed out');
+    }
     // Never leak provider/internal error text to the client.
     return fail(502, 'PROVIDER_ERROR', 'Classroom integration request failed');
   }

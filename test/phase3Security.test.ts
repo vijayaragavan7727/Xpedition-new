@@ -53,9 +53,13 @@ import { resolveAuthMode, DEV_LOCAL_USER_ID } from '../lib/auth/authMode';
 import { isProtectedPath } from '../lib/auth/routeProtection';
 import {
   handleIntegrationRequest,
-  InMemoryOwnershipStore,
   type ProviderLookup,
 } from '../lib/classroom/integrations/integrationAuthorization';
+import { ResourceHandleSigner } from '../lib/security/resourceHandle';
+
+// Phase 4: Canvas conversation ownership moved from a process-memory map to
+// signed, learner-bound handles (works across instances, cannot be forged).
+const TEST_HANDLES = new ResourceHandleSigner('phase3-test-signing-secret-0123456789abcdef');
 import type { ClassroomProvider } from '../lib/classroom/integrations/ClassroomProvider';
 import type { ClassroomAction, ClassroomSceneRequest } from '../lib/classroom/integrations/types';
 import { readJsonBodyWithLimit } from '../lib/security/requestBody';
@@ -239,14 +243,14 @@ async function main() {
   // =========================================================================
   await test('B1. Unauthenticated GET/POST → 401; provider never called', async () => {
     const { registry, calls } = fakeRegistry();
-    const ownership = new InMemoryOwnershipStore();
-    const get = await handleIntegrationRequest({ method: 'GET', user: null, registry, ownership });
+    const ownership = TEST_HANDLES;
+    const get = await handleIntegrationRequest({ method: 'GET', user: null, registry, handles: ownership });
     assert.strictEqual(get.status, 401);
     const post = await handleIntegrationRequest({
       method: 'POST',
       user: null,
       registry,
-      ownership,
+      handles: ownership,
       body: { provider: 'canvas', action: 'execute_action', providerAction: { type: 'START_AI_CONVERSATION' } },
     });
     assert.strictEqual(post.status, 401);
@@ -255,7 +259,7 @@ async function main() {
 
   await test('B2. Authenticated GET returns statuses without internal reasons/env names', async () => {
     const { registry } = fakeRegistry();
-    const res = await handleIntegrationRequest({ method: 'GET', user: { id: 'a' }, registry, ownership: new InMemoryOwnershipStore() });
+    const res = await handleIntegrationRequest({ method: 'GET', user: { id: 'a' }, registry, handles: TEST_HANDLES });
     assert.strictEqual(res.status, 200);
     assert.ok(!JSON.stringify(res.body).includes('SECRET_ENV_NAME'), 'no reason text leaked');
   });
@@ -266,7 +270,7 @@ async function main() {
       method: 'POST',
       user: { id: 'a' },
       registry,
-      ownership: new InMemoryOwnershipStore(),
+      handles: TEST_HANDLES,
       body: {
         provider: 'openmaic',
         action: 'generate_scene',
@@ -289,7 +293,7 @@ async function main() {
   await test('B4. Invalid scene context (unknown concept / bad step) → 400, provider not called', async () => {
     const { registry, calls } = fakeRegistry();
     for (const context of [{ conceptId: 'research_methods', stepIndex: 0 }, { conceptId: 'periodic_table', stepIndex: 99 }, { conceptId: 'periodic_table', stepIndex: 'x' }]) {
-      const res = await handleIntegrationRequest({ method: 'POST', user: { id: 'a' }, registry, ownership: new InMemoryOwnershipStore(), body: { provider: 'openmaic', action: 'generate_scene', context } });
+      const res = await handleIntegrationRequest({ method: 'POST', user: { id: 'a' }, registry, handles: TEST_HANDLES, body: { provider: 'openmaic', action: 'generate_scene', context } });
       assert.strictEqual(res.status, 400);
     }
     assert.strictEqual(calls.scenes.length, 0);
@@ -297,7 +301,7 @@ async function main() {
 
   await test('B5. Non-allow-listed learner actions → 403 (OpenMAIC/LiveGenie actions, unknown Canvas actions)', async () => {
     const { registry, calls } = fakeRegistry();
-    const ownership = new InMemoryOwnershipStore();
+    const ownership = TEST_HANDLES;
     const cases = [
       { provider: 'openmaic', type: 'ANYTHING' },
       { provider: 'livegenie', type: 'START' },
@@ -305,7 +309,7 @@ async function main() {
       { provider: 'miro', type: 'DELETE_BOARD' },
     ];
     for (const c of cases) {
-      const res = await handleIntegrationRequest({ method: 'POST', user: { id: 'a' }, registry, ownership, body: { provider: c.provider, action: 'execute_action', providerAction: { type: c.type } } });
+      const res = await handleIntegrationRequest({ method: 'POST', user: { id: 'a' }, registry, handles: ownership, body: { provider: c.provider, action: 'execute_action', providerAction: { type: c.type } } });
       assert.strictEqual(res.status, 403, `${c.provider}.${c.type}`);
     }
     assert.strictEqual(calls.actions.length, 0);
@@ -313,32 +317,33 @@ async function main() {
 
   await test('B6. Canvas ownership: only the learner who started a conversation can post to it', async () => {
     const { registry, calls } = fakeRegistry();
-    const ownership = new InMemoryOwnershipStore();
-    const start = await handleIntegrationRequest({ method: 'POST', user: { id: 'alice' }, registry, ownership, body: { provider: 'canvas', action: 'execute_action', providerAction: { type: 'START_AI_CONVERSATION' } } });
+    const start = await handleIntegrationRequest({ method: 'POST', user: { id: 'alice' }, registry, handles: TEST_HANDLES, body: { provider: 'canvas', action: 'execute_action', providerAction: { type: 'START_AI_CONVERSATION' } } });
     assert.strictEqual(start.status, 200);
-    const convId = ((start.body.result as { payload: { id: string } }).payload.id);
-    assert.strictEqual(await ownership.ownerOf('canvas', convId), 'alice');
+    const payload = (start.body.result as { payload: Record<string, unknown> }).payload;
+    const handle = String(payload.conversationHandle);
+    assert.ok(handle.includes('.'), 'a signed handle is returned');
+    assert.strictEqual(payload.id, undefined, 'the raw Canvas conversation id never reaches the browser');
 
-    const post = (user: string, conversationId: string) =>
-      handleIntegrationRequest({ method: 'POST', user: { id: user }, registry, ownership, body: { provider: 'canvas', action: 'execute_action', providerAction: { type: 'POST_AI_MESSAGE', payload: { conversationId, message: 'hi' } } } });
+    const post = (user: string, conversationHandle: unknown) =>
+      handleIntegrationRequest({ method: 'POST', user: { id: user }, registry, handles: TEST_HANDLES, body: { provider: 'canvas', action: 'execute_action', providerAction: { type: 'POST_AI_MESSAGE', payload: { conversationHandle, message: 'hi' } } } });
 
-    const bob = await post('bob', convId);
+    const bob = await post('bob', handle);
     assert.strictEqual(bob.status, 404, 'other learner is refused (indistinguishable from not found)');
     const unknown = await post('alice', 'conv_never_started');
-    assert.strictEqual(unknown.status, 404, 'unknown ownership fails closed');
+    assert.strictEqual(unknown.status, 404, 'unknown / unsigned ids fail closed');
     const before = calls.actions.length;
-    const alice = await post('alice', convId);
+    const alice = await post('alice', handle);
     assert.strictEqual(alice.status, 200);
     assert.strictEqual(calls.actions.length, before + 1);
   });
 
   await test('B7. Unconfigured provider is never called; provider errors are not leaked', async () => {
     const off = fakeRegistry({ configured: false });
-    const res = await handleIntegrationRequest({ method: 'POST', user: { id: 'a' }, registry: off.registry, ownership: new InMemoryOwnershipStore(), body: { provider: 'openmaic', action: 'generate_scene', context: { conceptId: 'periodic_table', stepIndex: 0 } } });
+    const res = await handleIntegrationRequest({ method: 'POST', user: { id: 'a' }, registry: off.registry, handles: TEST_HANDLES, body: { provider: 'openmaic', action: 'generate_scene', context: { conceptId: 'periodic_table', stepIndex: 0 } } });
     assert.strictEqual(res.status, 200);
     assert.strictEqual(off.calls.scenes.length, 0);
     const boom = fakeRegistry({ throwOnScene: true });
-    const err = await handleIntegrationRequest({ method: 'POST', user: { id: 'a' }, registry: boom.registry, ownership: new InMemoryOwnershipStore(), body: { provider: 'openmaic', action: 'generate_scene', context: { conceptId: 'periodic_table', stepIndex: 0 } } });
+    const err = await handleIntegrationRequest({ method: 'POST', user: { id: 'a' }, registry: boom.registry, handles: TEST_HANDLES, body: { provider: 'openmaic', action: 'generate_scene', context: { conceptId: 'periodic_table', stepIndex: 0 } } });
     assert.strictEqual(err.status, 502);
     assert.ok(!JSON.stringify(err.body).includes('abc123') && !JSON.stringify(err.body).includes('internal-bridge'));
   });
@@ -361,7 +366,9 @@ async function main() {
   await test('B9. Integration route requires auth before rate limiting / body parsing (route wiring)', () => {
     const src = fs.readFileSync(path.join(ROOT, 'app/api/classroom/integrations/route.ts'), 'utf8');
     const post = src.slice(src.indexOf('export async function POST'));
-    assert.ok(post.indexOf('requireServerAuth') < post.indexOf('rateLimiter.checkLimit'), 'auth before rate limit');
+    // Phase 4: the limiter is the shared per-learner limiter (checkUserRateLimit).
+    assert.ok(post.includes('checkUserRateLimit'), 'per-learner rate limit present');
+    assert.ok(post.indexOf('requireServerAuth') < post.indexOf('checkUserRateLimit'), 'auth before rate limit');
     assert.ok(post.indexOf('requireServerAuth') < post.indexOf('readJsonBodyWithLimit'), 'auth before body');
     const getFn = src.slice(src.indexOf('export async function GET'), src.indexOf('export async function POST'));
     assert.ok(getFn.includes('requireServerAuth'), 'GET requires auth');

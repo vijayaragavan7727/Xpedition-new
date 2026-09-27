@@ -239,6 +239,8 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  // Guests (no authenticated learner) keep notes in memory only; never claim "Saved".
+  const [notesPersisted, setNotesPersisted] = useState<boolean>(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -251,7 +253,8 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
 
   const handleSaveNotes = () => {
     if (typeof window !== 'undefined') {
-      writeLearnerItem(storageKey, studentNotes);
+      const persisted = writeLearnerItem(storageKey, studentNotes);
+      setNotesPersisted(persisted);
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       writeLearnerItem(`${storageKey}_time`, timeStr);
       setLastSavedTime(timeStr);
@@ -846,8 +849,8 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
 
                 <div className="flex items-center gap-3">
                   {lastSavedTime && (
-                    <span className="text-[10px] font-mono text-amber-800/70 hidden sm:inline">
-                      Saved at {lastSavedTime}
+                    <span data-testid="notes-persistence" data-persisted={notesPersisted ? 'true' : 'false'} className="text-[10px] font-mono text-amber-800/70 hidden sm:inline">
+                      {notesPersisted ? `Saved at ${lastSavedTime}` : 'Guest: kept for this visit only (not saved)'}
                     </span>
                   )}
                   <button
@@ -856,7 +859,7 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
                     className="px-3 py-1.5 rounded-xl bg-amber-900 hover:bg-amber-800 text-amber-100 font-sans text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     {isSaved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-                    <span>{isSaved ? 'Saved!' : 'Save Note'}</span>
+                    <span>{isSaved ? (notesPersisted ? 'Saved!' : 'Kept (not saved)') : 'Save Note'}</span>
                   </button>
                 </div>
               </div>

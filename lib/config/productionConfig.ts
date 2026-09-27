@@ -15,7 +15,6 @@ export interface ProductionConfig {
   supabase: {
     url: string | null;
     anonKey: string | null;
-    serviceRoleKey: string | null;
     isConfigured: boolean;
   };
 
@@ -74,7 +73,7 @@ export function getProductionConfig(): ProductionConfig {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || null;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || null;
+  // No service-role key is read: learner data is accessed only as the learner (RLS).
 
   const comfyUIBaseUrl = process.env.COMFYUI_BASE_URL || 'http://127.0.0.1:8188';
   const comfyUITimeoutMs = parseInt(process.env.COMFYUI_TIMEOUT_MS || '300000', 10);
@@ -102,7 +101,6 @@ export function getProductionConfig(): ProductionConfig {
     supabase: {
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
-      serviceRoleKey: supabaseServiceRoleKey,
       isConfigured: Boolean(supabaseUrl && supabaseAnonKey),
     },
     comfyUI: {

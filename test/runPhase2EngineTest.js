@@ -340,7 +340,9 @@ async function runPhase2EngineTests() {
 
   const routeContent = fs.readFileSync(path.join(rootDir, 'app', 'api', 'visual-generation', 'route.ts'), 'utf8');
   assert(routeContent.includes('requireServerAuth'), 'POST /api/visual-generation requires server authentication');
-  assert(routeContent.includes('LocalAssetStore.sanitizeForClient'), 'API route sanitizes asset before returning');
+  // Phase 4: the route returns the owner-scoped client projection (no asset object,
+  // prompt, metadata, cache key, storage path or static URL) — stricter than sanitizeForClient.
+  assert(routeContent.includes('toClientJob(result)') && !routeContent.includes('asset: sanitizedAsset'), 'API route returns only the sanitized client job projection');
   assert(!routeContent.includes('8188'), 'API route does not contain hardcoded ComfyUI port');
 
   const dynamicJobRoute = path.join(rootDir, 'app', 'api', 'visual-generation', '[jobId]', 'route.ts');

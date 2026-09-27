@@ -8,7 +8,8 @@
 
 import { ClassroomSessionState } from './classroomSessionTypes';
 import { getCacheAdapter, ICacheAdapter } from '../cache/cacheAdapter';
-import { supabase, isSupabaseConfigured } from '../supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getLearnerDb } from '../supabase/dbContext';
 
 export interface IClassroomSessionStore {
   saveSession(session: ClassroomSessionState, userId?: string): Promise<boolean>;
@@ -17,7 +18,7 @@ export interface IClassroomSessionStore {
    * Authorization is enforced by the orchestrator; this is defence in depth.
    */
   getSession(sessionId: string, ownerId?: string): Promise<ClassroomSessionState | null>;
-  deleteSession(sessionId: string): Promise<boolean>;
+  deleteSession(sessionId: string, ownerId?: string): Promise<boolean>;
   listUserSessions(userId: string): Promise<ClassroomSessionState[]>;
 }
 
@@ -59,8 +60,9 @@ export class MemorySessionStore implements IClassroomSessionStore {
     return JSON.parse(JSON.stringify(session));
   }
 
-  public async deleteSession(sessionId: string): Promise<boolean> {
+  public async deleteSession(sessionId: string, ownerId?: string): Promise<boolean> {
     const existing = this.sessions.get(sessionId);
+    if (existing && ownerId !== undefined && existing.ownerId !== ownerId) return false;
     if (existing) {
       this.sessions.delete(sessionId);
       for (const set of this.userSessions.values()) {
@@ -95,13 +97,20 @@ export class DistributedSessionStore implements IClassroomSessionStore {
   private readonly cache: ICacheAdapter;
   private readonly memoryFallback: MemorySessionStore;
 
-  constructor(cache?: ICacheAdapter) {
+  private readonly dbProvider: () => SupabaseClient | null;
+
+  constructor(cache?: ICacheAdapter, dbProvider: () => SupabaseClient | null = getLearnerDb) {
     this.cache = cache || getCacheAdapter();
     this.memoryFallback = MemorySessionStore.getInstance();
+    this.dbProvider = dbProvider;
   }
 
-  private isLive(): boolean {
-    return isSupabaseConfigured && Boolean(supabase);
+  /**
+   * The request-scoped learner client (RLS as the requester) or null. Never the
+   * anon singleton and never a service-role client.
+   */
+  private db(): SupabaseClient | null {
+    return this.dbProvider();
   }
 
   private getCacheKey(sessionId: string): string {
@@ -116,10 +125,11 @@ export class DistributedSessionStore implements IClassroomSessionStore {
     const cacheKey = this.getCacheKey(session.sessionId);
     await this.cache.set(cacheKey, session, 7200);
 
-    // 3. Persist to database if live
-    if (this.isLive() && userId) {
+    // 3. Persist to database as the learner (RLS: auth.uid() = user_id)
+    const db = this.db();
+    if (db && userId) {
       try {
-        const { error } = await supabase!
+        const { error } = await db
           .from('classroom_sessions')
           .upsert({
             session_id: session.sessionId,
@@ -162,9 +172,10 @@ export class DistributedSessionStore implements IClassroomSessionStore {
     }
 
     // 3. Fallback to Supabase database query if live
-    if (this.isLive()) {
+    const db = this.db();
+    if (db) {
       try {
-        let query = supabase!
+        let query = db
           .from('classroom_sessions')
           .select('state_json')
           .eq('session_id', sessionId);
@@ -184,13 +195,21 @@ export class DistributedSessionStore implements IClassroomSessionStore {
     return null;
   }
 
-  public async deleteSession(sessionId: string): Promise<boolean> {
+  public async deleteSession(sessionId: string, ownerId?: string): Promise<boolean> {
+    if (ownerId !== undefined) {
+      // Owner-only delete: refuse (without touching anything) if not the owner.
+      const owned = await this.getSession(sessionId, ownerId);
+      if (!owned) return false;
+    }
     await this.memoryFallback.deleteSession(sessionId);
     await this.cache.delete(this.getCacheKey(sessionId));
 
-    if (this.isLive()) {
+    const db = this.db();
+    if (db) {
       try {
-        await supabase!.from('classroom_sessions').delete().eq('session_id', sessionId);
+        let del = db.from('classroom_sessions').delete().eq('session_id', sessionId);
+        if (ownerId !== undefined) del = del.eq('user_id', ownerId);
+        await del;
       } catch (err: any) {
         console.warn('[DistributedSessionStore] Cloud deleteSession exception:', err?.message);
       }
@@ -200,9 +219,10 @@ export class DistributedSessionStore implements IClassroomSessionStore {
   }
 
   public async listUserSessions(userId: string): Promise<ClassroomSessionState[]> {
-    if (this.isLive()) {
+    const db = this.db();
+    if (db) {
       try {
-        const { data, error } = await supabase!
+        const { data, error } = await db
           .from('classroom_sessions')
           .select('state_json')
           .eq('user_id', userId)

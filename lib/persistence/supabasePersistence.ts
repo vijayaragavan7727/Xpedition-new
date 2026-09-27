@@ -12,14 +12,23 @@ import {
   AttemptPersistencePayload,
   XiraEducationalMemory,
 } from './types';
-import { supabase, isSupabaseConfigured } from '../supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getLearnerDb } from '../supabase/dbContext';
 import { defaultLocalPersistence } from './localPersistence';
 
 export class SupabasePersistenceAdapter implements PersistenceAdapter {
   private localFallback = defaultLocalPersistence;
 
+  /**
+   * Browser: the signed-in client. Server: the request-scoped client (RLS as the
+   * requester). Never the anon singleton on the server; never a service-role key.
+   */
+  private get db(): SupabaseClient | null {
+    return getLearnerDb();
+  }
+
   private isLive(): boolean {
-    return isSupabaseConfigured && Boolean(supabase);
+    return Boolean(this.db);
   }
 
   public async getUserState(userId: string): Promise<CanonicalUserData | null> {
@@ -31,7 +40,7 @@ export class SupabasePersistenceAdapter implements PersistenceAdapter {
 
     try {
       // 1. Fetch user profile from Supabase
-      const { data: profileRow, error: profileErr } = await supabase!
+      const { data: profileRow, error: profileErr } = await this.db!
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -77,7 +86,7 @@ export class SupabasePersistenceAdapter implements PersistenceAdapter {
 
     try {
       // Upsert profile in Supabase
-      const { error: profileErr } = await supabase!
+      const { error: profileErr } = await this.db!
         .from('profiles')
         .upsert({
           id: userId,
@@ -108,7 +117,7 @@ export class SupabasePersistenceAdapter implements PersistenceAdapter {
 
     try {
       // Persist attempt to Supabase `attempts` table
-      const { error: attErr } = await supabase!
+      const { error: attErr } = await this.db!
         .from('attempts')
         .insert({
           user_id: userId,
@@ -136,7 +145,7 @@ export class SupabasePersistenceAdapter implements PersistenceAdapter {
     }
 
     try {
-      const { error } = await supabase!
+      const { error } = await this.db!
         .from('xira_memories')
         .upsert(
           {
@@ -171,7 +180,7 @@ export class SupabasePersistenceAdapter implements PersistenceAdapter {
     }
 
     try {
-      let query = supabase!
+      let query = this.db!
         .from('xira_memories')
         .select('*')
         .eq('user_id', userId)
@@ -212,9 +221,9 @@ export class SupabasePersistenceAdapter implements PersistenceAdapter {
     if (this.isLive()) {
       try {
         // Delete user's xira memories, attempts, and profile records from Supabase tables
-        await supabase!.from('xira_memories').delete().eq('user_id', userId);
-        await supabase!.from('attempts').delete().eq('user_id', userId);
-        await supabase!.from('profiles').delete().eq('id', userId);
+        await this.db!.from('xira_memories').delete().eq('user_id', userId);
+        await this.db!.from('attempts').delete().eq('user_id', userId);
+        await this.db!.from('profiles').delete().eq('id', userId);
       } catch (err) {
         console.warn('[SupabasePersistence] Cloud data deletion warning:', err);
       }
