@@ -194,13 +194,16 @@ export const XiraResponse: React.FC<XiraResponseProps> = ({
       )}
 
       {/* 5. Action Bar (Direct Learning Actions) */}
-      <div className="pt-2 border-t border-white/[0.06]">
-        <XiraActionBar
-          conceptId={response.conceptId || 'projectile_motion'}
-          conceptName={response.conceptName}
-          onTriggerAction={onTriggerAction}
-        />
-      </div>
+      {/* Actions link to the response's OWN concept only; never a default concept. */}
+      {response.conceptId && (
+        <div className="pt-2 border-t border-white/[0.06]">
+          <XiraActionBar
+            conceptId={response.conceptId}
+            conceptName={response.conceptName}
+            onTriggerAction={onTriggerAction}
+          />
+        </div>
+      )}
     </div>
   );
 };

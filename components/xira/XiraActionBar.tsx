@@ -22,13 +22,15 @@ export interface XiraActionBarProps {
 }
 
 export const XiraActionBar: React.FC<XiraActionBarProps> = ({
-  conceptId = 'projectile_motion',
+  conceptId,
   conceptName,
   actions,
   onTriggerAction,
   className = '',
 }) => {
-  const encodedConcept = encodeURIComponent(conceptId);
+  // Audit fix: this used to default to 'projectile_motion', so "Try in Class" /
+  // "Practice this" opened Projectile Motion from ANY concept.
+  const encodedConcept = conceptId ? encodeURIComponent(conceptId) : '';
 
   // Default action set if custom actions are not provided
   const defaultActions: XiraActionItem[] = [
@@ -59,7 +61,12 @@ export const XiraActionBar: React.FC<XiraActionBarProps> = ({
     },
   ];
 
-  const renderedActions = actions || defaultActions;
+  // Hide link actions without a concept and button actions without a handler
+  // (they previously rendered as dead buttons).
+  const renderedActions = (actions || defaultActions).filter((a) =>
+    a.href ? Boolean(encodedConcept) : a.onClick ? Boolean(onTriggerAction) || Boolean(actions) : true
+  );
+  if (renderedActions.length === 0) return null;
 
   const renderIcon = (icon?: string) => {
     switch (icon) {

@@ -9,6 +9,9 @@ import type { TimelineMilestone } from '@/lib/classroom/lessons/industrialRevolu
 import { PeriodicTableRenderer, type PeriodicTableMode } from './visuals/PeriodicTableRenderer';
 import { PolymorphismDispatchRenderer } from './visuals/PolymorphismDispatchRenderer';
 import { SemanticLessonRenderer } from './visuals/SemanticLessonRenderer';
+import { HeartCirculationRenderer, type HeartMode } from './visuals/HeartCirculationRenderer';
+import { pickNext, chronological } from '@/lib/classroom/timelineOrder';
+import { orderOptions } from '@/lib/classroom/optionOrder';
 import {
   Sparkles,
   Play,
@@ -38,6 +41,8 @@ export interface SmartBoardVisualRendererProps {
   isRotating?: boolean;
   onToggleRotation?: () => void;
   onHotspotClick?: (hotspotId: string) => void;
+  /** Reports hands-on board activity (trace / ordering / challenge) as learner evidence. */
+  onActivity?: (result: { completed: boolean; wrong: number }) => void;
   className?: string;
 }
 
@@ -47,6 +52,7 @@ export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> =
   isRotating = true,
   onToggleRotation,
   onHotspotClick,
+  onActivity,
   className = '',
 }) => {
   if (!payload) {
@@ -104,16 +110,32 @@ export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> =
       return wrap(<GraphRenderer payload={payload} variant="derivative" className={className} />);
     case 'molecular_geometry':
       return wrap(<MolecularRenderer payload={payload} className={className} />);
-    case 'heart_anatomy':
-      return wrap(<AnatomicalHeartRenderer payload={payload} className={className} />);
+    case 'heart_anatomy': {
+      const heartMode = (payload.visualData as { mode?: HeartMode } | undefined)?.mode;
+      return wrap(
+        <HeartCirculationRenderer
+          key={`${String(payload.metadata?.stepIndex ?? '')}:${heartMode ?? 'chambers'}`}
+          mode={heartMode}
+          onActivity={onActivity}
+          className={className}
+        />
+      );
+    }
     case 'history_timeline':
-      return wrap(<TimelineRenderer payload={payload} className={className} />);
+      return wrap(<TimelineRenderer key={String(payload.metadata?.stepIndex ?? '')} payload={payload} onActivity={onActivity} className={className} />);
     case 'binary_search_trace':
       return wrap(<CodeVisualizerRenderer payload={payload} className={className} />);
     case 'polymorphism_dispatch':
       return wrap(<PolymorphismDispatchRenderer focus={String(visualData.focus ?? 'overview')} className={className} />);
     case 'periodic_table_interactive':
-      return wrap(<PeriodicTableRenderer mode={(visualData.mode as PeriodicTableMode) ?? 'overview'} className={className} />);
+      return wrap(
+        <PeriodicTableRenderer
+          key={String(payload.metadata?.stepIndex ?? '')}
+          mode={(visualData.mode as PeriodicTableMode) ?? 'overview'}
+          onActivity={onActivity}
+          className={className}
+        />
+      );
     default:
       return wrap(<SemanticLessonRenderer context={lessonContext} className={className} />);
   }
@@ -1202,81 +1224,7 @@ MolecularRenderer.displayName = 'MolecularRenderer';
 // 5. ANATOMICAL HEART 4-CHAMBER SCHEMATIC (BIOLOGY)
 // =========================================================================
 
-const AnatomicalHeartRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
-  payload,
-  className = '',
-}) => {
-  return (
-    <div className={`relative w-full h-full flex flex-col items-center justify-between p-4 bg-[#14060B]/95 rounded-2xl border border-rose-500/30 overflow-hidden shadow-2xl ${className}`}>
-      <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono text-rose-300">
-        <span className="font-bold flex items-center gap-1.5">
-          <span>❤️</span>
-          <span>CARDIOVASCULAR ANATOMY: DUAL CIRCULATION</span>
-        </span>
-        <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-          4 Cardiac Chambers
-        </span>
-      </div>
-
-      <div className="relative w-full flex-1 flex items-center justify-center my-2">
-        <svg viewBox="0 0 520 220" className="w-full h-full max-h-[210px]">
-          {/* Left/Right Separation Split */}
-          {/* Blue Side: Right Atrium and Right Ventricle (Deoxygenated) */}
-          <rect x="110" y="40" width="140" height="70" rx="8" fill="#1E3A8A" stroke="#3B82F6" strokeWidth="2" />
-          <text x="180" y="70" fill="#FFFFFF" fontSize="12" fontFamily="sans-serif" fontWeight="bold" textAnchor="middle">
-            Right Atrium
-          </text>
-          <text x="180" y="88" fill="#93C5FD" fontSize="9" fontFamily="monospace" textAnchor="middle">
-            (From Vena Cava)
-          </text>
-
-          <rect x="110" y="125" width="140" height="75" rx="8" fill="#1D4ED8" stroke="#60A5FA" strokeWidth="2" />
-          <text x="180" y="155" fill="#FFFFFF" fontSize="12" fontFamily="sans-serif" fontWeight="bold" textAnchor="middle">
-            Right Ventricle
-          </text>
-          <text x="180" y="173" fill="#BFDBFE" fontSize="9" fontFamily="monospace" textAnchor="middle">
-            (Pumps to Lungs)
-          </text>
-
-          {/* Red Side: Left Atrium and Left Ventricle (Oxygenated) */}
-          <rect x="270" y="40" width="140" height="70" rx="8" fill="#991B1B" stroke="#EF4444" strokeWidth="2" />
-          <text x="340" y="70" fill="#FFFFFF" fontSize="12" fontFamily="sans-serif" fontWeight="bold" textAnchor="middle">
-            Left Atrium
-          </text>
-          <text x="340" y="88" fill="#FCA5A5" fontSize="9" fontFamily="monospace" textAnchor="middle">
-            (From Pulmonary Veins)
-          </text>
-
-          {/* Left Ventricle (Thick Myocardium Wall) */}
-          <rect x="270" y="125" width="140" height="75" rx="8" fill="#DC2626" stroke="#F87171" strokeWidth="4" />
-          <text x="340" y="155" fill="#FFFFFF" fontSize="12" fontFamily="sans-serif" fontWeight="bold" textAnchor="middle">
-            Left Ventricle
-          </text>
-          <text x="340" y="173" fill="#FECDD3" fontSize="9" fontFamily="monospace" textAnchor="middle">
-            (3x Thick Myocardium)
-          </text>
-
-          {/* Septum Barrier */}
-          <line x1="260" y1="40" x2="260" y2="200" stroke="#FFFFFF" strokeWidth="3" strokeDasharray="4 2" />
-
-          {/* Blood flow circuit badges */}
-          <text x="180" y="25" fill="#60A5FA" fontSize="10" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
-            PULMONARY CIRCUIT (BLUE)
-          </text>
-          <text x="340" y="25" fill="#F87171" fontSize="10" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
-            SYSTEMIC CIRCUIT (RED)
-          </text>
-        </svg>
-      </div>
-
-      <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium">
-        {payload.purpose}
-      </div>
-    </div>
-  );
-});
-
-AnatomicalHeartRenderer.displayName = 'AnatomicalHeartRenderer';
+// The heart visual lives in ./visuals/HeartCirculationRenderer.tsx (mode per step).
 
 // =========================================================================
 // 6. CHRONOLOGICAL TIMELINE RENDERER (HISTORY)
@@ -1289,15 +1237,25 @@ const FRENCH_REVOLUTION_MILESTONES: TimelineMilestone[] = [
   { id: 'republic', year: 'Sep 1792', title: 'First Republic', desc: 'Monarchy abolished; popular sovereignty proclaimed.' },
 ];
 
-const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?: string }> = React.memo(({
+const TimelineRenderer: React.FC<{
+  payload: SmartBoardVisualPayload;
+  onActivity?: (result: { completed: boolean; wrong: number }) => void;
+  className?: string;
+}> = React.memo(({
   payload,
+  onActivity,
   className = '',
 }) => {
   // Milestones come from the ACTIVE lesson (visualData.milestones). The French
   // Revolution lesson predates that field, so it is matched by EXACT concept id.
   const conceptId = String(payload.metadata?.conceptId || '');
-  const visualData = (payload.visualData ?? {}) as { milestones?: TimelineMilestone[]; highlight?: string[] };
+  const visualData = (payload.visualData ?? {}) as { milestones?: TimelineMilestone[]; highlight?: string[]; order?: string[] };
   const highlight = visualData.highlight ?? [];
+
+  // Chronology activity: order these events before their dates are shown.
+  const [placed, setPlaced] = useState<string[]>([]);
+  const [orderMsg, setOrderMsg] = useState<string | null>(null);
+  const [orderWrong, setOrderWrong] = useState(0);
 
   // Artwork toggle state
   const [userViewMode, setUserViewMode] = useState<'diagram' | 'artwork' | null>(null);
@@ -1309,6 +1267,27 @@ const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?:
     if (conceptId === 'french_revolution') return FRENCH_REVOLUTION_MILESTONES;
     return [];
   }, [visualData.milestones, conceptId]);
+
+  const orderEvents = useMemo(
+    () => (visualData.order ?? []).map((id) => milestones.find((m) => m.id === id)).filter((m): m is TimelineMilestone => Boolean(m)),
+    [visualData.order, milestones]
+  );
+  const orderDone = orderEvents.length > 0 && placed.length === orderEvents.length;
+  const hiddenYears = new Set(orderDone ? [] : orderEvents.map((e) => e.id));
+  const shuffledOrderEvents = useMemo(() => orderOptions('timeline-order', orderEvents), [orderEvents]);
+  const onPick = (id: string) => {
+    if (orderDone || placed.includes(id)) return;
+    const r = pickNext(orderEvents, placed, id);
+    if (r.ok) {
+      setPlaced(r.placed);
+      setOrderMsg(null);
+      if (r.done) onActivity?.({ completed: true, wrong: orderWrong });
+    } else {
+      setOrderWrong((w) => w + 1);
+      setOrderMsg(r.message);
+      onActivity?.({ completed: false, wrong: orderWrong + 1 });
+    }
+  };
 
   return (
     <div className={`relative w-full h-full flex flex-col items-center justify-between p-4 bg-[#140E05]/95 rounded-2xl border border-amber-500/30 overflow-hidden shadow-2xl ${className}`}>
@@ -1355,7 +1334,7 @@ const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?:
                 }`}
               >
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-bold mb-1">
-                  {m.year}
+                  {hiddenYears.has(m.id) ? '?' : m.year}
                 </span>
                 <div className="w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white my-1 shadow-md" />
                 <span className="font-bold text-white text-xs mt-1 leading-snug">{m.title}</span>
@@ -1367,6 +1346,51 @@ const TimelineRenderer: React.FC<{ payload: SmartBoardVisualPayload; className?:
           </div>
         )}
       </div>
+
+      {orderEvents.length > 0 && (
+        <div
+          data-testid="timeline-order"
+          data-order-placed={placed.length}
+          data-order-wrong={orderWrong}
+          className="w-full rounded-xl border border-amber-500/40 bg-amber-950/40 p-2 text-[11px] text-amber-100 space-y-1.5"
+        >
+          <div>
+            {orderDone ? (
+              <b>
+                In order{orderWrong === 0 ? ' first time' : ` (${orderWrong} wrong pick${orderWrong > 1 ? 's' : ''})`}:{' '}
+                {chronological(orderEvents).map((e) => `${e.title} (${e.year})`).join(' → ')}
+              </b>
+            ) : orderMsg ? (
+              <span data-testid="timeline-order-feedback">{orderMsg}</span>
+            ) : (
+              <span>
+                <b>Put these in order, earliest first.</b> The dates stay hidden until you finish. Think cause and effect: what had to exist
+                before the next thing could happen?
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {shuffledOrderEvents.map((e) => {
+              const pos = placed.indexOf(e.id);
+              return (
+                <button
+                  key={e.id}
+                  type="button"
+                  data-order-event={e.id}
+                  disabled={orderDone || pos >= 0}
+                  onClick={() => onPick(e.id)}
+                  className={`px-2 py-1 rounded-lg border text-left cursor-pointer ${
+                    pos >= 0 ? 'bg-amber-500/25 border-amber-400 text-white' : 'bg-white/5 border-white/15 hover:bg-white/10'
+                  }`}
+                >
+                  {pos >= 0 ? `${pos + 1}. ` : ''}
+                  {e.title}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="w-full text-center text-[11px] font-sans text-slate-300 font-medium">
         {payload.purpose}

@@ -37,10 +37,16 @@ type Filter = 'all' | ElementClass;
 
 export interface PeriodicTableRendererProps {
   mode?: PeriodicTableMode;
+  /** Reports challenge progress as learner evidence. */
+  onActivity?: (result: { completed: boolean; wrong: number }) => void;
   className?: string;
 }
 
-export const PeriodicTableRenderer: React.FC<PeriodicTableRendererProps> = ({ mode = 'overview', className = '' }) => {
+/** Location challenges a learner must solve for the challenge step to count as completed. */
+export const CHALLENGES_TO_COMPLETE = 3;
+
+export const PeriodicTableRenderer: React.FC<PeriodicTableRendererProps> = ({ mode = 'overview', onActivity, className = '' }) => {
+  const [challengeWrong, setChallengeWrong] = useState(0);
   const [selected, setSelected] = useState<ChemicalElement | null>(null);
   const [filter, setFilter] = useState<Filter>(mode === 'classes' ? 'metalloid' : 'all');
   const [showTrends, setShowTrends] = useState(mode === 'trends');
@@ -61,11 +67,16 @@ export const PeriodicTableRenderer: React.FC<PeriodicTableRendererProps> = ({ mo
   const handleSelect = (el: ChemicalElement) => {
     setSelected(el);
     if (isChallenge) {
+      if (challengeResult === 'correct') return; // already solved; move to the next clue
       if (el.symbol === challenge.answer) {
         setChallengeResult('correct');
-        setSolvedCount((n) => n + 1);
+        const solved = solvedCount + 1;
+        setSolvedCount(solved);
+        onActivity?.({ completed: solved >= CHALLENGES_TO_COMPLETE, wrong: challengeWrong });
       } else {
         setChallengeResult('wrong');
+        setChallengeWrong((w) => w + 1);
+        onActivity?.({ completed: false, wrong: challengeWrong + 1 });
       }
     }
   };

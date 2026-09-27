@@ -67,6 +67,12 @@ export const INDUSTRIAL_REVOLUTION_LESSON: ClassroomLesson = {
       subtitle: 'Resources, Capital and Markets',
       buddyDialogue:
         'Why Britain? It had coal and iron, money from trade, a growing workforce, and markets hungry for goods. Coal was especially important because it fuelled steam engines.',
+      predict: {
+        dialogue:
+          'Why Britain first? Start with power. A steam engine burns fuel in a boiler. Which fuel did eighteenth-century Britain have in huge quantities underground? Commit to an answer before we look at the full list.',
+        boardSummary:
+          'Britain had several advantages at once: fuel and metal ores underground, money from overseas trade, a growing population and access to colonial markets.',
+      },
       buddyState: 'EXPLAINING',
       boardTitle: 'Why It Started in Britain',
       boardSummary:
@@ -82,7 +88,7 @@ export const INDUSTRIAL_REVOLUTION_LESSON: ClassroomLesson = {
           { id: 'ir_a1', text: 'Coal', isCorrect: true, feedback: 'Correct. Britain’s abundant coal fuelled steam engines and iron-making.' },
           { id: 'ir_a2', text: 'Oil', isCorrect: false, feedback: 'Oil became important much later, in the late nineteenth and twentieth centuries.' },
           { id: 'ir_a3', text: 'Electricity', isCorrect: false, feedback: 'Electric power spread in the late nineteenth century, part of the second industrial wave.' },
-          { id: 'ir_a4', text: 'Natural gas', isCorrect: false, feedback: 'Coal gas was used for lighting, but coal itself powered the engines.' },
+          { id: 'ir_a4', text: 'Natural gas', isCorrect: false, feedback: 'Gas was used for street lighting in this period. Think about what was burned in the boilers of steam engines.' },
         ],
       },
       tryThis: 'List two factors that made Britain a likely starting point, then check them against the board.',
@@ -124,7 +130,8 @@ export const INDUSTRIAL_REVOLUTION_LESSON: ClassroomLesson = {
       keyPrinciple:
         'Factories drew workers from the countryside. Towns such as Manchester grew rapidly, often with crowded housing and poor sanitation.',
       visualType: 'timeline',
-      visualData: { highlight: ['stockton', 'lmr'] },
+      // Learn by doing: order the events (dates hidden) before the check.
+      visualData: { highlight: ['stockton', 'lmr'], order: ['newcomen', 'watt', 'stockton', 'lmr'] },
       checkQuestion: {
         id: 'q_ir_step_order',
         prompt: 'Which of these came first?',
@@ -135,7 +142,7 @@ export const INDUSTRIAL_REVOLUTION_LESSON: ClassroomLesson = {
           { id: 'ir_b4', text: 'The Bessemer process', isCorrect: false, feedback: 'Bessemer patented it in 1856.' },
         ],
       },
-      tryThis: 'How many years separate Watt’s condenser and the first inter-city steam railway?',
+      tryThis: 'Put the four steam events on the board in order first. Then: how many years separate Watt’s condenser and the first inter-city steam railway?',
       commonMistake:
         'The Industrial Revolution was not one invention or one year. It was a process that unfolded over decades.',
       hintText: 'Compare the years on the timeline.',
@@ -148,6 +155,10 @@ export const INDUSTRIAL_REVOLUTION_LESSON: ClassroomLesson = {
       subtitle: 'Winners, Losers and Reform',
       buddyDialogue:
         'Industrialisation made far more goods, but early factory work was harsh: long hours, dangerous machines and child labour. Reformers pushed back.',
+      predict: {
+        dialogue:
+          'Early factory work was harsh: long hours, dangerous machines and child labour. Reformers pushed back with new laws. Reason it out: what would a first reform law in 1833 most likely do?',
+      },
       buddyState: 'THINKING',
       boardTitle: 'Costs, Gains and Reform',
       boardSummary:
@@ -178,8 +189,8 @@ export const INDUSTRIAL_REVOLUTION_LESSON: ClassroomLesson = {
       title: 'A Second Industrial Wave',
       subtitle: 'Steel, Chemicals and Electricity',
       buddyDialogue:
-        'Well done! From about 1870 a second wave of steel, chemicals and electricity pushed industrialisation further. Its effects still shape how we live and work today.',
-      buddyState: 'CELEBRATING',
+        'From about 1870 a second wave of steel, chemicals and electricity pushed industrialisation further. Its effects still shape how we live and work today.',
+      buddyState: 'EXPLAINING',
       boardTitle: 'Legacy of Industrialisation',
       boardSummary:
         'Cheap steel from the Bessemer process (1856), then chemicals, electricity and oil, drove a second industrial revolution from around 1870.',

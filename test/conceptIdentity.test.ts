@@ -89,6 +89,27 @@ function stateFor(id: string, intent = 'learn'): ClassRuntimeState {
   return createClassRuntimeState(r.lesson, r.intent);
 }
 
+/**
+ * Phase 5 (learn by doing): a step's check must be resolved before Next works.
+ * These helpers answer the active check correctly, then advance.
+ */
+function answerActiveCheck(s: ClassRuntimeState, correct = true): ClassRuntimeState {
+  const step = s.lesson.steps[s.stepIndex];
+  if (!step.checkQuestion || s.evidence[step.id]?.resolution) return s;
+  const option = step.checkQuestion.options.find((o) => o.isCorrect === correct)!;
+  s = classRuntimeReducer(s, { type: 'SELECT_OPTION', stepId: step.id, optionId: option.id });
+  return classRuntimeReducer(s, { type: 'SUBMIT_ANSWER', stepId: step.id });
+}
+
+function advance(s: ClassRuntimeState): ClassRuntimeState {
+  return classRuntimeReducer(answerActiveCheck(s), { type: 'NEXT_STEP' });
+}
+
+function advanceTo(s: ClassRuntimeState, index: number): ClassRuntimeState {
+  while (s.stepIndex < index) s = advance(s);
+  return s;
+}
+
 function firstQuestionStepIndex(lesson: ClassroomLesson): number {
   const idx = lesson.steps.findIndex((s) => s.checkQuestion);
   assert.ok(idx >= 0, `${lesson.conceptId} has a question step`);
@@ -270,9 +291,9 @@ async function main() {
 
   await test('9. Concept switching resets step, answers, hints, feedback, directive, artwork and session', () => {
     let s = stateFor('dc_motor');
-    s = classRuntimeReducer(s, { type: 'NEXT_STEP' });
-    s = classRuntimeReducer(s, { type: 'NEXT_STEP' });
-    s = classRuntimeReducer(s, { type: 'NEXT_STEP' });
+    s = advance(s);
+    s = advance(s);
+    s = advance(s);
     s = classRuntimeReducer(s, { type: 'REVEAL_HINT' });
     s = classRuntimeReducer(s, { type: 'SESSION_CREATED', session: { sessionId: 'sess_a', conceptId: 'dc_motor' } });
     assert.strictEqual(s.stepIndex, 3);
@@ -287,11 +308,13 @@ async function main() {
     assert.strictEqual(s.session, null);
     assert.strictEqual(s.answer.submitted, false);
     assert.strictEqual(s.answer.stepId, b.lesson.steps[0].id);
+    assert.deepStrictEqual(s.evidence, {}, 'learner evidence does not leak into another concept');
   });
 
   await test('9b. A → B → A returns to a clean A (lesson progress is ephemeral by design)', () => {
     let s = stateFor('periodic_table');
-    s = classRuntimeReducer(s, { type: 'GO_TO_STEP', index: 4 });
+    s = advanceTo(s, 4);
+    assert.strictEqual(s.stepIndex, 4);
     const dc = resolved('dc_motor');
     s = classRuntimeReducer(s, { type: 'INIT', lesson: dc.lesson, intent: 'learn' });
     const pt = resolved('periodic_table');
@@ -312,6 +335,11 @@ async function main() {
     s = classRuntimeReducer(s, { type: 'SUBMIT_ANSWER', stepId: step.id });
     assert.strictEqual(s.answer.submitted, true);
     assert.strictEqual(s.feedback?.kind, 'incorrect');
+    // Learn by doing: a wrong answer cannot be skipped with Next.
+    assert.strictEqual(classRuntimeReducer(s, { type: 'NEXT_STEP' }).stepIndex, qi, 'Next is blocked until the check is resolved');
+    s = classRuntimeReducer(s, { type: 'RETRY_ANSWER', stepId: step.id });
+    s = answerActiveCheck(s);
+    assert.strictEqual(s.evidence[step.id].firstTryCorrect, false, 'first-try evidence records the wrong attempt');
     // Next step: clean answer state
     s = classRuntimeReducer(s, { type: 'NEXT_STEP' });
     assert.strictEqual(s.answer.submitted, false);
@@ -362,18 +390,35 @@ async function main() {
       assert.ok(lesson.buddyScript, `${id} has a Buddy script`);
       let s = createClassRuntimeState(lesson, 'learn');
       for (let i = 0; i < lesson.steps.length; i++) {
-        s = classRuntimeReducer(s, { type: 'GO_TO_STEP', index: i });
+        s = advanceTo(s, i);
         const buddy = selectBuddy(s);
-        assert.strictEqual(buddy.dialogue, lesson.steps[i].buddyDialogue, `${id} step ${i} dialogue from lesson`);
+        // Predict-first steps open with the lesson's own predict prompt (no answer given away).
+        const expected = lesson.steps[i].predict ? lesson.steps[i].predict!.dialogue : lesson.steps[i].buddyDialogue;
+        assert.strictEqual(buddy.dialogue, expected, `${id} step ${i} dialogue from lesson`);
         if (id !== 'dc_motor') assert.ok(!DC_MOTOR_MARKERS.test(buddy.dialogue), `${id} Buddy has no DC-motor wording`);
+        const step = lesson.steps[i];
+        if (step.checkQuestion) {
+          // Buddy's feedback is the chosen option's own explanation for THIS question.
+          const correct = step.checkQuestion.options.find((o) => o.isCorrect)!;
+          const after = answerActiveCheck(s);
+          assert.strictEqual(selectBuddy(after).dialogue, correct.feedback, `${id} step ${i} feedback is question-specific`);
+          if (step.predict) {
+            assert.strictEqual(selectBuddy(classRuntimeReducer(after, { type: 'GO_TO_STEP', index: i })).dialogue.length > 0, true);
+          }
+        }
       }
-      const qi = firstQuestionStepIndex(lesson);
-      s = classRuntimeReducer(s, { type: 'GO_TO_STEP', index: qi });
-      const correct = lesson.steps[qi].checkQuestion!.options.find((o) => o.isCorrect)!;
-      s = classRuntimeReducer(s, { type: 'SELECT_OPTION', stepId: lesson.steps[qi].id, optionId: correct.id });
-      s = classRuntimeReducer(s, { type: 'SUBMIT_ANSWER', stepId: lesson.steps[qi].id });
-      assert.strictEqual(selectBuddy(s).dialogue, lesson.buddyScript!.correct);
+      s = answerActiveCheck(s);
+      // Completion praise also requires the lesson's board activities (trace / ordering / challenge).
+      for (const st of lesson.steps) {
+        const target = lesson.steps.indexOf(st);
+        const kind = (st.visualData as { mode?: string; order?: unknown[] } | undefined) ?? {};
+        if (kind.mode === 'trace' || kind.mode === 'challenge' || Array.isArray(kind.order)) {
+          s = classRuntimeReducer(s, { type: 'GO_TO_STEP', index: target });
+          s = classRuntimeReducer(s, { type: 'BOARD_ACTIVITY', stepId: st.id, completed: true, wrong: 0 });
+        }
+      }
       s = classRuntimeReducer(s, { type: 'GO_TO_STEP', index: lesson.steps.length - 1 });
+      s = answerActiveCheck(s);
       s = classRuntimeReducer(s, { type: 'NEXT_STEP' });
       assert.strictEqual(s.completed, true);
       assert.strictEqual(selectBuddy(s).dialogue, lesson.buddyScript!.completion);
@@ -470,7 +515,8 @@ async function main() {
     s = classRuntimeReducer(s, { type: 'EXTERNAL_VISUAL', token: selectVisualToken(s), payload: anon });
     assert.strictEqual(s.rejectedCount, before + 1);
     // Artwork never survives a step change.
-    s = classRuntimeReducer(s, { type: 'NEXT_STEP' });
+    s = advance(s);
+    assert.strictEqual(s.stepIndex, 2);
     assert.strictEqual(s.artwork, null);
   });
 

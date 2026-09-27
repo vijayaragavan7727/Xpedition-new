@@ -71,6 +71,10 @@ export const POLYMORPHISM_LESSON: ClassroomLesson = {
       subtitle: 'Same Signature, Different Bodies',
       buddyDialogue:
         'Circle, Rectangle and Triangle all implement Shape. Same method name, same signature, but each area() uses its own formula.',
+      predict: {
+        dialogue:
+          'Circle, Rectangle and Triangle all implement Shape, and each area() uses its own formula. Compare the three methods on the board: what has to stay identical so code written for Shape can call any of them?',
+      },
       buddyState: 'EXPLAINING',
       boardTitle: 'Three Classes, One Contract',
       boardSummary:
@@ -132,8 +136,8 @@ export const POLYMORPHISM_LESSON: ClassroomLesson = {
       title: 'Why It Matters',
       subtitle: 'Extend Without Rewriting',
       buddyDialogue:
-        'Brilliant! Because totalArea() only depends on Shape, you can add a Hexagon tomorrow and the loop keeps working without a single change.',
-      buddyState: 'CELEBRATING',
+        'Here is why it matters: because totalArea() only depends on Shape, you can add a Hexagon tomorrow and the loop keeps working without a single change.',
+      buddyState: 'EXPLAINING',
       boardTitle: 'Open for Extension',
       boardSummary:
         'Adding a new Shape class needs no change to totalArea(): the loop already works with any object that honours the Shape contract.',

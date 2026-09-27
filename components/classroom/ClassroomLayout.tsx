@@ -31,6 +31,12 @@ import {
   selectCurrentStep,
   selectVisualToken,
   selectXiraContext,
+  selectBoardView,
+  selectEvidenceSummary,
+  selectXiraObservation,
+  isStepResolved,
+  maxReachableStep,
+  stepActivityKind,
 } from '@/lib/classroom/classRuntime';
 import { resolveStepStage } from '@/lib/classroom/classStage';
 import { currentAuthMode } from '@/lib/auth/authMode';
@@ -80,7 +86,12 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   const stage = resolveStepStage(step, state.stepIndex, totalSteps);
   const buddy = selectBuddy(state);
   const xiraContext = selectXiraContext(state);
-  const directive = state.directive?.conceptId === state.conceptId ? state.directive.value : null;
+  const boardView = selectBoardView(state);
+  const evidenceSummary = selectEvidenceSummary(state);
+  const xiraObservation = selectXiraObservation(state);
+  const stepEvidence = state.evidence[step.id];
+  const nextBlocked = !isStepResolved(state, state.stepIndex);
+  const reachable = maxReachableStep(state);
 
   // ---- Server session (identity-checked; never drives content) -------------
   // One create per concept|intent; the request is aborted on unmount.
@@ -152,10 +163,15 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   // ---- Adaptive intelligence (directive is concept-tagged) -----------------
   const handleTelemetry = useCallback(
     (event: ClassroomTelemetryEvent) => {
-      const result = defaultClassroomIntelligence.processTelemetry(event);
-      dispatch({ type: 'SET_DIRECTIVE', conceptId: event.conceptId, directive: result });
+      // The service keeps its own counters, but its generic directives are NOT
+      // surfaced in the Class: Xira's observations come from this class's real
+      // evidence (selectXiraObservation). A hint request counts as evidence.
+      defaultClassroomIntelligence.processTelemetry(event);
+      if (event.eventType === 'hint_requested' && event.conceptId === lesson.conceptId) {
+        dispatch({ type: 'REVEAL_HINT' });
+      }
     },
-    []
+    [lesson.conceptId]
   );
 
   // ---- Tools / UI state -----------------------------------------------------
@@ -165,9 +181,12 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
 
+  // On a wrong answer, surface Xira's observation on small screens.
   useEffect(() => {
-    if (directive?.smartBoardCallout) setMobileCompanionTab('xira');
-  }, [directive]);
+    if (xiraObservation && (xiraObservation.kind === 'misconception' || xiraObservation.kind === 'scaffold')) {
+      setMobileCompanionTab('xira');
+    }
+  }, [xiraObservation?.kind, xiraObservation]);
 
   const completedRef = useRef(false);
   useEffect(() => {
@@ -197,6 +216,20 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   const handlePreviousStep = useCallback(() => dispatch({ type: 'PREVIOUS_STEP' }), []);
   const handleSelectOption = useCallback((stepId: string, optionId: string) => dispatch({ type: 'SELECT_OPTION', stepId, optionId }), []);
   const handleRetryAnswer = useCallback((stepId: string) => dispatch({ type: 'RETRY_ANSWER', stepId }), []);
+  const handleRevealAnswer = useCallback((stepId: string) => dispatch({ type: 'REVEAL_ANSWER', stepId }), []);
+  const handleBoardActivity = useCallback(
+    (stepId: string, result: { completed: boolean; wrong: number }) =>
+      dispatch({ type: 'BOARD_ACTIVITY', stepId, completed: result.completed, wrong: result.wrong }),
+    []
+  );
+  const handleObservationAction = useCallback(
+    (action: { kind: 'hint' | 'reveal_answer' | 'revisit'; stepIndex?: number }) => {
+      if (action.kind === 'hint') dispatch({ type: 'REVEAL_HINT' });
+      else if (action.kind === 'reveal_answer') dispatch({ type: 'REVEAL_ANSWER', stepId: step.id });
+      else if (action.kind === 'revisit' && typeof action.stepIndex === 'number') dispatch({ type: 'GO_TO_STEP', index: action.stepIndex });
+    },
+    [step.id]
+  );
 
   const handleSubmitAnswer = useCallback(
     (stepId: string) => {
@@ -265,8 +298,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   const hasFlashcards = Boolean(lesson.flashcards && lesson.flashcards.length > 0);
   const hasSources = Boolean(lesson.sources && lesson.sources.length > 0);
   const conceptProgress = Math.round(((state.stepIndex + 1) / totalSteps) * 100);
-  const currentXp = (state.stepIndex + 1) * 25;
-  const nextActionLabel = state.stepIndex === totalSteps - 1 ? 'Finish Lesson' : 'Next Step';
+  const nextActionLabel = nextBlocked ? 'Answer the check' : state.stepIndex === totalSteps - 1 ? 'Finish Lesson' : 'Next Step';
   const intentLabel = INTENT_LABELS[intent];
 
   return (
@@ -344,6 +376,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
                   <button
                     type="button"
                     onClick={() => dispatch({ type: 'GO_TO_STEP', index: idx })}
+                    disabled={idx > reachable}
                     aria-label={`Jump to step ${idx + 1}`}
                     className={`rounded-full transition-all cursor-pointer ${
                       idx === state.stepIndex
@@ -411,7 +444,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
             >
               <span>✨</span>
               <span>Xira</span>
-              {directive && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
+              {xiraObservation && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
             </button>
           </div>
           <button type="button" onClick={() => setIsMobileXiraOpen(true)} className="text-[11px] font-mono text-indigo-300 cursor-pointer">
@@ -444,10 +477,15 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
               onSelectOption={handleSelectOption}
               onSubmitAnswer={handleSubmitAnswer}
               onRetryAnswer={handleRetryAnswer}
+              onRevealAnswer={handleRevealAnswer}
+              boardView={boardView}
+              stepEvidence={stepEvidence}
+              nextBlocked={nextBlocked}
+              onBoardActivity={handleBoardActivity}
+              activityKind={stepActivityKind(step)}
               onPreviousStep={handlePreviousStep}
               onNextStep={handleNextStep}
               onOpenTool={handleOpenTool}
-              adaptiveDirective={directive ?? undefined}
               artworkUrl={state.artwork?.conceptId === state.conceptId && state.artwork.stepIndex === state.stepIndex ? state.artwork.assetUrl : undefined}
               className="h-full w-full"
             />
@@ -461,8 +499,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
             <ClassroomXiraAssistant
               context={xiraContext}
               prompts={lesson.xiraPrompts}
-              adaptiveDirective={directive ?? undefined}
-              activeMisconception={directive?.detectedMisconception}
+              observation={xiraObservation}
+              onObservationAction={handleObservationAction}
               onOpenTool={handleOpenTool}
               className="h-full w-full"
             />
@@ -489,7 +527,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
           isAudioPlaying={isAudioPlaying}
           onToggleAudio={toggleAudio}
           conceptProgress={conceptProgress}
-          currentXp={currentXp}
+          checksFirstTry={evidenceSummary.firstTryCorrect}
+          checksTotal={evidenceSummary.totalChecks}
         />
       </footer>
 
@@ -511,8 +550,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
             <ClassroomXiraAssistant
               context={xiraContext}
               prompts={lesson.xiraPrompts}
-              adaptiveDirective={directive ?? undefined}
-              activeMisconception={directive?.detectedMisconception}
+              observation={xiraObservation}
+              onObservationAction={handleObservationAction}
               onOpenTool={handleOpenTool}
               onCloseMobileDrawer={() => setIsMobileXiraOpen(false)}
               className="h-[75vh]"

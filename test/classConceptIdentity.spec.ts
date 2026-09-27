@@ -202,6 +202,32 @@ async function openClass(page: Page, url: string) {
   await page.waitForSelector('[data-testid="smart-board"]', { timeout: 30000 });
 }
 
+/**
+ * Learner-audit fix: a step's check must be resolved before Next advances.
+ * Resolves the active check the way a learner would (trying options in the
+ * displayed order, using Try Again) and then advances one step.
+ */
+async function resolveActiveCheck(page: Page) {
+  const q = page.locator('[data-testid="check-question"]');
+  if ((await q.count()) === 0) return;
+  for (let guard = 0; guard < 12; guard++) {
+    const state = await q.getAttribute('data-answer-state');
+    if (state === 'correct' || state === 'revealed') return;
+    if (state === 'incorrect') {
+      await page.getByRole('button', { name: 'Try Again' }).click();
+      continue;
+    }
+    const option = q.locator('button[data-option-id]:not([data-tried-wrong]):not([disabled])').first();
+    await option.click();
+    await q.getByRole('button', { name: /Submit Answer|Commit Prediction/ }).click();
+  }
+}
+
+async function advanceStep(page: Page) {
+  await resolveActiveCheck(page);
+  await page.getByRole('button', { name: 'Next step', exact: true }).click();
+}
+
 /** Phase 4: the Class states truthfully whether anything is persisted. */
 async function expectPersistence(page: Page, expected: string) {
   await expect(page.locator('[data-testid="classroom"]')).toHaveAttribute('data-persistence', expected, { timeout: 15000 });
@@ -267,7 +293,7 @@ test('B. every step of every concept stays on-concept (1440x900)', async ({ page
     await openClass(page, `/class?concept=${concept}`);
     const total = await page.evaluate(() => document.querySelectorAll('[aria-label^="Jump to step"]').length);
     for (let i = 0; i < total; i++) {
-      if (i > 0) await page.getByRole('button', { name: 'Next step', exact: true }).click();
+      if (i > 0) await advanceStep(page);
       await page.waitForFunction((idx) => document.querySelector('[data-testid="class-identity"]')?.getAttribute('data-step-index') === String(idx), i);
       const p = await probe(page);
       assertIdentityChain(p, concept);
@@ -312,8 +338,8 @@ test('E. journey: navigate, reload, revision, next/prev, answer, switch', async 
   await openClass(page, '/class?concept=periodic_table');
   for (const concept of ['dc_motor', 'polymorphism', 'industrial_revolution', 'periodic_table']) {
     // Move deeper first so a stale step would be visible after the switch.
-    await page.getByRole('button', { name: 'Next step', exact: true }).click();
-    await page.getByRole('button', { name: 'Next step', exact: true }).click();
+    await advanceStep(page);
+    await advanceStep(page);
     await clientNavigate(page, `/class?concept=${concept}`);
     const p = await probe(page);
     assertIdentityChain(p, concept);
@@ -337,10 +363,16 @@ test('E. journey: navigate, reload, revision, next/prev, answer, switch', async 
   expect(p.buddyText.toLowerCase()).toContain('revision');
   log.push({ phase: 'revision', concept: 'periodic_table', buddy: p.buddyText.slice(0, 160) });
 
-  // Next / previous
+  // Next / previous. Step 2 has a check: Next cannot skip it.
   await page.getByRole('button', { name: 'Next step', exact: true }).click();
-  await page.getByRole('button', { name: 'Next step', exact: true }).click();
+  await page.getByRole('button', { name: 'Next step', exact: true }).dispatchEvent('click');
+  p = await probe(page);
+  expect(p.stepIndex, 'Next is blocked by the unanswered check').toBe('1');
+  await expect(page.getByRole('button', { name: 'Next step', exact: true })).toHaveAttribute('data-blocked', 'true');
   await page.getByRole('button', { name: 'Previous step' }).click();
+  p = await probe(page);
+  expect(p.stepIndex).toBe('0');
+  await page.getByRole('button', { name: 'Next step', exact: true }).click();
   p = await probe(page);
   expect(p.stepIndex).toBe('1');
   assertIdentityChain(p, 'periodic_table');
@@ -349,8 +381,13 @@ test('E. journey: navigate, reload, revision, next/prev, answer, switch', async 
   await page.locator('[data-option-id="pt_a3"]').click(); // wrong: Magnesium
   await page.getByRole('button', { name: 'Submit Answer' }).click();
   await expect(page.getByTestId('answer-feedback')).toContainText('Magnesium has 12 protons');
+  // A wrong answer does not reveal the correct option.
+  await expect(page.getByTestId('check-question')).toHaveAttribute('data-answer-state', 'incorrect');
+  await expect(page.locator('[data-option-id="pt_a1"]')).not.toHaveClass(/emerald/);
   p = await probe(page);
-  expect(p.buddyText).toContain('periods are rows');
+  // Buddy explains THIS wrong choice (question-specific), not a lesson-wide line.
+  expect(p.buddyText).toContain('Magnesium has 12 protons');
+  expect(p.buddyText).not.toContain('periods are rows');
   await page.getByRole('button', { name: 'Try Again' }).click();
   await page.locator('[data-option-id="pt_a1"]').click();
   await page.getByRole('button', { name: 'Submit Answer' }).click();
@@ -392,7 +429,7 @@ test('F0. guest Class sends no session or integration requests (nothing persiste
   });
   await openClass(page, '/class?concept=dc_motor');
   await expectPersistence(page, 'guest_ephemeral');
-  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Next step', exact: true }).click();
+  for (let i = 0; i < 3; i++) await advanceStep(page);
   await clientNavigate(page, '/class?concept=periodic_table');
   await page.waitForTimeout(1500);
   expect(gated, gated.join('\n')).toEqual([]);
@@ -449,9 +486,10 @@ test('F. stale async responses are rejected (delayed scene + session for a previ
 
   await openClass(page, '/class?concept=dc_motor');
   const scenePosted = page.waitForRequest((r) => r.url().includes('/api/classroom/integrations') && r.method() === 'POST', { timeout: 20000 });
-  // dc_motor step 2 is a question step (no scene); step 3 is a "show" step → scene request.
-  await page.getByRole('button', { name: 'Next step', exact: true }).click();
-  await page.getByRole('button', { name: 'Next step', exact: true }).click();
+  // dc_motor step 2 is a question step (no scene; its check must be answered first);
+  // step 3 is a "show" step → scene request.
+  await advanceStep(page);
+  await advanceStep(page);
   await scenePosted; // the dc_motor request is now in flight (response delayed 2.5 s)
   await clientNavigate(page, '/class?concept=periodic_table');
 

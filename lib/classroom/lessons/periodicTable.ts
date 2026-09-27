@@ -167,11 +167,11 @@ export const PERIODIC_TABLE_LESSON: ClassroomLesson = {
       title: 'Locate the Element',
       subtitle: 'Element Location Challenge',
       buddyDialogue:
-        'Challenge time! Use the period and group clues to find each element on the board. You have got this.',
-      buddyState: 'CELEBRATING',
+        'Challenge time. Use the period and group clues to find each element on the board. Find the row first, then the column.',
+      buddyState: 'THINKING',
       boardTitle: 'Element Location Challenge',
       boardSummary:
-        'Use period and group together as coordinates. Period 3, Group 17 points to exactly one element: chlorine.',
+        'Use period and group together as coordinates. For example, Period 2, Group 17 points to exactly one element: fluorine.',
       keyPrinciple:
         'Position encodes identity and behaviour: row = number of shells, column = outer-shell pattern.',
       visualType: 'interactive_diagram',

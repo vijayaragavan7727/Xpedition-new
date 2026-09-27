@@ -155,7 +155,9 @@ async function runTests() {
     assert(content.includes('ProjectileSimulationRenderer'), 'Must support interactive_simulation for projectile motion');
     assert(content.includes('GraphRenderer'), 'Must support graph visual for math & data science');
     assert(content.includes('MolecularRenderer'), 'Must support molecular_visual for chemistry');
-    assert(content.includes('AnatomicalHeartRenderer'), 'Must support anatomical_visual for biology/heart');
+    // Learner audit: the static heart box diagram was replaced by the interactive,
+    // per-step HeartCirculationRenderer (valves + learner-traced pathway).
+    assert(content.includes('HeartCirculationRenderer'), 'Must support anatomical_visual for biology/heart');
     assert(content.includes('TimelineRenderer'), 'Must support timeline for history/French revolution');
     assert(content.includes('CodeVisualizerRenderer'), 'Must support code_visual for programming/binary search');
   });

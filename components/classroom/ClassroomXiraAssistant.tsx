@@ -15,7 +15,7 @@ import {
 import { XiraResponse, parseXiraResponseText, StructuredXiraResponse } from '@/components/xira/XiraResponse';
 import { ClassroomToolType, XiraLessonPrompts } from './types';
 import { AdaptiveDirective } from '@/lib/classroom/classroomIntelligence';
-import type { XiraClassContext } from '@/lib/classroom/classRuntime';
+import type { XiraClassContext, XiraObservation } from '@/lib/classroom/classRuntime';
 
 export interface ClassroomXiraAssistantProps {
   /** Active lesson context. Xira never answers about any other concept. */
@@ -25,6 +25,9 @@ export interface ClassroomXiraAssistantProps {
   activeMisconception?: string;
   hintsUsedCount?: number;
   adaptiveDirective?: AdaptiveDirective;
+  /** Observation computed from this class's real evidence (lib/classroom/classRuntime.ts). */
+  observation?: XiraObservation | null;
+  onObservationAction?: (action: { kind: 'hint' | 'reveal_answer' | 'revisit'; stepIndex?: number }) => void;
   onOpenTool?: (tool: ClassroomToolType) => void;
   onCloseMobileDrawer?: () => void;
   className?: string;
@@ -69,6 +72,8 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = Rea
   activeMisconception,
   hintsUsedCount = 0,
   adaptiveDirective,
+  observation,
+  onObservationAction,
   onOpenTool,
   onCloseMobileDrawer,
   className = '',
@@ -101,10 +106,10 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = Rea
     if (trimmed.toLowerCase().includes('hint') && stepHint) {
       setTimeout(() => {
         setActiveResponse(
-          parseXiraResponseText(
-            `Here is a targeted hint for ${currentStepTitle}:\n\nKey idea: ${stepHint}`,
-            topicTitle
-          )
+          {
+            ...parseXiraResponseText(`Here is a targeted hint for ${currentStepTitle}:\n\nKey idea: ${stepHint}`, topicTitle),
+            conceptId,
+          }
         );
         setIsLoading(false);
         setInputValue('');
@@ -137,12 +142,12 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = Rea
       const data = await res.json();
       if (activeKeyRef.current !== requestKey) return; // concept/step changed: drop stale answer
       const reply = data.reply || data.message || 'I observed your question. Let us analyze this step.';
-      setActiveResponse(parseXiraResponseText(reply, topicTitle));
+      setActiveResponse({ ...parseXiraResponseText(reply, topicTitle), conceptId });
       setInputValue('');
     } catch (err: any) {
       console.warn('[ClassroomXiraAssistant] Fallback:', err.message);
       if (activeKeyRef.current !== requestKey) return;
-      setActiveResponse(parseXiraResponseText(buildXiraOfflineAnswer(context, trimmed), topicTitle));
+      setActiveResponse({ ...parseXiraResponseText(buildXiraOfflineAnswer(context, trimmed), topicTitle), conceptId });
     } finally {
       setIsLoading(false);
     }
@@ -195,6 +200,55 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = Rea
           2. ASSISTANT BODY
          ===================================================================== */}
       <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-3">
+        {/* Evidence-based observation: derived only from this learner's answers in this class. */}
+        {observation && (
+          <div
+            data-testid="xira-observation"
+            data-observation-kind={observation.kind}
+            className={`p-3 rounded-2xl border space-y-1.5 ${
+              observation.kind === 'on_track'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-100'
+                : 'bg-amber-500/10 border-amber-500/30 text-amber-100'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-sans font-bold text-xs">{observation.title}</span>
+              <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wide">From your answers</span>
+            </div>
+            <p className="font-sans text-[11px] text-slate-200 leading-relaxed">{observation.message}</p>
+            {observation.detail && (
+              <p data-testid="xira-observation-detail" className="font-sans text-[11px] text-slate-300 leading-relaxed">
+                {observation.detail}
+              </p>
+            )}
+            {observation.revisit && observation.revisit.length > 0 && onObservationAction && (
+              <div className="flex flex-col gap-1 pt-0.5">
+                {observation.revisit.map((r) => (
+                  <button
+                    key={r.index}
+                    type="button"
+                    data-revisit-step={r.index}
+                    onClick={() => onObservationAction({ kind: 'revisit', stepIndex: r.index })}
+                    className="text-left text-[11px] font-mono text-amber-300 hover:text-amber-200 underline cursor-pointer"
+                  >
+                    Revisit step {r.index + 1}: {r.title} →
+                  </button>
+                ))}
+              </div>
+            )}
+            {observation.action && onObservationAction && (
+              <button
+                type="button"
+                data-observation-action={observation.action.kind}
+                onClick={() => onObservationAction({ kind: observation.action!.kind, stepIndex: observation.action!.stepIndex })}
+                className="text-[11px] font-mono text-amber-300 hover:text-amber-200 underline font-semibold cursor-pointer"
+              >
+                {observation.action.label} →
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Adaptive Remedial Callout if detected */}
         {adaptiveDirective && (
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1 text-amber-200">

@@ -33,7 +33,7 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         title: 'Energy Conversion',
         subtitle: 'From Current to Motion',
         buddyDialogue:
-          "Great! A DC motor converts electrical energy into mechanical energy using electromagnetic interactions. Let's explore how it works step by step.",
+          "A DC motor converts electrical energy into mechanical energy using electromagnetic interactions. Let's explore how it works step by step.",
         buddyState: 'INTRODUCING',
         boardTitle: 'What a DC Motor Does',
         boardSummary:
@@ -60,6 +60,10 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         subtitle: 'The 5 Essential Elements',
         buddyDialogue:
           'Here are the 5 core components of every DC motor. Look at the board: the permanent magnets create a magnetic field, the coil carries current, and the split-ring commutator acts as the secret switch that keeps it turning!',
+        predict: {
+          dialogue:
+            'Here are the five parts of a DC motor. Before I explain them: something must flip the current in the coil every half-turn, or the coil would stop. Click the parts on the board and decide which one could do that.',
+        },
         buddyState: 'EXPLAINING',
         boardTitle: 'Core Anatomy of a DC Motor',
         boardSummary:
@@ -81,7 +85,7 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
             { id: 'opt_1', text: 'Permanent Stator Magnets', isCorrect: false, feedback: 'Magnets provide the static field, but do not switch current.' },
             { id: 'opt_2', text: 'Split-Ring Commutator', isCorrect: true, feedback: 'Correct! The gap in the split ring reverses polarity every 180°.' },
             { id: 'opt_3', text: 'Axle Shaft', isCorrect: false, feedback: 'The axle transfers rotational torque to the output load.' },
-            { id: 'opt_4', text: 'Carbon Brushes alone', isCorrect: false, feedback: 'Brushes provide stationary electrical contact, while the split ring performs the commutation.' },
+            { id: 'opt_4', text: 'Carbon Brushes alone', isCorrect: false, feedback: 'Brushes only make stationary sliding contact. Which part rotates with the coil and could swap the connections?' },
           ],
         },
         hintText: 'Look for the segmented ring that rotates with the central axle.',
@@ -150,8 +154,8 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         title: 'Putting It All Together',
         subtitle: 'Continuous DC Motor Operation',
         buddyDialogue:
-          "Brilliant work! You now understand the complete DC motor principle: current plus magnetic field creates force; opposing forces create torque; and the commutator reverses current every half-turn to produce smooth, non-stop rotation!",
-        buddyState: 'CELEBRATING',
+          "Let us put the whole cycle together: current plus magnetic field creates force; opposite forces on the two sides create torque; and the commutator reverses the current every half-turn so the rotation never stops.",
+        buddyState: 'EXPLAINING',
         boardTitle: 'Mastery Synthesis: The DC Motor Cycle',
         boardSummary:
           'Every rotation cycle is a harmony of electricity, magnetism, and clever mechanical switching.',
@@ -412,10 +416,14 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
       {
         id: 'step_2_proj_range',
         stepNumber: 2,
-        title: 'Maximum Range at 45°',
+        title: 'Which Angle Goes Farthest?',
         subtitle: 'The Optimum Launch Angle',
         buddyDialogue:
           'Why is 45° the magic angle for maximum ground distance? High angles give lots of air time but little forward speed. Low angles give speed but hit the ground too soon. 45° strikes the perfect mathematical balance!',
+        predict: {
+          dialogue:
+            'Predict first: with the same launch speed, which angle sends the ball farthest on level ground? Steep angles give more air time, flat angles more forward speed. Fire a few angles on the board, then commit to an answer.',
+        },
         buddyState: 'EXPLAINING',
         boardTitle: 'Deriving the Range Equation',
         boardSummary:
@@ -487,12 +495,12 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
       {
         id: 'step_5_proj_predict',
         stepNumber: 5,
-        stage: 'reward',
+        stage: 'challenge',
         title: 'Predict and Test',
         subtitle: 'Using the Range Equation',
         buddyDialogue:
-          'Brilliant work! Now you can predict where a projectile lands before you launch it. Make a prediction, then test it on the board.',
-        buddyState: 'CELEBRATING',
+          'Challenge: predict where a projectile lands before you launch it. Work it out, commit to an answer, then test it on the board.',
+        buddyState: 'THINKING',
         boardTitle: 'Predict the Landing Point',
         boardSummary:
           'Use R = v₀²·sin 2θ / g. Example: v₀ = 20 m/s at 30° gives R = 400 × sin 60° / 9.8 ≈ 35.3 m.',
@@ -668,6 +676,7 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         keyPrinciple:
           'Right Atrium ──▶ Right Ventricle ──▶ Pulmonary Artery ──▶ Lungs (Oxygenation) ──▶ Pulmonary Vein ──▶ Left Atrium ──▶ Left Ventricle (Thick Myocardium) ──▶ Aorta ──▶ Body.',
         visualType: 'interactive_diagram',
+        visualData: { mode: 'circuits' },
         example: {
           title: 'Left Ventricle Thickness',
           description:
@@ -690,6 +699,7 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         keyPrinciple:
           'The septum separates the two sides so oxygen-poor and oxygen-rich blood do not mix.',
         visualType: 'anatomical_visual',
+        visualData: { mode: 'chambers' },
         hintText: 'Top chambers receive; bottom chambers pump.',
       },
       {
@@ -700,6 +710,12 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         subtitle: 'Tricuspid, Pulmonary, Mitral, Aortic',
         buddyDialogue:
           'Four valves act like one-way doors. They open and close as pressure changes, so blood can only move forward.',
+        predict: {
+          dialogue:
+            'Four valves act like one-way doors. Each side of the heart has one valve between its atrium and ventricle, and one at the exit to its artery. Use that to work out the check.',
+          boardSummary:
+            'Right side: tricuspid and pulmonary valves. Left side: mitral and aortic valves. On each side, one valve sits between the atrium and the ventricle; the other guards the exit into the artery.',
+        },
         buddyState: 'EXPLAINING',
         boardTitle: 'Four One-Way Valves',
         boardSummary:
@@ -707,6 +723,7 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         keyPrinciple:
           'Valves prevent backflow. The “lub-dub” heart sounds are made by the valves closing.',
         visualType: 'anatomical_visual',
+        visualData: { mode: 'valves' },
         checkQuestion: {
           id: 'q_heart_step_mitral',
           prompt: 'Which valve stops blood flowing back from the left ventricle into the left atrium?',
@@ -727,6 +744,13 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         subtitle: 'One Complete Loop',
         buddyDialogue:
           'Your turn: follow one red blood cell from the body, through the heart and lungs, and back out to the body.',
+        predict: {
+          dialogue:
+            'Your turn. Oxygen-poor blood from the body has just entered the right atrium and dropped into the right ventricle. It still needs oxygen. Where must the right ventricle send it next?',
+          boardSummary:
+            'Blood from the body enters the right atrium through the venae cavae. Trace where it must go to pick up oxygen before the left side can pump it to the body.',
+          boardTitle: 'Trace One Red Blood Cell',
+        },
         buddyState: 'ENCOURAGING',
         boardTitle: 'Body → Heart → Lungs → Heart → Body',
         boardSummary:
@@ -734,13 +758,14 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         keyPrinciple:
           'Arteries carry blood away from the heart and veins carry blood towards it. The pulmonary arteries are arteries that carry oxygen-poor blood.',
         visualType: 'anatomical_visual',
+        visualData: { mode: 'trace' },
         checkQuestion: {
           id: 'q_heart_step_after_rv',
           prompt: 'Where does blood go immediately after leaving the right ventricle?',
           options: [
             { id: 'h_p1', text: 'Into the pulmonary artery, towards the lungs', isCorrect: true, feedback: 'Correct. The right ventricle pumps oxygen-poor blood to the lungs.' },
             { id: 'h_p2', text: 'Into the aorta', isCorrect: false, feedback: 'The aorta leaves the left ventricle.' },
-            { id: 'h_p3', text: 'Into the left atrium', isCorrect: false, feedback: 'The septum separates the sides; blood reaches the left atrium only after the lungs.' },
+            { id: 'h_p3', text: 'Into the left atrium', isCorrect: false, feedback: 'The septum separates the two sides, so blood cannot pass straight to the left atrium. Where must it pick up oxygen first?' },
             { id: 'h_p4', text: 'Into the vena cava', isCorrect: false, feedback: 'The venae cavae bring blood into the right atrium.' },
           ],
         },
@@ -753,14 +778,15 @@ const BASE_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = {
         title: 'Two Circuits, One Heartbeat',
         subtitle: 'Double Circulation',
         buddyDialogue:
-          'Outstanding! With every beat the heart pumps blood through both circuits at once: to the lungs and to the whole body.',
-        buddyState: 'CELEBRATING',
+          'Now join it up: with every beat the heart pumps blood through both circuits at once, the right side to the lungs and the left side to the whole body.',
+        buddyState: 'EXPLAINING',
         boardTitle: 'Double Circulation',
         boardSummary:
           'Pulmonary circuit: right heart ↔ lungs. Systemic circuit: left heart ↔ body. Both ventricles contract together.',
         keyPrinciple:
           'The left ventricle has the thickest wall because it must push blood around the whole body.',
         visualType: 'anatomical_visual',
+        visualData: { mode: 'circuits' },
         hintText: 'Pulmonary = lungs; systemic = body.',
       },
     ],

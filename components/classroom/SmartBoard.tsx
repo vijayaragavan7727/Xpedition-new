@@ -19,7 +19,9 @@ import { ChevronLeft, ChevronRight, Sparkles, HelpCircle, CheckCircle2, RotateCw
 import type { ClassroomLesson, ClassroomToolType } from './types';
 import type { AdaptiveDirective } from '@/lib/classroom/classroomIntelligence';
 import type { CanonicalConcept } from '@/lib/concepts/types';
-import type { ClassAnswerState } from '@/lib/classroom/classRuntime';
+import type { ClassAnswerState, StepEvidence } from '@/lib/classroom/classRuntime';
+import { REVEAL_AFTER_ATTEMPTS } from '@/lib/classroom/classRuntime';
+import { orderOptions } from '@/lib/classroom/optionOrder';
 import { StickyNote } from '@/components/learning-objects';
 import { SmartBoardVisualRenderer } from './SmartBoardVisualRenderer';
 import { buildStepVisualPayload } from '@/lib/classroom/visualIdentity';
@@ -33,6 +35,17 @@ export interface SmartBoardProps {
   onSelectOption: (stepId: string, optionId: string) => void;
   onSubmitAnswer: (stepId: string) => void;
   onRetryAnswer: (stepId: string) => void;
+  /** Shows the answer + explanation; only offered after REVEAL_AFTER_ATTEMPTS wrong attempts. */
+  onRevealAnswer?: (stepId: string) => void;
+  /** Predict-first view of the active step (board summary / key principle visibility). */
+  boardView?: { title?: string; summary: string; showKeyPrinciple: boolean; predicting: boolean };
+  /** Learner evidence for the active step. */
+  stepEvidence?: StepEvidence;
+  /** True while the active step's check is unresolved: Next is blocked. */
+  nextBlocked?: boolean;
+  /** Hands-on board activity on this step (evidence), reported by the visual. */
+  onBoardActivity?: (stepId: string, result: { completed: boolean; wrong: number }) => void;
+  activityKind?: 'trace' | 'order' | 'challenge' | null;
   onPreviousStep: () => void;
   onNextStep: () => void;
   onOpenTool?: (tool: ClassroomToolType) => void;
@@ -50,6 +63,12 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
   onSelectOption,
   onSubmitAnswer,
   onRetryAnswer,
+  onRevealAnswer,
+  boardView,
+  stepEvidence,
+  nextBlocked = false,
+  onBoardActivity,
+  activityKind = null,
   onPreviousStep,
   onNextStep,
   onOpenTool,
@@ -74,6 +93,34 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
   const question = step.checkQuestion;
   const answerForThisStep = answer.stepId === step.id ? answer : null;
   const selectedOption = question?.options.find((o) => o.id === answerForThisStep?.selectedOptionId);
+  const displayOptions = useMemo(
+    () => (question ? orderOptions(question.id || step.id, question.options) : []),
+    [question, step.id]
+  );
+  const summaryText = boardView?.summary ?? step.boardSummary;
+  const showKeyPrinciple = boardView?.showKeyPrinciple ?? true;
+  const wrongAttempts = stepEvidence?.wrongOptionIds.length ?? 0;
+  const resolution = stepEvidence?.resolution ?? null;
+  const answerState: 'idle' | 'incorrect' | 'correct' | 'revealed' = resolution === 'revealed' || answerForThisStep?.revealed
+    ? 'revealed'
+    : answerForThisStep?.submitted
+      ? answerForThisStep.isCorrect ? 'correct' : 'incorrect'
+      : 'idle';
+  const questionRef = React.useRef<HTMLDivElement>(null);
+  const handleActivity = useCallback(
+    (result: { completed: boolean; wrong: number }) => onBoardActivity?.(step.id, result),
+    [onBoardActivity, step.id]
+  );
+  const activity = stepEvidence?.activity;
+  const handleNext = useCallback(() => {
+    if (nextBlocked) {
+      // Learning by doing: bring the unanswered check into view instead of skipping it.
+      questionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      questionRef.current?.querySelector<HTMLButtonElement>('button[data-option-id]:not([disabled])')?.focus({ preventScroll: true });
+      return;
+    }
+    onNextStep();
+  }, [nextBlocked, onNextStep]);
 
   return (
     <div
@@ -123,7 +170,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
         <div className="space-y-1 shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 data-testid="board-title" className="font-sans font-black text-lg sm:text-xl lg:text-2xl text-white tracking-tight">
-              {step.boardTitle}
+              {boardView?.title ?? step.boardTitle}
             </h2>
             {step.formulaSnippet && onOpenTool && (
               <button
@@ -138,7 +185,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
             )}
           </div>
           <p data-testid="board-summary" className="font-sans text-xs sm:text-[13px] text-slate-300 leading-relaxed max-w-3xl font-medium">
-            {step.boardSummary}
+            {summaryText}
           </p>
         </div>
 
@@ -169,12 +216,15 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 xl:gap-4 items-stretch flex-1 min-h-[220px]">
+        {/* The board scrolls instead of squeezing: the grid keeps its natural height
+            (flex-none), so the visual can never be painted over the key idea or the
+            check (it was, on phones and on 1366×768). */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 xl:gap-4 items-stretch flex-none min-h-[220px]">
           <div
             data-testid="smartboard-visual-column"
             className={`md:col-span-8 relative w-full h-full min-w-0 flex flex-col items-stretch justify-center overflow-hidden ${
               concept.visualKind === 'periodic_table_interactive' ? 'min-h-[380px]' : 'min-h-[280px]'
-            } md:min-h-0`}
+            }`}
           >
             <SmartBoardVisualRenderer
               payload={visualPayload}
@@ -182,17 +232,48 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
               isRotating={isRotating}
               onToggleRotation={handleToggleRotation}
               onHotspotClick={handleHotspotClick}
+              onActivity={handleActivity}
             />
           </div>
 
           <div className="md:col-span-4 flex flex-col justify-center gap-2.5 sm:gap-3 min-w-0">
-            {step.keyPrinciple && (
+            {step.keyPrinciple && !showKeyPrinciple && (
+              <div data-testid="key-principle-locked" className="p-3 sm:p-3.5 rounded-2xl bg-[#090F26]/70 border border-dashed border-amber-500/30 space-y-1">
+                <div className="flex items-center gap-1.5 text-amber-300/80 font-sans font-bold text-xs">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-400/80" />
+                  <span>Predict first</span>
+                </div>
+                <p className="font-sans text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                  Commit to an answer below. The key idea appears after your first attempt.
+                </p>
+              </div>
+            )}
+
+            {step.keyPrinciple && showKeyPrinciple && (
               <div data-testid="key-principle" className="p-3 sm:p-3.5 rounded-2xl bg-[#090F26]/90 border border-amber-500/25 space-y-1 shadow-md">
                 <div className="flex items-center gap-1.5 text-amber-300 font-sans font-bold text-xs">
                   <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
                   <span>Key Principle</span>
                 </div>
                 <p className="font-sans text-[11px] sm:text-xs text-slate-200 leading-relaxed whitespace-pre-line">{step.keyPrinciple}</p>
+              </div>
+            )}
+
+            {activityKind && (
+              <div
+                data-testid="board-activity-status"
+                data-activity-completed={activity?.completed ? 'true' : 'false'}
+                className={`px-3 py-2 rounded-2xl border text-[11px] font-sans ${
+                  activity?.completed ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' : 'bg-white/[0.03] border-white/[0.1] text-slate-300'
+                }`}
+              >
+                {activity?.completed
+                  ? `Board activity done${activity.wrong ? ` (${activity.wrong} wrong turn${activity.wrong > 1 ? 's' : ''} on the way)` : ' with no wrong turns'}.`
+                  : activityKind === 'challenge'
+                    ? 'Board challenge: solve 3 clues on the board. It counts towards your evidence for this class.'
+                    : activityKind === 'trace'
+                      ? 'Board activity: trace the blood on the diagram. It counts towards your evidence for this class.'
+                      : 'Board activity: order the events on the timeline. It counts towards your evidence for this class.'}
               </div>
             )}
 
@@ -211,37 +292,53 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
         {question && (
           <div
             key={step.id}
+            ref={questionRef}
             data-testid="check-question"
             data-question-step={step.id}
-            className="p-3 rounded-2xl bg-[#080E24]/95 border border-indigo-500/30 space-y-2 shrink-0"
+            data-answer-state={answerState}
+            data-attempts={stepEvidence?.attempts ?? 0}
+            className={`p-3 rounded-2xl bg-[#080E24]/95 border space-y-2 shrink-0 ${
+              nextBlocked ? 'border-indigo-400/60' : 'border-indigo-500/30'
+            }`}
           >
             <div className="flex items-start gap-2">
-              <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 font-mono text-[10px] font-bold uppercase shrink-0">Active Check</span>
+              <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 font-mono text-[10px] font-bold uppercase shrink-0">
+                {boardView?.predicting ? 'Predict' : 'Active Check'}
+              </span>
               <p className="font-sans font-semibold text-xs text-white">{question.prompt}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {question.options.map((opt) => {
+              {displayOptions.map((opt) => {
                 const isSelected = answerForThisStep?.selectedOptionId === opt.id;
                 const submitted = Boolean(answerForThisStep?.submitted);
+                const triedWrong = stepEvidence?.wrongOptionIds.includes(opt.id) ?? false;
                 let btnStyle = 'bg-white/[0.03] border-white/[0.08] text-slate-200 hover:bg-white/[0.08]';
+                if (triedWrong && !isSelected) btnStyle = 'bg-white/[0.02] border-rose-500/20 text-slate-400';
                 if (isSelected) btnStyle = 'bg-indigo-600/30 border-indigo-400 text-white shadow-sm';
-                if (submitted) {
-                  if (opt.isCorrect) btnStyle = 'bg-emerald-500/20 border-emerald-400 text-emerald-200';
-                  else if (isSelected) btnStyle = 'bg-rose-500/20 border-rose-400 text-rose-200';
+                if (submitted && isSelected) {
+                  // Only the learner's own choice is marked. A wrong answer never reveals
+                  // the correct option; it is shown only when answered correctly or
+                  // when the learner asks to see it.
+                  btnStyle = answerForThisStep?.isCorrect || answerForThisStep?.revealed
+                    ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200'
+                    : 'bg-rose-500/20 border-rose-400 text-rose-200';
                 }
                 return (
                   <button
                     key={opt.id}
                     type="button"
                     data-option-id={opt.id}
+                    data-tried-wrong={triedWrong ? 'true' : undefined}
                     disabled={submitted}
                     aria-pressed={isSelected}
                     onClick={() => onSelectOption(step.id, opt.id)}
                     className={`p-2 rounded-xl border text-left text-xs font-sans transition-all flex items-center justify-between cursor-pointer ${btnStyle}`}
                   >
                     <span>{opt.text}</span>
-                    {submitted && opt.isCorrect && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                    {submitted && isSelected && (answerForThisStep?.isCorrect || answerForThisStep?.revealed) && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    )}
                   </button>
                 );
               })}
@@ -254,21 +351,38 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                 onClick={() => onSubmitAnswer(step.id)}
                 className="w-full py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:pointer-events-none text-white text-xs font-sans font-bold transition-colors cursor-pointer"
               >
-                Submit Answer
+                {boardView?.predicting ? 'Commit Prediction' : 'Submit Answer'}
               </button>
             ) : (
               <div className="space-y-2 pt-1">
-                <div className="flex items-center justify-between gap-2">
-                  <p data-testid="answer-feedback" className="text-[11px] font-sans text-slate-300">{selectedOption?.feedback}</p>
-                  <button
-                    type="button"
-                    onClick={() => onRetryAnswer(step.id)}
-                    className="text-[10px] font-mono text-indigo-400 hover:underline cursor-pointer shrink-0"
-                  >
-                    Try Again
-                  </button>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p data-testid="answer-feedback" className="text-[11px] font-sans text-slate-300">
+                    {answerState === 'revealed'
+                      ? `Answer shown: ${selectedOption?.text ?? ''}. Not counted as correct; listed for review.`
+                      : selectedOption?.feedback}
+                  </p>
+                  {answerState === 'incorrect' && (
+                    <div className="flex items-center gap-3 shrink-0">
+                      {wrongAttempts >= REVEAL_AFTER_ATTEMPTS && onRevealAnswer && (
+                        <button
+                          type="button"
+                          onClick={() => onRevealAnswer(step.id)}
+                          className="text-[10px] font-mono text-amber-300 hover:underline cursor-pointer"
+                        >
+                          Show answer
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => onRetryAnswer(step.id)}
+                        className="text-[10px] font-mono text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {!selectedOption?.isCorrect && step.commonMistake && (
+                {answerState !== 'correct' && step.commonMistake && (
                   <div className="flex justify-center pt-1">
                     <StickyNote
                       note={{
@@ -309,11 +423,18 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
           </button>
           <button
             type="button"
-            onClick={onNextStep}
+            onClick={handleNext}
             aria-label="Next step"
-            className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-sans font-bold text-xs shadow-[0_0_16px_rgba(14,165,233,0.4)] transition-all cursor-pointer border border-sky-400/40"
+            aria-disabled={nextBlocked}
+            data-blocked={nextBlocked ? 'true' : 'false'}
+            title={nextBlocked ? 'Answer the check on this step first' : undefined}
+            className={`flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-white font-sans font-bold text-xs transition-all cursor-pointer border ${
+              nextBlocked
+                ? 'bg-slate-700/70 border-slate-500/40'
+                : 'bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 shadow-[0_0_16px_rgba(14,165,233,0.4)] border-sky-400/40'
+            }`}
           >
-            <span>{stepIndex === totalSteps - 1 ? 'Complete' : 'Next'}</span>
+            <span>{nextBlocked ? 'Answer the check' : stepIndex === totalSteps - 1 ? 'Complete' : 'Next'}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>

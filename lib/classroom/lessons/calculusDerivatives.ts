@@ -53,7 +53,7 @@ export const CALCULUS_DERIVATIVES_LESSON: ClassroomLesson = {
       boardSummary:
         'Between x = a and x = b, the average rate of change is [f(b) − f(a)] ÷ (b − a), the slope of the secant line.',
       keyPrinciple:
-        'Example: f(0) = 0 and f(2) = 0.4·8 − 1.2·2 = 0.8, so the average rate of change on [0, 2] is 0.8 ÷ 2 = 0.4.',
+        'Example: f(1) = 0.4 − 1.2 = −0.8 and f(2) = 0.4·8 − 1.2·2 = 0.8, so the average rate of change on [1, 2] is (0.8 − (−0.8)) ÷ (2 − 1) = 1.6.',
       formulaSnippet: '[f(b) − f(a)] / (b − a)',
       visualType: 'graph',
       checkQuestion: {
@@ -66,7 +66,7 @@ export const CALCULUS_DERIVATIVES_LESSON: ClassroomLesson = {
           { id: 'calc_a4', text: '−1.2', isCorrect: false, feedback: '−1.2 is the tangent slope at x = 0, not the average over [0, 2].' },
         ],
       },
-      tryThis: 'Compute f(1) yourself, then find the average rate of change on [0, 1].',
+      tryThis: 'Compute f(2) yourself, check it against the curve on the board, then find the rise over run on [0, 2].',
       commonMistake:
         'Always divide the change in output by the change in input. The change in f(x) alone is not a rate.',
       hintText: 'Rate = (change in f) ÷ (change in x).',
@@ -112,7 +112,7 @@ export const CALCULUS_DERIVATIVES_LESSON: ClassroomLesson = {
         options: [
           { id: 'calc_b1', text: '−1.2', isCorrect: true, feedback: 'Correct. f′(0) = 1.2·0 − 1.2 = −1.2, so the curve is falling at x = 0.' },
           { id: 'calc_b2', text: '0', isCorrect: false, feedback: 'f(0) = 0 is the height of the curve, not its slope.' },
-          { id: 'calc_b3', text: '1.2', isCorrect: false, feedback: 'Check the sign: the constant term is −1.2.' },
+          { id: 'calc_b3', text: '1.2', isCorrect: false, feedback: 'Check the sign of the constant term in f′(x) before you substitute x = 0.' },
           { id: 'calc_b4', text: 'Undefined', isCorrect: false, feedback: 'This polynomial is smooth, so its derivative exists at every x.' },
         ],
       },
@@ -129,7 +129,7 @@ export const CALCULUS_DERIVATIVES_LESSON: ClassroomLesson = {
       subtitle: 'Velocity as a Derivative',
       buddyDialogue:
         'Derivatives are everywhere. If s(t) is position, then s′(t) is velocity. Let us apply it to a ball thrown upward.',
-      buddyState: 'CELEBRATING',
+      buddyState: 'THINKING',
       boardTitle: 'Derivative = Instantaneous Rate',
       boardSummary:
         'If s(t) gives position in metres after t seconds, then s′(t) is the velocity in metres per second.',

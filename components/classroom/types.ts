@@ -101,6 +101,19 @@ export interface ClassroomLessonStep {
   tryThis?: string;
   /** Lesson-owned common-mistake note shown after an incorrect answer. */
   commonMistake?: string;
+  /**
+   * Predict-first framing for a question step. Until the learner commits a
+   * first answer, Buddy says `dialogue`, the board shows `boardSummary` (when
+   * given) and the step's key principle stays hidden, so the check tests
+   * reasoning instead of copying text that is already on screen. The full
+   * explanation appears after the first attempt.
+   */
+  predict?: {
+    dialogue: string;
+    boardSummary?: string;
+    /** Board title while predicting, when the real title would give the answer away. */
+    boardTitle?: string;
+  };
   /** Canonical class stage for this step (see lib/classroom/classStage.ts). */
   stage?: ClassStepStage;
 }
