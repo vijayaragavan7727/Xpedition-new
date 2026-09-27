@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Orbitron, JetBrains_Mono, Caveat, Kalam } from 'next/font/google';
 import './globals.css';
+import { AuthIdentitySync } from '@/components/auth/AuthIdentitySync';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron', display: 'swap' });
@@ -28,6 +29,7 @@ export default function RootLayout({
         <link rel="preload" href="/world/buildings/learning-camp.png" as="image" />
       </head>
       <body className="bg-ink text-text selection:bg-violet selection:text-white antialiased min-h-screen">
+        <AuthIdentitySync />
         {children}
       </body>
     </html>

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { readLearnerItem, writeLearnerItem, removeLearnerItem } from '@/lib/security/learnerStorage';
+import { resolveQuestPool, type QuestLike } from '@/lib/concepts/routeConceptResolution';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { StateHud } from '@/components/StateHud';
@@ -72,6 +74,7 @@ function QuestContent() {
   const [userConfidence, setUserConfidence] = useState<'known' | 'unsure' | null>(null);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [isExhausted, setIsExhausted] = useState<boolean>(false);
+  const [questConceptUnavailable, setQuestConceptUnavailable] = useState<boolean>(false);
   const [isRegenerating, setIsRegenerating] = useState<boolean>(false);
   const [showSoloPreScreen, setShowSoloPreScreen] = useState<boolean>(isSoloRequested);
 
@@ -128,7 +131,7 @@ function QuestContent() {
     const targetConceptId = conceptParam || (target.inProgress ? target.conceptId : undefined);
 
     if (typeof window !== 'undefined' && !isSoloRequested) {
-      const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+      const stored = readLearnerItem(SESSION_STORAGE_KEY);
       if (stored) {
         try {
           const parsed: SessionState = JSON.parse(stored);
@@ -140,7 +143,7 @@ function QuestContent() {
             }
           }
         } catch (e) {
-          localStorage.removeItem(SESSION_STORAGE_KEY);
+          removeLearnerItem(SESSION_STORAGE_KEY);
         }
       }
     }
@@ -158,20 +161,25 @@ function QuestContent() {
     const activeGraph = store.graphs?.find((g) => g.id === store.activeGraphId) || store.graphs?.[0];
     let pool: SeededItem[] = (activeGraph?.quests as SeededItem[]) || [];
 
-    if (targetConceptId === 'projectile_motion') {
-      pool = [PROJECTILE_MOTION_QUEST as any];
-    } else if (targetConceptId === 'spatial_reasoning') {
-      pool = [OBJECT_MANIPULATION_QUEST as any];
-    } else if (targetConceptId === 'molecular_bonding') {
-      pool = [MOLECULE_BUILDER_QUEST as any];
-    } else if (targetConceptId === 'human_heart_anatomy') {
-      pool = [HEART_ANATOMY_QUEST as any];
-    } else if (targetConceptId === 'python_debugging_basics') {
-      pool = [CODE_DEBUGGING_QUEST as any];
-    } else if (targetConceptId) {
-      const filtered = pool.filter((q) => q.conceptId === targetConceptId);
-      if (filtered.length > 0) pool = filtered;
+    // Exact, registry-backed pool selection. An unknown concept is refused, and a
+    // known concept with no quests is 'no_items' — never the rest of the pool.
+    const poolResolution = resolveQuestPool<SeededItem & QuestLike>({
+      targetConceptId,
+      store,
+      graphPool: pool as Array<SeededItem & QuestLike>,
+      specialQuests: {
+        projectile_motion: PROJECTILE_MOTION_QUEST as any,
+        spatial_reasoning: OBJECT_MANIPULATION_QUEST as any,
+        molecular_bonding: MOLECULE_BUILDER_QUEST as any,
+        human_heart_anatomy: HEART_ANATOMY_QUEST as any,
+        python_debugging_basics: CODE_DEBUGGING_QUEST as any,
+      },
+    });
+    if (poolResolution.status === 'unavailable') {
+      setQuestConceptUnavailable(true);
+      return;
     }
+    pool = poolResolution.pool;
 
     const selectedItems: SeededItem[] = [];
     const poolCopy = [...pool];
@@ -429,7 +437,7 @@ function QuestContent() {
     setSession(updatedSession);
 
     if (!session.isSolo && typeof window !== 'undefined') {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      writeLearnerItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
     }
   };
 
@@ -438,7 +446,7 @@ function QuestContent() {
 
     if (session.currentIndex + 1 >= session.totalLength) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(SESSION_STORAGE_KEY);
+        removeLearnerItem(SESSION_STORAGE_KEY);
       }
       const currentConceptName = session.items[session.currentIndex]?.conceptName || 'Core Concept';
       clearActiveSession(currentConceptName);
@@ -472,7 +480,7 @@ function QuestContent() {
         updatedAt: Date.now(),
       });
       if (typeof window !== 'undefined') {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession));
+        writeLearnerItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession));
       }
     }
   };
@@ -542,7 +550,7 @@ function QuestContent() {
       setSession(updatedSession);
 
       if (!session.isSolo && typeof window !== 'undefined') {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+        writeLearnerItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
       }
 
       setExperienceState('reflection');
@@ -597,7 +605,7 @@ function QuestContent() {
       setSession(updatedSession);
 
       if (!session.isSolo && typeof window !== 'undefined') {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+        writeLearnerItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
       }
 
       setExperienceState('reflection');
@@ -673,7 +681,7 @@ function QuestContent() {
       setSession(updatedSession);
 
       if (!session.isSolo && typeof window !== 'undefined') {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+        writeLearnerItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
       }
 
       setExperienceState('reflection');
@@ -747,7 +755,7 @@ function QuestContent() {
       setSession(updatedSession);
 
       if (!session.isSolo && typeof window !== 'undefined') {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+        writeLearnerItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
       }
 
       setExperienceState('reflection');
@@ -804,7 +812,7 @@ function QuestContent() {
     setSession(updatedSession);
 
     if (!session.isSolo && typeof window !== 'undefined') {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      writeLearnerItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
     }
 
     // 4. Transition to reflection view
@@ -850,6 +858,29 @@ function QuestContent() {
     setExperienceResult(null);
     handleNextItem();
   };
+
+  if (questConceptUnavailable) {
+    return (
+      <div
+        data-testid="route-concept-unavailable"
+        data-requested-concept={conceptParam || ''}
+        className="min-h-[100dvh] bg-ink text-text flex items-center justify-center p-6 select-none font-sans"
+      >
+        <div className="max-w-md w-full bg-panel border border-line rounded-[20px] p-8 text-center space-y-4 shadow-2xl">
+          <h1 className="font-sans font-bold text-xl text-text">Concept not found</h1>
+          <p className="font-sans text-xs text-muted leading-relaxed">
+            This concept is not in the Xpedition curriculum or your learning path, so no quest was started.
+          </p>
+          <Link
+            href="/learn"
+            className="w-full h-10 rounded-[12px] border border-line text-muted hover:text-text font-sans font-medium text-xs flex items-center justify-center transition-colors"
+          >
+            Browse topics
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (isExhausted) {
     return (

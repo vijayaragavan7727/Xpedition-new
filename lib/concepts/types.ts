@@ -27,7 +27,7 @@ export type ConceptVisualKind =
   /** Deterministic concept map built from the CURRENT lesson's own content. */
   | 'semantic_lesson';
 
-export type LessonSource = 'authored' | 'curriculum_outline';
+export type LessonSource = 'authored' | 'curriculum_outline' | 'experience_only';
 
 export interface CanonicalConcept {
   /** Exact canonical id, e.g. "periodic_table". */
@@ -38,8 +38,10 @@ export interface CanonicalConcept {
   learningObjective: string;
   /** Canonical ids of recommended prior concepts (all must exist in the registry). */
   prerequisites: string[];
+  /** Empty string when the concept has no Class lesson (experience-only). */
   lessonId: string;
   lessonSource: LessonSource;
+  hasClassLesson: boolean;
   visualKind: ConceptVisualKind;
   availableStages: ClassStepStage[];
   supportsRevision: boolean;
@@ -68,7 +70,7 @@ export interface RevisionPlan {
   retrievalQuestionIds: string[];
 }
 
-export type LessonUnavailableReason = 'empty_id' | 'invalid_id' | 'unknown_concept';
+export type LessonUnavailableReason = 'empty_id' | 'invalid_id' | 'unknown_concept' | 'no_class_lesson';
 
 export type LessonResolution =
   | {

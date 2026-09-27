@@ -3,6 +3,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { currentAuthMode } from '@/lib/auth/authMode';
 import { getStoreData, saveStoreData, setActiveStoreUser, clearStoreData } from '@/lib/store';
 import { persistenceManager } from '@/lib/persistence';
 import { getNextStep } from '@/lib/onboarding';
@@ -268,6 +269,13 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
     // LOCAL MODE FALLBACK (When Supabase keys are absent in .env.local)
     // =========================================================================
     if (!isSupabaseConfigured || !supabase) {
+      // Fail closed: a local (password-less) learner exists ONLY in explicit
+      // development mode. Production without Supabase can never sign anyone in.
+      if (currentAuthMode() !== 'dev_local') {
+        setIsSubmitting(false);
+        setFormError('Sign-in is unavailable: the authentication service is not configured.');
+        return;
+      }
       const localUserId = 'local_' + trimmedEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
       setActiveStoreUser(localUserId);
       persistenceManager.setActiveUserId(localUserId);

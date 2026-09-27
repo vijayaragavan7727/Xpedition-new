@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { currentAuthMode } from '@/lib/auth/authMode';
 import { getStoreData } from '@/lib/store';
 import { getNextStep } from '@/lib/onboarding';
 import { ArrowRight, Compass } from 'lucide-react';
@@ -16,7 +17,8 @@ export default function HomePage() {
   // If user is already authenticated and active, route them straight to their target step
   const handleGetStarted = async (e: React.MouseEvent) => {
     if (!isSupabaseConfigured || !supabase) {
-      // Local mode: check if store has progress or go straight to onboarding
+      // Without Supabase only the explicit development bypass has a local learner.
+      if (currentAuthMode() !== 'dev_local') return;
       const store = getStoreData();
       const next = getNextStep(store);
       if (next !== 'goal') {

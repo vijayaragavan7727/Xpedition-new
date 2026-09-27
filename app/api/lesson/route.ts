@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { callAi } from '@/lib/ai';
 import { requireServerAuth } from '@/lib/auth/serverAuth';
+import { resolveLessonRequestIdentity } from '@/lib/concepts/routeConceptResolution';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -35,10 +36,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
+    // Exact concept identity: canonical ids use the registry title; no default concept.
+    const identity = resolveLessonRequestIdentity(body);
+    if (!identity.ok) {
+      return NextResponse.json({ error: true, message: identity.error }, { status: 400 });
+    }
+    const { conceptId, conceptName, conceptSummary } = identity;
     const {
-      conceptId = 'c_1',
-      conceptName = 'Photosynthesis',
-      conceptSummary = '',
       language = 'english',
       startingLevel = 'Complete beginner',
       masteryPercentage = 0,
@@ -140,7 +144,7 @@ Current Mastery: ${masteryPercentage}% (${masteryBand} band)
 
 Generate the complete authentic lesson now.`;
 
-    const cacheKey = `lesson:${conceptName.toLowerCase().trim()}:${language}:${levelBand}:${masteryBand}`;
+    const cacheKey = `lesson:${conceptId}:${conceptName.toLowerCase().trim()}:${language}:${levelBand}:${masteryBand}`;
 
     const aiResult = await callAi<any>({
       systemPrompt,

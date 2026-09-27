@@ -12,7 +12,11 @@ import { supabase, isSupabaseConfigured } from '../supabase';
 
 export interface IClassroomSessionStore {
   saveSession(session: ClassroomSessionState, userId?: string): Promise<boolean>;
-  getSession(sessionId: string): Promise<ClassroomSessionState | null>;
+  /**
+   * When `ownerId` is given, only a session owned by that user is returned.
+   * Authorization is enforced by the orchestrator; this is defence in depth.
+   */
+  getSession(sessionId: string, ownerId?: string): Promise<ClassroomSessionState | null>;
   deleteSession(sessionId: string): Promise<boolean>;
   listUserSessions(userId: string): Promise<ClassroomSessionState[]>;
 }
@@ -48,9 +52,10 @@ export class MemorySessionStore implements IClassroomSessionStore {
     return true;
   }
 
-  public async getSession(sessionId: string): Promise<ClassroomSessionState | null> {
+  public async getSession(sessionId: string, ownerId?: string): Promise<ClassroomSessionState | null> {
     const session = this.sessions.get(sessionId);
     if (!session) return null;
+    if (ownerId !== undefined && session.ownerId !== ownerId) return null;
     return JSON.parse(JSON.stringify(session));
   }
 
@@ -139,16 +144,19 @@ export class DistributedSessionStore implements IClassroomSessionStore {
     return true;
   }
 
-  public async getSession(sessionId: string): Promise<ClassroomSessionState | null> {
+  public async getSession(sessionId: string, ownerId?: string): Promise<ClassroomSessionState | null> {
+    const owned = (s: ClassroomSessionState | null) =>
+      s && (ownerId === undefined || s.ownerId === ownerId) ? s : null;
+
     // 1. Check distributed cache
     const cacheKey = this.getCacheKey(sessionId);
     const cached = await this.cache.get<ClassroomSessionState>(cacheKey);
     if (cached) {
-      return cached;
+      return owned(cached);
     }
 
     // 2. Check local memory
-    const memorySession = await this.memoryFallback.getSession(sessionId);
+    const memorySession = await this.memoryFallback.getSession(sessionId, ownerId);
     if (memorySession) {
       return memorySession;
     }
@@ -156,16 +164,17 @@ export class DistributedSessionStore implements IClassroomSessionStore {
     // 3. Fallback to Supabase database query if live
     if (this.isLive()) {
       try {
-        const { data, error } = await supabase!
+        let query = supabase!
           .from('classroom_sessions')
           .select('state_json')
-          .eq('session_id', sessionId)
-          .maybeSingle();
+          .eq('session_id', sessionId);
+        if (ownerId !== undefined) query = query.eq('user_id', ownerId);
+        const { data, error } = await query.maybeSingle();
 
         if (!error && data?.state_json) {
           const session = data.state_json as ClassroomSessionState;
           await this.cache.set(cacheKey, session, 7200);
-          return session;
+          return owned(session);
         }
       } catch (err: any) {
         console.warn('[DistributedSessionStore] Cloud getSession exception:', err?.message);

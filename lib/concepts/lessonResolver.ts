@@ -44,6 +44,9 @@ export function resolveClassLesson(rawConceptId: unknown, rawIntent?: unknown): 
   }
 
   const match = lookupConcept(normalizedId);
+  if (match && !match.concept.hasClassLesson) {
+    return { status: 'unavailable', requestedConceptId, normalizedId, reason: 'no_class_lesson', intent };
+  }
   const lesson = match ? getLessonForCanonicalId(match.concept.id) : null;
   if (!match || !lesson) {
     return { status: 'unavailable', requestedConceptId, normalizedId, reason: 'unknown_concept', intent };

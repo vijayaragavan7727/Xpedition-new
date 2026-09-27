@@ -1,6 +1,12 @@
 'use client';
 
 import { updateTheta, thetaToPercent } from './engine/mastery';
+import {
+  getActiveLearnerId,
+  purgeLearnerLocalData,
+  purgeLegacyGlobalKeys,
+  setActiveLearnerId,
+} from './security/learnerStorage';
 
 export function computeItemHash(prompt: string, options: string[]): string {
   const normPrompt = (prompt || '').trim().toLowerCase();
@@ -136,7 +142,6 @@ export interface FeedbackRecord {
   createdAt: number;
 }
 
-const STORAGE_KEY = 'xpedition_user_store_v3';
 const DEFAULT_GRAPH_ID = 'graph_default';
 
 export const INITIAL_ZERO_STATE: UserStoreData = {
@@ -237,97 +242,105 @@ function syncActiveGraph(data: UserStoreData): UserStoreData {
 }
 
 // User-scoped store context & sync listener
-let activeStoreUserId: string | null = null;
+//
+// Shared-device isolation (Phase 3):
+//  - Learner data is persisted ONLY under `xpedition_user_<authenticatedId>`.
+//  - There is NO global/unscoped fallback key any more; legacy global keys are
+//    purged and never read (they could contain another learner's data).
+//  - Without an authenticated learner (guest), state lives in memory only.
+//  - Logout purges every key belonging to the learner who logged out.
 type StoreSyncListener = (data: UserStoreData, userId?: string) => void;
 let storeSyncListener: StoreSyncListener | null = null;
+let guestStore: UserStoreData | null = null;
+let legacyPurged = false;
+
+function freshZeroState(): UserStoreData {
+  return JSON.parse(JSON.stringify(INITIAL_ZERO_STATE));
+}
+
+function ensureLegacyPurged(): void {
+  if (legacyPurged || typeof window === 'undefined') return;
+  legacyPurged = true;
+  purgeLegacyGlobalKeys();
+}
 
 export function registerStoreSyncListener(listener: StoreSyncListener): void {
   storeSyncListener = listener;
 }
 
 export function setActiveStoreUser(userId: string | null): void {
-  activeStoreUserId = userId;
-  if (typeof window !== 'undefined') {
-    try {
-      if (userId) {
-        sessionStorage.setItem('xpedition_active_user_id', userId);
-      } else {
-        sessionStorage.removeItem('xpedition_active_user_id');
-      }
-    } catch {
-      // ignore
-    }
+  const previous = getActiveLearnerId();
+  if (previous !== userId) guestStore = null;
+  // Switching directly from learner A to learner B on the same device (no
+  // explicit logout): remove A's local copy so B can never see it.
+  if (previous && userId && previous !== userId) {
+    purgeLearnerLocalData(previous);
   }
+  setActiveLearnerId(userId);
 }
 
 export function getActiveStoreUser(): string | null {
-  if (activeStoreUserId) return activeStoreUserId;
-  if (typeof window !== 'undefined') {
-    try {
-      return sessionStorage.getItem('xpedition_active_user_id');
-    } catch {
-      // ignore
-    }
-  }
-  return null;
+  return getActiveLearnerId();
 }
 
 export function getStoreData(scopedUserId?: string): UserStoreData {
-  if (typeof window === 'undefined') return INITIAL_ZERO_STATE;
+  if (typeof window === 'undefined') return freshZeroState();
+  ensureLegacyPurged();
   try {
     const targetUserId = scopedUserId || getActiveStoreUser();
-    let raw: string | null = null;
-
-    if (targetUserId) {
-      raw = localStorage.getItem(`xpedition_user_${targetUserId}`);
+    if (!targetUserId) {
+      // Guest: in-memory only, never another learner's persisted data.
+      return guestStore ? syncActiveGraph(JSON.parse(JSON.stringify(guestStore))) : freshZeroState();
     }
-
-    if (!raw) {
-      raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('xpedition_user_store_v2');
-    }
-
-    if (!raw) return INITIAL_ZERO_STATE;
+    const raw = localStorage.getItem(`xpedition_user_${targetUserId}`);
+    if (!raw) return freshZeroState();
     const data = JSON.parse(raw);
     if (data.handle === 'Operator') {
       data.handle = 'Learner';
     }
     return syncActiveGraph(data);
   } catch (e) {
-    return INITIAL_ZERO_STATE;
+    return freshZeroState();
   }
 }
 
 export function saveStoreData(data: UserStoreData, scopedUserId?: string): void {
   if (typeof window === 'undefined') return;
+  ensureLegacyPurged();
   try {
     const synced = syncActiveGraph(data);
     const targetUserId = scopedUserId || getActiveStoreUser();
 
-    if (targetUserId) {
-      localStorage.setItem(`xpedition_user_${targetUserId}`, JSON.stringify(synced));
+    if (!targetUserId) {
+      // Guest progress is kept for this page only and is never persisted.
+      guestStore = JSON.parse(JSON.stringify(synced));
+      return;
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
 
-    // Notify registered persistence manager
+    localStorage.setItem(`xpedition_user_${targetUserId}`, JSON.stringify(synced));
+
+    // Notify registered persistence manager (authenticated learners only)
     if (storeSyncListener) {
-      storeSyncListener(synced, targetUserId || undefined);
+      storeSyncListener(synced, targetUserId);
     }
   } catch (e) {
     console.error('Failed to save store data:', e);
   }
 }
 
+/**
+ * Logout / account switch: removes the learner's local copy and every other
+ * learner-scoped key (notes, active quest session, …), clears guest memory and
+ * the active-learner pointer. Server-side data (Supabase) is unaffected.
+ */
 export function clearStoreData(scopedUserId?: string): void {
   const targetUserId = scopedUserId || getActiveStoreUser();
+  guestStore = null;
+  purgeLearnerLocalData(targetUserId);
   setActiveStoreUser(null);
 
   if (typeof window === 'undefined') return;
-
-  if (targetUserId) {
-    localStorage.removeItem(`xpedition_user_${targetUserId}`);
-  }
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem('xpedition_user_store_v2');
+  purgeLegacyGlobalKeys();
 
   if (typeof sessionStorage !== 'undefined') {
     sessionStorage.clear();

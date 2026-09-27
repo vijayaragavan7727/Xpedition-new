@@ -31,7 +31,7 @@ import {
   FlashcardItem,
 } from '../types';
 import { ClassroomTelemetryEvent } from '@/lib/classroom/classroomIntelligence';
-import { getActiveStoreUser } from '@/lib/store';
+import { readLearnerItem, writeLearnerItem, removeLearnerItem } from '@/lib/security/learnerStorage';
 import {
   LearningFlashcard,
   FormulaCard,
@@ -232,9 +232,9 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
   // =========================================================================
   // 3. STUDENT STUDY NOTES STATE (LOCAL STORAGE PERSISTENCE)
   // =========================================================================
-  // Notes are learner-owned: scope them to the active user AND the concept so a
-  // shared device never shows one learner's notes to another.
-  const storageKey = `xpedition_notes_${getActiveStoreUser() || 'guest'}_${lesson.conceptId}`;
+  // Notes are learner-owned: persisted only for an authenticated learner, under a
+  // key scoped to that learner AND the concept. Guests keep notes in memory only.
+  const storageKey = `xpedition_notes_${lesson.conceptId}`;
   const [studentNotes, setStudentNotes] = useState<string>('');
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
@@ -242,18 +242,18 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(storageKey);
+      const saved = readLearnerItem(storageKey);
       setStudentNotes(saved || lesson.initialNotes || '');
-      const savedTime = localStorage.getItem(`${storageKey}_time`);
+      const savedTime = readLearnerItem(`${storageKey}_time`);
       if (savedTime) setLastSavedTime(savedTime);
     }
   }, [storageKey, lesson.initialNotes]);
 
   const handleSaveNotes = () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(storageKey, studentNotes);
+      writeLearnerItem(storageKey, studentNotes);
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      localStorage.setItem(`${storageKey}_time`, timeStr);
+      writeLearnerItem(`${storageKey}_time`, timeStr);
       setLastSavedTime(timeStr);
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
@@ -264,8 +264,8 @@ export const ClassroomToolsModal: React.FC<ClassroomToolsModalProps> = ({
     if (window.confirm('Are you sure you want to clear your notes for this class?')) {
       setStudentNotes('');
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(storageKey);
-        localStorage.removeItem(`${storageKey}_time`);
+        removeLearnerItem(storageKey);
+        removeLearnerItem(`${storageKey}_time`);
         setLastSavedTime(null);
       }
     }

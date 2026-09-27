@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { currentAuthMode } from '@/lib/auth/authMode';
+import { isProtectedPath } from '@/lib/auth/routeProtection';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -36,9 +38,19 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // If Supabase keys are missing, allow request to proceed in Local Mode
+  // Fail closed: without Supabase, only the explicit development-only bypass may
+  // reach protected routes. Production with missing config never gets through.
   if (!supabaseUrl || !supabaseAnonKey) {
-    return response;
+    const mode = currentAuthMode();
+    if (mode === 'dev_local' || !isProtectedPath(pathname)) {
+      return response;
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = '';
+    url.searchParams.set('error', 'auth_unavailable');
+    url.searchParams.set('next', pathname);
+    return NextResponse.redirect(url);
   }
 
   // 5. Instantiate @supabase/ssr server client with getAll and setAll handlers
@@ -71,10 +83,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 7. Protected route check
-  const protectedRoutes = ['/home', '/history', '/passport', '/profile', '/quest', '/calibrate', '/admin'];
-  const isProtectedRoute = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
+  const isProtectedRoute = isProtectedPath(pathname);
 
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone();

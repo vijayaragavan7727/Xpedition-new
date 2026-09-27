@@ -150,6 +150,14 @@ function assertNoContamination(p: Probe, concept: string) {
 
 /** 429s from the (intentional) API rate limiter under automated load are recorded, not failed. */
 export const rateLimited: string[] = [];
+/**
+ * Phase 3: with no Supabase configuration, learner-scoped APIs FAIL CLOSED with
+ * 503. The Class probes the (auth-gated) integration status endpoint once per
+ * page load and falls back to deterministic visuals. Only that exact endpoint +
+ * status is expected; any other 5xx is still a failure.
+ */
+export const failClosed: string[] = [];
+const FAIL_CLOSED_ENDPOINTS = [/\/api\/classroom\/integrations$/];
 
 function watchErrors(page: Page) {
   const errors: string[] = [];
@@ -161,9 +169,14 @@ function watchErrors(page: Page) {
     if (m.type() !== 'error') return;
     const text = m.text();
     if (text.includes('status of 429')) return; // rate limiter; tracked above
+    if (text.includes('status of 503')) return; // HTTP-level check below decides whether it was expected
     errors.push(`console: ${text.slice(0, 200)}`);
   });
   page.on('response', (r) => {
+    if (r.status() === 503 && FAIL_CLOSED_ENDPOINTS.some((re) => re.test(new URL(r.url()).pathname))) {
+      failClosed.push(`${r.request().method()} ${new URL(r.url()).pathname}`);
+      return;
+    }
     if (r.status() >= 500) errors.push(`HTTP ${r.status()} ${r.url()}`);
   });
   return errors;
@@ -421,6 +434,7 @@ test('F. stale async responses are rejected (delayed scene + session for a previ
 
 test.afterAll(() => {
   fs.writeFileSync(path.join(ARTIFACT_DIR, 'rate-limited.json'), JSON.stringify(rateLimited, null, 2));
+  fs.writeFileSync(path.join(ARTIFACT_DIR, 'fail-closed.json'), JSON.stringify(failClosed, null, 2));
 });
 
 test('G. multi-timing stability of the deterministic visual (0–3000 ms)', async ({ page }) => {
@@ -439,4 +453,60 @@ test('G. multi-timing stability of the deterministic visual (0–3000 ms)', asyn
     }
     expect(seen.size, `${concept}: visual/board changed on its own`).toBe(1);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Phase 3: security + routing consolidation, observed in a real browser against
+// a production build with NO Supabase configuration (auth must fail closed).
+// ---------------------------------------------------------------------------
+test('H. Phase 3: fail-closed auth, honest public Passport, registry-gated /learn and /tutor', async ({ page, request }) => {
+  const log: Record<string, unknown> = {};
+
+  // Protected learner routes redirect to login with an explicit auth_unavailable state.
+  for (const route of ['/quest', '/home', '/passport', '/profile']) {
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
+    const url = new URL(page.url());
+    expect(url.pathname, `${route} must not render without auth`).toBe('/login');
+    expect(url.searchParams.get('error')).toBe('auth_unavailable');
+    log[route] = url.pathname + url.search;
+  }
+  // The login page does not offer a fake local sign-in in production.
+  const loginText = await page.locator('body').innerText();
+  expect(/not configured|unavailable/i.test(loginText), 'login explains that auth is unavailable').toBe(true);
+
+  // APIs fail closed (503 = auth service unavailable), never a fake learner.
+  const session = await request.post('/api/classroom/session', { data: { conceptId: 'periodic_table' } });
+  const integrationsGet = await request.get('/api/classroom/integrations');
+  const integrationsPost = await request.post('/api/classroom/integrations', {
+    data: { provider: 'canvas', operation: 'execute_action', action: { type: 'START_AI_CONVERSATION' } },
+  });
+  log.api = { session: session.status(), integrationsGet: integrationsGet.status(), integrationsPost: integrationsPost.status() };
+  expect(session.status()).toBe(503);
+  expect(integrationsGet.status()).toBe(503);
+  expect(integrationsPost.status()).toBe(503);
+
+  // Public passport share route: honest unavailable page, no learner data, no credential claims.
+  await page.goto('/passport/some-learner-id', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-testid="public-passport-unavailable"]');
+  const passportText = await page.locator('body').innerText();
+  expect(/cryptograph|proctored|credential id|verified passport|proof of competence/i.test(passportText)).toBe(false);
+
+  // /learn and /tutor: unknown ids show an explicit unavailable gate, never another concept.
+  for (const route of ['/learn/research_methods', '/tutor/research_methods', '/learn/definitely_unknown_concept']) {
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-testid="route-concept-unavailable"]', { timeout: 30000 });
+    const text = await page.locator('body').innerText();
+    expect(/binary search/i.test(text), `${route}: resolved to binary search`).toBe(false);
+    expect(DC_MOTOR_MARKERS.test(text), `${route}: DC-motor content`).toBe(false);
+    log[route] = 'route-concept-unavailable';
+  }
+  // Canonical ids resolve exactly on /learn.
+  await page.goto('/learn/industrial_revolution', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-testid="learn-concept-page"]', { timeout: 30000 });
+  const learnText = await page.locator('body').innerText();
+  expect(/industrial revolution/i.test(learnText)).toBe(true);
+  expect(/\bevolution\b(?! of)/i.test(learnText.replace(/industrial revolution/gi, ''))).toBe(false);
+  log['/learn/industrial_revolution'] = 'learn-concept-page';
+
+  fs.writeFileSync(path.join(ARTIFACT_DIR, 'phase3-security.json'), JSON.stringify(log, null, 2));
 });

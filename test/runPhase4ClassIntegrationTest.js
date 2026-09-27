@@ -1,4 +1,6 @@
 const fs = require('fs');
+// Phase 3: classroom sessions always belong to an authenticated owner.
+const TEST_OWNER = 'phase4_test_learner';
 const path = require('path');
 
 const rootDir = path.resolve(__dirname, '..');
@@ -50,7 +52,7 @@ async function runPhase4ClassIntegrationTests() {
   // TEST GROUP A: Classroom Stage State (8 tests)
   // ---------------------------------------------------------------------------
   console.log('A. Testing Classroom Stage State');
-  const session = await xiraClassroomOrchestrator.createSession('dc_motor', 'INTRODUCE');
+  const session = await xiraClassroomOrchestrator.createSession('dc_motor', 'INTRODUCE', { ownerId: TEST_OWNER });
 
   assert(session.conceptId === 'dc_motor', 'Session initializes with correct conceptId');
   assert(session.currentStage === 'INTRODUCE', 'Session starts at INTRODUCE stage');
@@ -81,14 +83,14 @@ async function runPhase4ClassIntegrationTests() {
   // ---------------------------------------------------------------------------
   console.log('\nC. Testing Xira Classroom Orchestrator');
   const orch = new XiraClassroomOrchestrator();
-  const testSess = await orch.createSession('dc_motor');
+  const testSess = await orch.createSession('dc_motor', 'INTRODUCE', { ownerId: TEST_OWNER });
 
   assert(testSess.topicTitle.includes('DC') || testSess.topicTitle.includes('Motor'), 'Orchestrator grounds topic title from catalog');
   assert(testSess.subject === 'Physics', 'Orchestrator grounds subject from catalog');
   assert(typeof testSess.buddyDialogue === 'string' && testSess.buddyDialogue.length > 10, 'Buddy dialogue is initialized');
   assert(testSess.buddyState === 'INTRODUCING', 'Buddy state is INTRODUCING');
 
-  const advancedSess = await orch.processLearnerAction(testSess.sessionId, { type: 'ADVANCE_STAGE' });
+  const advancedSess = await orch.processLearnerAction(testSess.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER);
   assert(advancedSess.currentStage === 'EXPLAIN', 'Advancing stage moves orchestrator to EXPLAIN');
   assert(advancedSess.stageIndex === 1, 'Stage index advances to 1');
   assert(advancedSess.completedStages.includes('INTRODUCE'), 'Completed stages records INTRODUCE');
@@ -126,14 +128,14 @@ async function runPhase4ClassIntegrationTests() {
   // TEST GROUP F: Buddy Stage Behavior (6 tests)
   // ---------------------------------------------------------------------------
   console.log('\nF. Testing Buddy Stage Behavior');
-  const demoSess = await orch.processLearnerAction(testSess.sessionId, { type: 'ADVANCE_STAGE' }); // -> DEMONSTRATE
+  const demoSess = await orch.processLearnerAction(testSess.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER); // -> DEMONSTRATE
   assert(demoSess.buddyState === 'EXPLAINING', 'DEMONSTRATE stage keeps Buddy in EXPLAINING state');
 
-  const interactSess = await orch.processLearnerAction(testSess.sessionId, { type: 'ADVANCE_STAGE' }); // -> INTERACT
+  const interactSess = await orch.processLearnerAction(testSess.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER); // -> INTERACT
   assert(interactSess.buddyState === 'ENCOURAGING', 'INTERACT stage sets Buddy to ENCOURAGING state');
   assert(interactSess.buddyDialogue.includes('turn') || interactSess.buddyDialogue.includes('inspect'), 'Dialogue prompts student interaction');
 
-  const questionSess = await orch.processLearnerAction(testSess.sessionId, { type: 'ADVANCE_STAGE' }); // -> QUESTION
+  const questionSess = await orch.processLearnerAction(testSess.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER); // -> QUESTION
   assert(questionSess.buddyState === 'THINKING', 'QUESTION stage sets Buddy to THINKING state');
   assert(questionSess.buddyDialogue.includes('Predict') || questionSess.buddyDialogue.includes('which component'), 'Dialogue asks the question');
 
@@ -176,14 +178,14 @@ async function runPhase4ClassIntegrationTests() {
   // TEST GROUP H: Mastery Updates (8 tests)
   // ---------------------------------------------------------------------------
   console.log('\nH. Testing Mastery Updates');
-  const masterySess = await orch.createSession('dc_motor');
+  const masterySess = await orch.createSession('dc_motor', 'INTRODUCE', { ownerId: TEST_OWNER });
   const initialMastery = masterySess.masteryScore;
 
   // Visual interaction increases mastery
   const interactedSess = await orch.processLearnerAction(masterySess.sessionId, {
     type: 'INTERACT_VISUAL',
     interactionType: 'toggle_rotation',
-  });
+  }, TEST_OWNER);
   assert(interactedSess.masteryScore > initialMastery, 'Interacting with visual increases mastery score');
   assert(interactedSess.interactionState.hasInteracted === true, 'InteractionState reflects interaction');
 
@@ -191,7 +193,7 @@ async function runPhase4ClassIntegrationTests() {
   const challengedSess = await orch.processLearnerAction(masterySess.sessionId, {
     type: 'COMPLETE_CHALLENGE',
     outcome: 'success',
-  });
+  }, TEST_OWNER);
   assert(challengedSess.masteryScore >= 35, 'Challenge completion increases mastery score significantly');
   assert(challengedSess.currentStage === 'ASSESS', 'Challenge completion routes to ASSESS');
 
@@ -199,14 +201,14 @@ async function runPhase4ClassIntegrationTests() {
   const assessedSess = await orch.processLearnerAction(masterySess.sessionId, {
     type: 'COMPLETE_ASSESSMENT',
     isCorrect: true,
-  });
+  }, TEST_OWNER);
   assert(assessedSess.masteryScore >= 55, 'Assessment completion increases mastery score');
   assert(assessedSess.currentStage === 'REWARD', 'Assessment completion routes to REWARD');
 
   // Claim reward
   const rewardedSess = await orch.processLearnerAction(masterySess.sessionId, {
     type: 'CLAIM_REWARD',
-  });
+  }, TEST_OWNER);
   assert(rewardedSess.currentStage === 'NEXT', 'Claim reward routes to NEXT');
   assert(rewardedSess.masteryState !== 'NOT_STARTED', 'Mastery state is updated from NOT_STARTED');
 
@@ -214,13 +216,13 @@ async function runPhase4ClassIntegrationTests() {
   // TEST GROUP I: Adaptive Behavior & Misconceptions (8 tests)
   // ---------------------------------------------------------------------------
   console.log('\nI. Testing Adaptive Behavior & Misconceptions');
-  const adaptSess = await orch.createSession('dc_motor', 'QUESTION');
+  const adaptSess = await orch.createSession('dc_motor', 'QUESTION', { ownerId: TEST_OWNER });
 
   // Incorrect answer with known misconception (opt_4 is brushes alone)
   const wrongAnswerSess = await orch.processLearnerAction(adaptSess.sessionId, {
     type: 'ANSWER_QUESTION',
     optionId: 'opt_4',
-  });
+  }, TEST_OWNER);
   assert(wrongAnswerSess.questionState.isCorrect === false, 'Wrong answer marked as isCorrect: false');
   assert(wrongAnswerSess.currentStage === 'FEEDBACK', 'Wrong answer routes to FEEDBACK stage');
   assert(wrongAnswerSess.xiraIntervention !== undefined, 'Xira surfaces an intervention on mistake');
@@ -230,7 +232,7 @@ async function runPhase4ClassIntegrationTests() {
   // Retry question
   const retrySess = await orch.processLearnerAction(adaptSess.sessionId, {
     type: 'RETRY_QUESTION',
-  });
+  }, TEST_OWNER);
   assert(retrySess.currentStage === 'QUESTION', 'Retry action returns to QUESTION stage');
   assert(retrySess.questionState.isSubmitted === false, 'Submission state is reset for retry');
 
@@ -238,7 +240,7 @@ async function runPhase4ClassIntegrationTests() {
   const correctAnswerSess = await orch.processLearnerAction(adaptSess.sessionId, {
     type: 'ANSWER_QUESTION',
     optionId: 'opt_2',
-  });
+  }, TEST_OWNER);
   assert(correctAnswerSess.questionState.isCorrect === true, 'Correct answer marked as isCorrect: true');
   assert(correctAnswerSess.xiraIntervention.type === 'praise', 'Xira surfaces praise on correct answer');
 
@@ -264,13 +266,13 @@ async function runPhase4ClassIntegrationTests() {
   // become a session for another concept or a synthesized placeholder lesson.
   let unknownError = null;
   try {
-    await orch.createSession('completely_unknown_concept_9999');
+    await orch.createSession('completely_unknown_concept_9999', 'INTRODUCE', { ownerId: TEST_OWNER });
   } catch (err) {
     unknownError = err;
   }
   assert(unknownError !== null, 'Unknown concept does not create a session');
   assert(unknownError && unknownError.name === 'ConceptUnavailableError', 'Unknown concept raises ConceptUnavailableError');
-  const knownSess = await orch.createSession('periodic_table');
+  const knownSess = await orch.createSession('periodic_table', 'INTRODUCE', { ownerId: TEST_OWNER });
   assert(knownSess.currentVisualPayload !== undefined, 'Known concept session provides a Smart Board payload');
   assert(knownSess.currentVisualPayload.type === 'visual_requirement', 'Payload has type "visual_requirement"');
   assert(knownSess.conceptId === 'periodic_table', 'Session keeps exact concept identity');
@@ -297,21 +299,21 @@ async function runPhase4ClassIntegrationTests() {
   console.log('===========================================================');
 
   // 1. START -> INTRODUCE
-  let e2e = await orch.createSession('dc_motor', 'INTRODUCE');
+  let e2e = await orch.createSession('dc_motor', 'INTRODUCE', { ownerId: TEST_OWNER });
   assert(e2e.currentStage === 'INTRODUCE', 'E2E Step 1: Lesson starts at INTRODUCE');
   assert(e2e.buddyState === 'INTRODUCING', 'E2E Step 1: Buddy welcomes student');
 
   // 2. ADVANCE -> EXPLAIN
-  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' });
+  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER);
   assert(e2e.currentStage === 'EXPLAIN', 'E2E Step 2: Advanced to EXPLAIN');
   assert(e2e.currentVisualPayload.visualType === 'scientific_diagram', 'E2E Step 2: Smart Board renders scientific diagram');
 
   // 3. ADVANCE -> DEMONSTRATE
-  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' });
+  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER);
   assert(e2e.currentStage === 'DEMONSTRATE', 'E2E Step 3: Advanced to DEMONSTRATE');
 
   // 4. ADVANCE -> INTERACT
-  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' });
+  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER);
   assert(e2e.currentStage === 'INTERACT', 'E2E Step 4: Advanced to INTERACT');
   assert(e2e.buddyState === 'ENCOURAGING', 'E2E Step 4: Buddy prompts student interaction');
 
@@ -319,58 +321,58 @@ async function runPhase4ClassIntegrationTests() {
   e2e = await orch.processLearnerAction(e2e.sessionId, {
     type: 'INTERACT_VISUAL',
     interactionType: 'toggle_rotation',
-  });
+  }, TEST_OWNER);
   assert(e2e.interactionState.hasInteracted === true, 'E2E Step 5: Interaction recorded');
 
   // 6. ADVANCE -> QUESTION
-  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' });
+  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER);
   assert(e2e.currentStage === 'QUESTION', 'E2E Step 6: Advanced to QUESTION');
 
   // 7. ANSWER INCORRECT
   e2e = await orch.processLearnerAction(e2e.sessionId, {
     type: 'ANSWER_QUESTION',
     optionId: 'opt_4', // Incorrect (brushes alone)
-  });
+  }, TEST_OWNER);
   assert(e2e.currentStage === 'FEEDBACK', 'E2E Step 7: Incorrect answer routes to FEEDBACK');
   assert(e2e.questionState.isCorrect === false, 'E2E Step 7: Answer marked incorrect');
   assert(e2e.xiraIntervention.type === 'misconception', 'E2E Step 7: Xira surfaces misconception clarification');
 
   // 8. RETRY QUESTION
-  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'RETRY_QUESTION' });
+  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'RETRY_QUESTION' }, TEST_OWNER);
   assert(e2e.currentStage === 'QUESTION', 'E2E Step 8: Retry returns to QUESTION');
 
   // 9. ANSWER CORRECT
   e2e = await orch.processLearnerAction(e2e.sessionId, {
     type: 'ANSWER_QUESTION',
     optionId: 'opt_2', // Correct (split-ring commutator)
-  });
+  }, TEST_OWNER);
   assert(e2e.currentStage === 'FEEDBACK', 'E2E Step 9: Correct answer routes to FEEDBACK');
   assert(e2e.questionState.isCorrect === true, 'E2E Step 9: Answer marked correct');
 
   // 10. ADVANCE -> PRACTICE
-  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' });
+  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER);
   assert(e2e.currentStage === 'PRACTICE', 'E2E Step 10: Advanced to PRACTICE');
 
   // 11. ADVANCE -> CHALLENGE
-  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' });
+  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'ADVANCE_STAGE' }, TEST_OWNER);
   assert(e2e.currentStage === 'CHALLENGE', 'E2E Step 11: Advanced to CHALLENGE');
 
   // 12. COMPLETE CHALLENGE
   e2e = await orch.processLearnerAction(e2e.sessionId, {
     type: 'COMPLETE_CHALLENGE',
     outcome: 'success',
-  });
+  }, TEST_OWNER);
   assert(e2e.currentStage === 'ASSESS', 'E2E Step 12: Challenge completed -> routes to ASSESS');
 
   // 13. COMPLETE ASSESSMENT
   e2e = await orch.processLearnerAction(e2e.sessionId, {
     type: 'COMPLETE_ASSESSMENT',
     isCorrect: true,
-  });
+  }, TEST_OWNER);
   assert(e2e.currentStage === 'REWARD', 'E2E Step 13: Assessment completed -> routes to REWARD');
 
   // 14. CLAIM REWARD
-  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'CLAIM_REWARD' });
+  e2e = await orch.processLearnerAction(e2e.sessionId, { type: 'CLAIM_REWARD' }, TEST_OWNER);
   assert(e2e.currentStage === 'NEXT', 'E2E Step 14: Reward claimed -> routes to NEXT');
 
   // 15. SELECT NEXT CONCEPT

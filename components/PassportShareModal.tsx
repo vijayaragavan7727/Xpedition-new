@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Share2, Download, Copy, Check, Shield, CheckCircle2, Award } from 'lucide-react';
+import { PASSPORT_DISCLAIMER, PASSPORT_SHARE_FOOTER } from '@/lib/passport/trustLanguage';
+import { X, Share2, Download, Shield, CheckCircle2, Award } from 'lucide-react';
 
 interface PassportShareModalProps {
   isOpen: boolean;
@@ -28,11 +29,9 @@ export default function PassportShareModal({
   topConcepts,
   passportId,
 }: PassportShareModalProps) {
-  const [copied, setCopied] = useState<boolean>(false);
   const [downloading, setDownloading] = useState<boolean>(false);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/passport/${passportId}` : `https://xpedition-new.vercel.app/passport/${passportId}`;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -83,11 +82,11 @@ export default function PassportShareModal({
     // 4. Header Bar
     ctx.font = 'bold 13px monospace';
     ctx.fillStyle = '#00F0FF';
-    ctx.fillText('XPEDITION // VERIFIED SKILL PASSPORT', 50, 60);
+    ctx.fillText('XPEDITION // SKILL PASSPORT · LEARNING RECORD', 50, 60);
 
     ctx.font = '11px monospace';
     ctx.fillStyle = '#94A3B8';
-    ctx.fillText(`CREDENTIAL ID: ${passportId}`, 50, 80);
+    ctx.fillText(`RECORD #${passportId}`, 50, 80);
 
     // Authenticated Badge Top-Right
     ctx.fillStyle = 'rgba(0, 255, 135, 0.15)';
@@ -100,7 +99,7 @@ export default function PassportShareModal({
 
     ctx.fillStyle = '#00FF87';
     ctx.font = 'bold 11px monospace';
-    ctx.fillText('● AUTHENTICATED', w - 188, 65);
+    ctx.fillText('● SELF-GENERATED', w - 188, 65);
 
     // 5. Learner Name & Goal
     ctx.font = 'bold 32px sans-serif';
@@ -184,11 +183,11 @@ export default function PassportShareModal({
     // 8. Footer Link
     ctx.font = '10px monospace';
     ctx.fillStyle = '#64748B';
-    ctx.fillText('xpedition-new.vercel.app &middot; Cryptographic Solo Verification System', 50, 460);
+    ctx.fillText(PASSPORT_SHARE_FOOTER, 50, 460);
 
     ctx.fillStyle = '#00FF87';
     ctx.font = 'bold 10px monospace';
-    ctx.fillText('PROCTORED PROOF OF COMPETENCE', w - 270, 460);
+    ctx.fillText('NOT EXTERNALLY VERIFIED', w - 270, 460);
 
   }, [isOpen, learnerName, goalText, assistedScore, soloScore, gapMetric, accuracyMargin, topConcepts, passportId]);
 
@@ -206,11 +205,6 @@ export default function PassportShareModal({
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   if (!isOpen) return null;
 
@@ -223,7 +217,7 @@ export default function PassportShareModal({
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-[#00F0FF]" />
             <h2 className="font-sans font-bold text-lg text-white">
-              Share Skill Passport
+              Download Skill Passport
             </h2>
           </div>
 
@@ -235,6 +229,8 @@ export default function PassportShareModal({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        <p className="font-sans text-[11px] text-slate-400 leading-relaxed">{PASSPORT_DISCLAIMER}</p>
 
         {/* Canvas Visual Card Preview */}
         <div className="rounded-2xl overflow-hidden border border-white/15 bg-black shadow-xl aspect-[800/500] w-full">
@@ -253,14 +249,7 @@ export default function PassportShareModal({
             <span>{downloading ? 'Exporting PNG...' : 'Download Passport'}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="h-11 px-4 rounded-xl bg-raised border border-line text-white font-mono font-bold text-xs flex items-center gap-2 hover:border-[#00F0FF] transition-all cursor-pointer"
-          >
-            {copied ? <Check className="w-4 h-4 text-[#00FF87]" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? 'Copied' : 'Copy Link'}</span>
-          </button>
+          {/* No public link: Passports are private learning records and publishing is not implemented. */}
         </div>
 
       </div>

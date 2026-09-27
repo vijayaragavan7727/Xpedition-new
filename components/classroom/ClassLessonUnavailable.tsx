@@ -18,6 +18,7 @@ const REASON_TEXT: Record<LessonUnavailableReason, string> = {
   empty_id: 'No concept was specified for this class.',
   invalid_id: 'The concept id in the link is not valid.',
   unknown_concept: 'This concept is not in the Xpedition curriculum yet.',
+  no_class_lesson: 'This concept is available as a hands-on lab, but it does not have a Class lesson yet.',
 };
 
 export const ClassLessonUnavailable: React.FC<ClassLessonUnavailableProps> = ({ requestedConceptId, reason }) => (

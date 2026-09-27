@@ -53,6 +53,27 @@ const EXPLICIT_ALIASES: Record<string, string[]> = {
   molecular_bonding: ['covalent_bonding'],
 };
 
+/**
+ * Concepts that exist only as hands-on Experience-engine labs (no Class lesson).
+ * Kept here so the registry is the single source of truth for EVERY concept id
+ * used by /learn, /tutor, /quest and the Experience engine. A consistency test
+ * asserts every Experience definition's conceptId is registered.
+ */
+const EXPERIENCE_ONLY_CONCEPTS: Array<{ id: string; subject: string; title: string; description: string }> = [
+  {
+    id: 'spatial_reasoning',
+    subject: 'Mathematics',
+    title: '3D Spatial Reasoning',
+    description: 'Rotate and align 3D polyhedral models to match target orientations.',
+  },
+  {
+    id: 'python_debugging_basics',
+    subject: 'Programming',
+    title: 'Python Debugging Basics',
+    description: 'Diagnose variable accumulation and loop bugs in a live code lab.',
+  },
+];
+
 /** Recommended prior concepts (must reference registry ids). */
 const PREREQUISITES: Record<string, string[]> = {
   calculus_derivatives: ['quadratic_equation'],
@@ -132,6 +153,7 @@ function buildRegistry(): RegistryState {
       prerequisites: PREREQUISITES[lesson.conceptId] ?? [],
       lessonId: lesson.id,
       lessonSource: 'authored',
+      hasClassLesson: true,
       visualKind: AUTHORED_VISUAL_KIND[lesson.conceptId] ?? 'semantic_lesson',
       availableStages: stagesOf(lesson),
       supportsRevision: true,
@@ -159,6 +181,7 @@ function buildRegistry(): RegistryState {
       prerequisites: PREREQUISITES[id] ?? [],
       lessonId: lesson.id,
       lessonSource: 'curriculum_outline',
+      hasClassLesson: true,
       visualKind: 'semantic_lesson',
       availableStages: stagesOf(lesson),
       supportsRevision: false,
@@ -172,7 +195,28 @@ function buildRegistry(): RegistryState {
     });
   }
 
-  // 3. Aliases (exact) — conflicts are programming errors.
+  // 3. Experience-only concepts (hands-on labs without a Class lesson)
+  for (const exp of EXPERIENCE_ONLY_CONCEPTS) {
+    if (concepts.has(exp.id)) continue;
+    concepts.set(exp.id, {
+      id: exp.id,
+      subject: exp.subject,
+      title: exp.title,
+      description: exp.description,
+      learningObjective: exp.description,
+      prerequisites: [],
+      lessonId: '',
+      lessonSource: 'experience_only',
+      hasClassLesson: false,
+      visualKind: 'semantic_lesson',
+      availableStages: [],
+      supportsRevision: false,
+      aliases: [],
+      metadata: {},
+    });
+  }
+
+  // 4. Aliases (exact) — conflicts are programming errors.
   for (const concept of concepts.values()) {
     for (const alias of concept.aliases) {
       const normalized = normalizeConceptId(alias);
@@ -295,6 +339,23 @@ export function listCanonicalConcepts(): CanonicalConcept[] {
 }
 
 /** Returns the lesson for a canonical id (authored or outline), or null. */
+/**
+ * Finds a canonical concept by its exact canonical TITLE (case/space-insensitive).
+ * Used by free-text entry points (e.g. /teach) so "Periodic Table" or
+ * "The Periodic Table: Organisation & Trends" map to periodic_table. Still exact
+ * — never a substring.
+ */
+export function lookupConceptByExactTitle(rawTitle: unknown): CanonicalConcept | null {
+  if (typeof rawTitle !== 'string') return null;
+  const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const target = norm(rawTitle);
+  if (!target) return null;
+  for (const concept of registry().concepts.values()) {
+    if (norm(concept.title) === target) return concept;
+  }
+  return null;
+}
+
 export function getLessonForCanonicalId(conceptId: string): ClassroomLesson | null {
   const authored = CANONICAL_CLASSROOM_LESSONS[conceptId];
   if (authored) return authored;

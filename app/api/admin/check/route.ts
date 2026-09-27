@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { currentAuthMode } from '@/lib/auth/authMode';
 
 export const runtime = 'nodejs';
 
@@ -11,8 +12,8 @@ export async function GET() {
   try {
     const supabase = createClient();
     if (!supabase) {
-      // In local offline mode without Supabase configured, check NODE_ENV or disallow
-      if (process.env.NODE_ENV === 'development') {
+      // Only the explicit development-only bypass may act as admin without Supabase.
+      if (currentAuthMode() === 'dev_local') {
         return NextResponse.json({ isAdmin: true, mode: 'development_fallback' }, { status: 200 });
       }
       return NextResponse.json({ error: 'Authentication service unavailable', isAdmin: false }, { status: 503 });

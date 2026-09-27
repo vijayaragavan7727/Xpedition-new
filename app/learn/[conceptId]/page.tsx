@@ -13,6 +13,15 @@ import {
 } from '@/lib/store';
 import { thetaToPercent } from '@/lib/engine/mastery';
 import { experienceRegistry } from '@/lib/experience';
+import { resolveLearnerRouteConcept, type RouteConceptResolution } from '@/lib/concepts/routeConceptResolution';
+
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 import { downloadNotesPdf, downloadFlashcardsPdf } from '@/lib/pdf';
 import {
   ArrowLeft,
@@ -56,7 +65,13 @@ interface LessonData {
 export default function ConceptDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const conceptId = (params?.conceptId as string) || 'c_1';
+  // Raw id from the URL. Identity is resolved exactly via the canonical registry
+  // (or the learner's own goal graph) — there is no default concept.
+  const rawConceptId = typeof params?.conceptId === 'string' ? safeDecode(params.conceptId) : '';
+  // Resolved on the client (the learner graph lives in client storage), so the
+  // server render and hydration agree: `null` means "resolving".
+  const [routeResolution, setRouteResolution] = useState<RouteConceptResolution | null>(null);
+  const conceptId = routeResolution && routeResolution.status !== 'unavailable' ? routeResolution.conceptId : rawConceptId;
 
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
   const [activeConcept, setActiveConcept] = useState<ConceptMastery | null>(null);
@@ -77,6 +92,9 @@ export default function ConceptDetailPage() {
   useEffect(() => {
     const store = getStoreData();
     setStoreData(store);
+    const routeResolution = resolveLearnerRouteConcept(rawConceptId, store);
+    setRouteResolution(routeResolution);
+    const conceptId = routeResolution.status === 'unavailable' ? rawConceptId : routeResolution.conceptId;
 
     const activeGraph =
       store.graphs?.find((g) => g.id === store.activeGraphId) ||
@@ -84,8 +102,13 @@ export default function ConceptDetailPage() {
     const concept = activeGraph?.concepts?.find((c) => c.id === conceptId);
     setActiveConcept(concept || null);
 
-    const cName = concept?.name || store.goalText || 'Core Concept';
-    const cSummary = (concept as any)?.summary || `Core foundational milestone in ${activeGraph?.goalText || store.goalText}.`;
+    if (routeResolution.status === 'unavailable') {
+      // Unknown concept: never substitute the goal text or another concept.
+      setLoading(false);
+      return;
+    }
+    const cName = routeResolution.title;
+    const cSummary = routeResolution.summary || (concept as any)?.summary || '';
     const lang = activeGraph?.learnerProfile?.language || store.learnerProfile?.language || 'english';
     const level = activeGraph?.learnerProfile?.startingLevel || store.learnerProfile?.startingLevel || 'Complete beginner';
     const mastery = concept?.masteryPercentage || 0;
@@ -124,7 +147,7 @@ export default function ConceptDetailPage() {
     }
 
     fetchLesson();
-  }, [conceptId]);
+  }, [rawConceptId]);
 
   const handleNextChunk = () => {
     if (!lesson) return;
@@ -215,8 +238,28 @@ export default function ConceptDetailPage() {
 
   const expMeta = isRegisteredExperience ? getExperienceMeta() : null;
 
+  if (routeResolution?.status === 'unavailable') {
+    return (
+      <div
+        data-testid="route-concept-unavailable"
+        data-requested-concept={rawConceptId}
+        className="max-w-md mx-auto pt-16 px-4 text-center space-y-3 font-sans"
+      >
+        <h1 className="text-lg font-bold text-white">Concept not found</h1>
+        <p className="text-sm text-slate-400">This concept is not in the Xpedition curriculum or your learning path.</p>
+        <Link href="/learn" className="inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300">
+          Browse topics &rarr;
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 max-w-3xl mx-auto pb-24 pt-3 font-sans select-none overflow-hidden px-4 sm:px-0">
+    <div
+      data-testid="learn-concept-page"
+      data-concept-id={conceptId}
+      className="space-y-6 max-w-3xl mx-auto pb-24 pt-3 font-sans select-none overflow-hidden px-4 sm:px-0"
+    >
       {/* =========================================================================
           1. BREADCRUMB & HEADER
           ========================================================================= */}

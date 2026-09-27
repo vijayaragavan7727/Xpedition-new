@@ -15,6 +15,8 @@ import {
   TeachingMode,
 } from './universalTopicTypes';
 import { ExperienceType } from './types';
+import { lookupConcept, lookupConceptByExactTitle } from '../concepts/conceptRegistry';
+import { topicHasKeyword } from '../visualIntelligence/rules/SubjectVisualRules';
 import { KnowledgeBundleService } from '../intelligence/sources';
 import { TeachingModeSelector } from './visualTeaching/teachingModeSelector';
 
@@ -185,7 +187,7 @@ const CURATED_TOPICS: CuratedTopicTemplate[] = [
     keyPrinciples: ['Closed Loop Circuit Requirement', 'Ohm’s Law (V = IR)', 'Power Dissipation & Glow'],
   },
   {
-    normalizedKeys: ['electric motor', 'dc motor', 'motor', 'lorentz force', 'commutator', 'armature'],
+    normalizedKeys: ['electric motor', 'dc motor', 'lorentz force', 'commutator', 'armature'],
     subject: 'Physics',
     domain: 'Electromagnetism',
     conceptIds: ['electric_motor'],
@@ -350,15 +352,22 @@ export class TopicResolver {
     }
     let baseTopic: UniversalLearningTopic | undefined;
 
-    // 1. Check curated database for an exact or substring match
+    // 0. Canonical concept registry first (exact id, explicit alias or exact title).
+    //    A canonical concept keeps its canonical id as topicId, so /teach hands the
+    //    Class exactly that concept — never a keyword look-alike.
+    const canonical = lookupConcept(raw)?.concept ?? lookupConceptByExactTitle(raw);
+
+    // 1. Curated templates: exact key or WHOLE-TOKEN key match only.
+    //    (Previously `normalized.includes(key) || key.includes(normalized)`, which
+    //    let any text containing e.g. "motor" or a one-letter query match.)
     for (const template of CURATED_TOPICS) {
-      const match = template.normalizedKeys.some(
-        (key) => normalized === key || normalized.includes(key) || key.includes(normalized)
-      );
+      const match = canonical
+        ? template.conceptIds.includes(canonical.id)
+        : template.normalizedKeys.some((key) => normalized === key || topicHasKeyword(normalized, key));
 
       if (match) {
         baseTopic = {
-          topicId: template.conceptIds[0],
+          topicId: canonical ? canonical.id : template.conceptIds[0],
           rawUserTopic: raw,
           normalizedTopic: normalized,
           subject: (options.subject as SubjectCategory) || template.subject,
@@ -384,6 +393,22 @@ export class TopicResolver {
     // 2. Generic heuristic topic inference if not in curated catalog
     if (!baseTopic) {
       baseTopic = TopicResolver.inferGenericTopic(raw, normalized, options);
+      if (canonical) {
+        const REGISTRY_SUBJECT: Record<string, SubjectCategory> = {
+          Physics: 'Physics',
+          Chemistry: 'Chemistry',
+          Biology: 'Biology',
+          Mathematics: 'Mathematics',
+          Programming: 'Computer Science',
+          History: 'History',
+        };
+        baseTopic = {
+          ...baseTopic,
+          topicId: canonical.id,
+          conceptIds: [canonical.id],
+          subject: (options.subject as SubjectCategory) || REGISTRY_SUBJECT[canonical.subject] || baseTopic.subject,
+        };
+      }
     }
 
     // 3. Enrich with Source Intelligence Knowledge Bundle
@@ -438,79 +463,79 @@ export class TopicResolver {
     let fallbackExperience: FallbackExperienceType = 'interactive_diagram';
 
     if (
-      normalized.includes('circuit') ||
-      normalized.includes('motion') ||
-      normalized.includes('orbit') ||
-      normalized.includes('wave') ||
-      normalized.includes('gravity') ||
-      normalized.includes('collision') ||
+      topicHasKeyword(normalized, 'circuit') ||
+      topicHasKeyword(normalized, 'motion') ||
+      topicHasKeyword(normalized, 'orbit') ||
+      topicHasKeyword(normalized, 'wave') ||
+      topicHasKeyword(normalized, 'gravity') ||
+      topicHasKeyword(normalized, 'collision') ||
       subject === 'Physics'
     ) {
       recommendedExperienceType = 'SIMULATION';
       visualRepresentation = '3d_scene';
       fallbackExperience = 'interactive_diagram';
     } else if (
-      normalized.includes('code') ||
-      normalized.includes('program') ||
-      normalized.includes('algorithm') ||
-      normalized.includes('function') ||
+      topicHasKeyword(normalized, 'code') ||
+      topicHasKeyword(normalized, 'program') ||
+      topicHasKeyword(normalized, 'algorithm') ||
+      topicHasKeyword(normalized, 'function') ||
       subject === 'Computer Science'
     ) {
       recommendedExperienceType = 'CODE_LAB';
       visualRepresentation = 'interactive_simulation';
       fallbackExperience = 'practice_challenge';
     } else if (
-      normalized.includes('molecule') ||
-      normalized.includes('atom') ||
-      normalized.includes('reaction') ||
-      normalized.includes('bond') ||
+      topicHasKeyword(normalized, 'molecule') ||
+      topicHasKeyword(normalized, 'atom') ||
+      topicHasKeyword(normalized, 'reaction') ||
+      topicHasKeyword(normalized, 'bond') ||
       subject === 'Chemistry'
     ) {
       recommendedExperienceType = 'BUILDER';
       visualRepresentation = '3d_scene';
       fallbackExperience = 'interactive_diagram';
     } else if (
-      normalized.includes('anatomy') ||
-      normalized.includes('organ') ||
-      normalized.includes('cell') ||
-      normalized.includes('species') ||
+      topicHasKeyword(normalized, 'anatomy') ||
+      topicHasKeyword(normalized, 'organ') ||
+      topicHasKeyword(normalized, 'cell') ||
+      topicHasKeyword(normalized, 'species') ||
       subject === 'Biology'
     ) {
       recommendedExperienceType = 'EXPLORER';
       visualRepresentation = '3d_scene';
       fallbackExperience = 'interactive_diagram';
     } else if (
-      normalized.includes('fraction') ||
-      normalized.includes('geometry') ||
-      normalized.includes('calculus') ||
-      normalized.includes('matrix') ||
+      topicHasKeyword(normalized, 'fraction') ||
+      topicHasKeyword(normalized, 'geometry') ||
+      topicHasKeyword(normalized, 'calculus') ||
+      topicHasKeyword(normalized, 'matrix') ||
       subject === 'Mathematics'
     ) {
       recommendedExperienceType = 'INTERACTIVE_DIAGRAM';
       visualRepresentation = '3d_scene';
       fallbackExperience = 'structured_visual';
     } else if (
-      normalized.includes('market') ||
-      normalized.includes('economy') ||
-      normalized.includes('money') ||
+      topicHasKeyword(normalized, 'market') ||
+      topicHasKeyword(normalized, 'economy') ||
+      topicHasKeyword(normalized, 'money') ||
       subject === 'Economics'
     ) {
       recommendedExperienceType = 'INTERACTIVE_DIAGRAM';
       visualRepresentation = 'interactive_diagram';
       fallbackExperience = 'interactive_diagram';
     } else if (
-      normalized.includes('history') ||
-      normalized.includes('war') ||
-      normalized.includes('revolution') ||
+      topicHasKeyword(normalized, 'history') ||
+      topicHasKeyword(normalized, 'war') ||
+      topicHasKeyword(normalized, 'revolution') ||
       subject === 'History'
     ) {
       recommendedExperienceType = 'SCENARIO';
       visualRepresentation = 'structured_visual';
       fallbackExperience = 'scenario';
     } else if (
-      normalized.includes('grammar') ||
-      normalized.includes('verb') ||
-      normalized.includes('noun') ||
+      topicHasKeyword(normalized, 'grammar') ||
+      topicHasKeyword(normalized, 'verb') ||
+      topicHasKeyword(normalized, 'noun') ||
       subject === 'Language & Grammar'
     ) {
       recommendedExperienceType = 'VISUAL_EXPLANATION';

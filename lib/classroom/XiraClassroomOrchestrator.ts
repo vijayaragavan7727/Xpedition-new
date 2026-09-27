@@ -41,6 +41,14 @@ export class ConceptUnavailableError extends Error {
   }
 }
 
+/** Thrown when a session would be created without an authenticated owner. */
+export class SessionOwnerRequiredError extends Error {
+  constructor() {
+    super('An authenticated owner is required to create a classroom session');
+    this.name = 'SessionOwnerRequiredError';
+  }
+}
+
 /** Thrown when a session does not exist OR belongs to another learner (not distinguished, by design). */
 export class SessionNotFoundError extends Error {
   constructor() {
@@ -88,6 +96,10 @@ export class XiraClassroomOrchestrator {
     options: { ownerId?: string; intent?: string } = {}
   ): Promise<ClassroomSessionState> {
     // Single authoritative resolver: unknown concepts are refused, never substituted.
+    // Authorization: every session belongs to exactly one authenticated learner.
+    if (typeof options.ownerId !== 'string' || options.ownerId.trim().length === 0) {
+      throw new SessionOwnerRequiredError();
+    }
     const resolution = resolveClassLesson(conceptId, options.intent);
     if (resolution.status !== 'resolved') {
       throw new ConceptUnavailableError(conceptId);
@@ -178,10 +190,18 @@ export class XiraClassroomOrchestrator {
   /**
    * Retrieves active session by ID.
    */
-  public getSession(sessionId: string, requesterId?: string): ClassroomSessionState | null {
-    const session = this.sessions.get(sessionId) || null;
-    if (session && session.ownerId && session.ownerId !== requesterId) return null;
-    return session;
+  /**
+   * Reads a session for its owner only. Anonymous or non-owner reads return null
+   * (indistinguishable from "not found"); a random session id is not a credential.
+   */
+  public async getSession(sessionId: string, requesterId: string): Promise<ClassroomSessionState | null> {
+    if (!requesterId) return null;
+    let session = this.sessions.get(sessionId) || null;
+    if (!session) {
+      session = await this.sessionStore.getSession(sessionId, requesterId);
+    }
+    if (!session || !session.ownerId || session.ownerId !== requesterId) return null;
+    return { ...session };
   }
 
   /**
@@ -190,20 +210,21 @@ export class XiraClassroomOrchestrator {
   public async processLearnerAction(
     sessionId: string,
     action: ClassroomLearnerAction,
-    requesterId?: string
+    requesterId: string
   ): Promise<ClassroomSessionState> {
+    // Authorization first: no requester, no access. Sessions without an owner
+    // (legacy/corrupt) are never mutable.
+    if (typeof requesterId !== 'string' || !requesterId) {
+      throw new SessionNotFoundError();
+    }
     let session = this.sessions.get(sessionId);
     if (!session) {
-      session = (await this.sessionStore.getSession(sessionId)) || undefined;
-      if (session) {
+      session = (await this.sessionStore.getSession(sessionId, requesterId)) || undefined;
+      if (session && session.ownerId === requesterId) {
         this.sessions.set(sessionId, session);
       }
     }
-    if (!session) {
-      throw new SessionNotFoundError();
-    }
-    // Ownership: a session created for learner A can never be driven by learner B.
-    if (session.ownerId && session.ownerId !== requesterId) {
+    if (!session || !session.ownerId || session.ownerId !== requesterId) {
       throw new SessionNotFoundError();
     }
 
@@ -491,7 +512,7 @@ export class XiraClassroomOrchestrator {
     });
 
     this.sessions.set(session.sessionId, session);
-    await this.sessionStore.saveSession(session);
+    await this.sessionStore.saveSession(session, session.ownerId);
 
     return { ...session };
   }

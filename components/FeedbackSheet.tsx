@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { readLearnerItem, writeLearnerItem } from '@/lib/security/learnerStorage';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { usePathname } from 'next/navigation';
 
@@ -27,9 +28,10 @@ export const FeedbackSheet: React.FC = () => {
           created_at: new Date().toISOString(),
         });
       } else if (typeof window !== 'undefined') {
-        const stored = JSON.parse(localStorage.getItem('xpedition_feedback') || '[]');
+        // Learner-scoped: never persisted for guests, never shared between learners.
+        const stored = JSON.parse(readLearnerItem('xpedition_feedback') || '[]');
         stored.push({ rating, body: body.trim(), route: pathname, created_at: Date.now() });
-        localStorage.setItem('xpedition_feedback', JSON.stringify(stored));
+        writeLearnerItem('xpedition_feedback', JSON.stringify(stored));
       }
     } catch (err) {
       console.warn('Feedback write fallback:', err);

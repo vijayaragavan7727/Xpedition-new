@@ -188,7 +188,7 @@ async function main() {
 
   await test('6b. No lesson except dc_motor contains DC-motor wording (lessons, Buddy, Xira, flashcards, questions)', () => {
     for (const concept of listCanonicalConcepts()) {
-      if (ELECTROMAGNETISM_CONCEPTS.has(concept.id)) continue;
+      if (ELECTROMAGNETISM_CONCEPTS.has(concept.id) || !concept.hasClassLesson) continue;
       const r = resolved(concept.id);
       assert.ok(!DC_MOTOR_MARKERS.test(JSON.stringify(r.lesson)), `${concept.id} contains DC-motor wording`);
     }
@@ -478,7 +478,7 @@ async function main() {
 
   await test('16. Orchestrator: exact concept, lesson-owned Buddy, no DC-motor wording, owner-scoped sessions', async () => {
     const orch = new XiraClassroomOrchestrator(undefined, undefined, new MemorySessionStore());
-    await assert.rejects(() => orch.createSession('research_methods'), ConceptUnavailableError);
+    await assert.rejects(() => orch.createSession('research_methods', 'INTRODUCE', { ownerId: 'learner_a' }), ConceptUnavailableError);
 
     const sess = await orch.createSession('periodic_table', 'INTRODUCE', { ownerId: 'learner_a', intent: 'revision' });
     assert.strictEqual(sess.conceptId, 'periodic_table');
@@ -488,7 +488,7 @@ async function main() {
     assert.strictEqual(sess.nextRecommendedConceptId, getNextConceptId('periodic_table') ?? undefined);
 
     await assert.rejects(() => orch.processLearnerAction(sess.sessionId, { type: 'ADVANCE_STAGE' }, 'learner_b'), SessionNotFoundError);
-    await assert.rejects(() => orch.processLearnerAction(sess.sessionId, { type: 'ADVANCE_STAGE' }), SessionNotFoundError);
+    await assert.rejects(() => orch.processLearnerAction(sess.sessionId, { type: 'ADVANCE_STAGE' }, ''), SessionNotFoundError);
 
     const actions = [
       { type: 'ADVANCE_STAGE' },

@@ -6,6 +6,15 @@ import { getStoreData, UserStoreData } from '@/lib/store';
 import { calibrationScore, confidenceBreakdown } from '@/lib/engine/calibration';
 import { thetaToPercent } from '@/lib/engine/mastery';
 import PassportShareModal from '@/components/PassportShareModal';
+import { PASSPORT_DISCLAIMER, PASSPORT_RECORD_BADGE } from '@/lib/passport/trustLanguage';
+import { buildPassportEvidence, MASTERY_THRESHOLDS, type EvidenceLevel } from '@/lib/passport/evidenceModel';
+
+const EVIDENCE_LEVEL_LABEL: Record<EvidenceLevel, string> = {
+  none: 'No evidence yet',
+  practised: 'Practised',
+  assessed: 'Solo assessed',
+  mastered: 'Mastered',
+};
 import { Card, Button, Badge, ProgressBar, StatCard } from '@/components/ui';
 import {
   Share2,
@@ -35,19 +44,20 @@ export default function SkillPassportPage() {
     return (
       <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400 font-mono text-xs animate-pulse">
         <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <span>Loading Verified Skill Passport...</span>
+        <span>Loading Skill Passport...</span>
       </div>
     );
   }
 
+  const evidence = buildPassportEvidence(storeData);
   const breakdown = confidenceBreakdown(storeData.attempts);
   const score = calibrationScore(storeData.attempts);
 
   const absScore = score !== null ? Math.round(Math.abs(score) * 100) : 6;
   const accuracyMargin = Math.max(3, Math.min(25, absScore));
 
-  const soloVerifiedAttempts = storeData.attempts.filter((a) => a.isSolo && !a.isVoid).length;
-  const soloSessionsCount = Math.max(0, Math.floor(soloVerifiedAttempts / 6));
+  const soloRecordedAttempts = storeData.attempts.filter((a) => a.isSolo && !a.isVoid).length;
+  const soloSessionsCount = Math.max(0, Math.floor(soloRecordedAttempts / 6));
 
   const passportId = storeData.activeGraphId
     ? storeData.activeGraphId.substring(0, 10).toUpperCase()
@@ -85,7 +95,7 @@ export default function SkillPassportPage() {
 
   return (
     <div className="space-y-6 select-none pt-2 max-w-2xl mx-auto pb-24 font-sans">
-      {/* 1. HEADER: Learner Identity & Share Credential */}
+      {/* 1. HEADER: Learner Identity & Share Learning Record */}
       <Card variant="highlight" className="p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3.5">
@@ -104,12 +114,12 @@ export default function SkillPassportPage() {
                 <h1 className="font-sans font-black text-2xl text-white tracking-tight">
                   {storeData.handle}
                 </h1>
-                <Badge variant="success" size="sm">
-                  Verified Passport
+                <Badge variant="indigo" size="sm">
+                  {PASSPORT_RECORD_BADGE}
                 </Badge>
               </div>
               <p className="font-mono text-xs text-slate-400 mt-0.5">
-                Target: {storeData.goalText} • ID: #{passportId}
+                Target: {storeData.goalText} • Record #{passportId}
               </p>
             </div>
           </div>
@@ -124,6 +134,9 @@ export default function SkillPassportPage() {
             Share Passport
           </Button>
         </div>
+        <p data-testid="passport-disclaimer" className="font-sans text-[11px] text-slate-400 leading-relaxed border-t border-white/[0.06] pt-3">
+          {PASSPORT_DISCLAIMER}
+        </p>
       </Card>
 
       {/* 2. CORE PERFORMANCE METRICS */}
@@ -148,7 +161,7 @@ export default function SkillPassportPage() {
         />
       </section>
 
-      {/* 3. VERIFIED METACOGNITIVE CALIBRATION CARD */}
+      {/* 3. METACOGNITIVE CALIBRATION CARD (self-reported confidence vs results) */}
       <Card variant="default" className="p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2.5">
@@ -192,11 +205,11 @@ export default function SkillPassportPage() {
         </div>
       </Card>
 
-      {/* 4. VERIFIED CONCEPT CREDENTIALS BREAKDOWN */}
+      {/* 4. CONCEPT MASTERY BREAKDOWN (internal estimates) */}
       <Card variant="default" className="p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div>
-            <h3 className="font-sans font-bold text-sm text-white">Mastered Competencies</h3>
+            <h3 className="font-sans font-bold text-sm text-white">Concept Mastery</h3>
             <p className="font-mono text-[11px] text-slate-400">
               {storeData.concepts.length} Concepts Tracked
             </p>
@@ -260,14 +273,14 @@ export default function SkillPassportPage() {
                 Demonstrated Practical Challenges
               </h3>
               <p className="font-mono text-[11px] text-slate-400">
-                Verified hands-on evidence from 3D & code labs
+                Hands-on activity recorded in 3D & code labs
               </p>
             </div>
           </div>
         </div>
 
         {(() => {
-          const demonstratedSkills: Array<{ title: string; conceptName: string; verifiedAt: number }> = [];
+          const demonstratedSkills: Array<{ title: string; conceptName: string; recordedAt: number }> = [];
           const canonicalSkills: Record<string, string> = {
             python_debugging_basics: 'Live Code Debugging & Variable Accumulation',
             human_heart_anatomy: '3D Hemodynamic Valve & Chamber Navigation',
@@ -285,7 +298,7 @@ export default function SkillPassportPage() {
               demonstratedSkills.push({
                 title: canonicalSkills[att.conceptId],
                 conceptName: att.conceptName || att.conceptId,
-                verifiedAt: att.timestamp,
+                recordedAt: att.timestamp,
               });
             }
           });
@@ -294,7 +307,7 @@ export default function SkillPassportPage() {
             return (
               <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] text-center space-y-2">
                 <p className="font-sans text-xs text-slate-400">
-                  No practical challenge proofs demonstrated yet. Complete an interactive 3D simulation or Code lab to record verified skill credentials.
+                  No hands-on challenges recorded yet. Complete an interactive 3D simulation or code lab to add evidence to your learning record.
                 </p>
                 <Link
                   href="/learn"
@@ -321,7 +334,7 @@ export default function SkillPassportPage() {
                       </span>
                     </div>
                     <span className="font-mono text-[10px] text-slate-400 block pl-6">
-                      Verified via {skill.conceptName} • {new Date(skill.verifiedAt).toLocaleDateString()}
+                      Recorded in {skill.conceptName} • {new Date(skill.recordedAt).toLocaleDateString()}
                     </span>
                   </div>
 
@@ -333,6 +346,43 @@ export default function SkillPassportPage() {
             </div>
           );
         })()}
+      </Card>
+
+      {/* 6. EVIDENCE TRAIL: concept → attempts → interactions → assessment → mastery */}
+      <Card variant="default" className="p-5 space-y-4" data-testid="passport-evidence">
+        <div className="border-b border-white/[0.06] pb-3">
+          <h3 className="font-sans font-bold text-sm text-white">Evidence Trail</h3>
+          <p className="font-mono text-[11px] text-slate-400">
+            Concept → attempts → hands-on interactions → solo assessment → mastery estimate
+          </p>
+        </div>
+        {evidence.concepts.length === 0 ? (
+          <p className="font-sans text-xs text-slate-400">No learning evidence recorded yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {evidence.concepts.map((c) => (
+              <div key={c.conceptId} data-evidence-concept={c.conceptId} className="p-3 rounded-xl bg-[#181C2E]/80 border border-white/[0.06] text-[11px] text-slate-300 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-sans font-bold text-sm text-white truncate">{c.title}</span>
+                  <Badge variant={c.mastery.level === 'mastered' ? 'success' : 'indigo'} size="sm">
+                    {EVIDENCE_LEVEL_LABEL[c.mastery.level]}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-0.5 font-mono">
+                  <span>Attempts: {c.attempts.correct}/{c.attempts.total} correct</span>
+                  <span>Hands-on: {c.interactions.handsOnAttempts}</span>
+                  <span>
+                    Solo: {c.assessment.soloAttempts > 0 ? `${c.assessment.soloCorrect}/${c.assessment.soloAttempts} (${c.assessment.soloAccuracy}%)` : 'not yet assessed'}
+                  </span>
+                  <span>Mastery estimate: {c.mastery.percent}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="font-sans text-[10px] text-slate-500">
+          “Mastered” means a mastery estimate of at least {MASTERY_THRESHOLDS.masteredPercent}% with {MASTERY_THRESHOLDS.masteredMinSoloAttempts}+ solo attempts. Estimates are computed by Xpedition and are not externally verified.
+        </p>
       </Card>
 
       {/* Share Modal */}

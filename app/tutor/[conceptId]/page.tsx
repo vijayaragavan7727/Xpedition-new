@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import Link from 'next/link';
+import { readLearnerItem, writeLearnerItem } from '@/lib/security/learnerStorage';
+import { resolveLearnerRouteConcept } from '@/lib/concepts/routeConceptResolution';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { getStoreData, saveStoreData, recordAttempt, computeItemHash, saveLearnerProfile, UserStoreData } from '@/lib/store';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -33,8 +36,14 @@ function TutorContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const conceptId = (params?.conceptId as string) || 'c_1';
+  // Raw route id; identity is resolved exactly via the canonical registry, the
+  // learner's goal graph, or explicit quick-learn ('quick' + ?q=). No default concept.
+  const conceptId = typeof params?.conceptId === 'string' ? params.conceptId : '';
   const queryParam = searchParams?.get('q') || '';
+  // Quick-learn topics get their own cache key so one topic's lesson is never shown for another.
+  const lessonCacheKey =
+    conceptId === 'quick' ? `xyra_lesson_quick_${encodeURIComponent(queryParam.trim().toLowerCase())}` : `xyra_lesson_${conceptId}`;
+  const [routeUnavailable, setRouteUnavailable] = useState<boolean>(false);
 
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
   const [conceptName, setConceptName] = useState<string>('Core Concept');
@@ -42,7 +51,7 @@ function TutorContent() {
   const [lesson, setLesson] = useState<LessonData | null>(() => {
     if (typeof window !== 'undefined' && conceptId) {
       try {
-        const cached = sessionStorage.getItem(`xyra_lesson_${conceptId}`);
+        const cached = sessionStorage.getItem(lessonCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed?.chunks?.length) {
@@ -57,7 +66,7 @@ function TutorContent() {
   const [loading, setLoading] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && conceptId) {
       try {
-        const cached = sessionStorage.getItem(`xyra_lesson_${conceptId}`);
+        const cached = sessionStorage.getItem(lessonCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed?.chunks?.length) return false;
@@ -128,7 +137,7 @@ function TutorContent() {
       if (skipPref === 'true') {
         setShowPreClass(false);
       }
-      const saved = localStorage.getItem(`xyra_notes_${conceptId}`);
+      const saved = readLearnerItem(`xyra_notes_${conceptId}`);
       if (saved) {
         setUserNotes(saved);
       }
@@ -138,7 +147,7 @@ function TutorContent() {
   const handleSaveNotes = (text: string) => {
     setUserNotes(text);
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`xyra_notes_${conceptId}`, text);
+      writeLearnerItem(`xyra_notes_${conceptId}`, text);
     }
   };
 
@@ -155,8 +164,16 @@ function TutorContent() {
       setIsMuted(store.learnerProfile.voiceMuted);
     }
 
-    const cName = queryParam || concept?.name || store?.goalText || 'Core Concept';
-    const cSummary = (concept as any)?.summary || '';
+    const routeResolution = resolveLearnerRouteConcept(conceptId, store, { quickTopic: queryParam });
+    if (routeResolution.status === 'unavailable') {
+      // Never substitute the goal text or another concept for an unknown id.
+      setRouteUnavailable(true);
+      setLoading(false);
+      return;
+    }
+    setRouteUnavailable(false);
+    const cName = routeResolution.title;
+    const cSummary = routeResolution.summary || (concept as any)?.summary || '';
     const lang = activeGraph?.learnerProfile?.language || store?.learnerProfile?.language || 'english';
     const level = activeGraph?.learnerProfile?.startingLevel || store?.learnerProfile?.startingLevel || 'Complete beginner';
     const mastery = concept?.masteryPercentage || 0;
@@ -166,7 +183,7 @@ function TutorContent() {
 
     const fetchLesson = async () => {
       // 1. Check local session storage cache first (INSTANT < 5ms)
-      const sessionCacheKey = `xyra_lesson_${conceptId}`;
+      const sessionCacheKey = lessonCacheKey;
       if (typeof window !== 'undefined') {
         const cachedRaw = sessionStorage.getItem(sessionCacheKey);
         if (cachedRaw) {
@@ -234,7 +251,7 @@ function TutorContent() {
       if (wordTimerRef.current) clearInterval(wordTimerRef.current);
       if (preClassTimerRef.current) clearInterval(preClassTimerRef.current);
     };
-  }, [conceptId, queryParam, isQuickLearnMode]);
+  }, [conceptId, queryParam, isQuickLearnMode, lessonCacheKey]);
 
   // PRE-CLASS SPEECH & WORD REVEAL ENGINE
   const getPreClassText = () => {
@@ -495,6 +512,24 @@ function TutorContent() {
     stopSpeech();
     router.push(`/quest?concept=${encodeURIComponent(conceptId)}`);
   };
+
+  if (routeUnavailable) {
+    return (
+      <div
+        data-testid="route-concept-unavailable"
+        data-requested-concept={conceptId}
+        className="min-h-[100dvh] flex items-center justify-center p-6 font-sans text-center"
+      >
+        <div className="max-w-md space-y-3">
+          <h1 className="text-lg font-bold text-white">Concept not found</h1>
+          <p className="text-sm text-slate-400">This concept is not in the Xpedition curriculum or your learning path.</p>
+          <Link href="/learn" className="inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300">
+            Browse topics &rarr;
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

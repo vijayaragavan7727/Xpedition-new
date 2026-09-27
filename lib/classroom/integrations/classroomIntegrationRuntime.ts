@@ -91,14 +91,11 @@ export async function requestExternalTeachingScene(args: {
       body: JSON.stringify({
         action: 'generate_scene',
         provider: 'openmaic',
+        // Identity only: the server rebuilds the scene context from the canonical
+        // lesson, so no lesson text is sent from (or trusted from) the browser.
         context: {
           conceptId: args.lesson.conceptId,
-          topicTitle: args.lesson.topicTitle,
-          subject: args.lesson.subject,
-          stage,
           stepIndex: args.stepIndex,
-          lesson: args.lesson,
-          step: args.step,
           purpose: stage === 'INTERACT' ? 'interact' : 'visualize',
         },
       }),

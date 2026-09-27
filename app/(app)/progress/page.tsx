@@ -43,7 +43,7 @@ export default function ProgressPage() {
     [storeData]
   );
 
-  // Compute XP and Level strictly from verified attempts & mastered concepts
+  // Compute XP and Level strictly from recorded attempts & mastered concepts
   const { level, xp, progressToNextLevel, levelProgressPercent, totalAttempts, correctCount } = useMemo(() => {
     if (!storeData) {
       return { level: 1, xp: 0, progressToNextLevel: 300, levelProgressPercent: 0, totalAttempts: 0, correctCount: 0 };
@@ -103,7 +103,7 @@ export default function ProgressPage() {
     };
   }, [storeData]);
 
-  // Solo verification and calibration stats
+  // Solo attempt and calibration stats
   const { soloSessionsCount, avgSoloMastery, avgAssistedMastery, calibrationMetric } = useMemo(() => {
     if (!storeData) {
       return { soloSessionsCount: 0, avgSoloMastery: 0, avgAssistedMastery: 0, calibrationMetric: null };
@@ -165,7 +165,7 @@ export default function ProgressPage() {
           Progress & Mastery
         </h1>
         <p className="font-sans text-xs sm:text-sm text-slate-400">
-          Tracking your competency, memory retention, and solo verified mastery in <span className="text-slate-200 font-medium">{goalTitle}</span>.
+          Tracking your competency, memory retention, and solo mastery estimates in <span className="text-slate-200 font-medium">{goalTitle}</span>.
         </p>
       </section>
 
@@ -350,7 +350,7 @@ export default function ProgressPage() {
               Concept Mastery in {goalTitle}
             </h2>
             <p className="font-sans text-xs text-slate-400">
-              Verified competency across individual learning milestones
+              Estimated competency across individual learning milestones
             </p>
           </div>
           <span className="font-mono text-xs text-cyan-300 font-semibold">
@@ -439,11 +439,11 @@ export default function ProgressPage() {
       </section>
 
       {/* =========================================================================
-          5. PASSPORT & VERIFICATION ACCESS
+          5. SKILL PASSPORT (internal learning record)
           ========================================================================= */}
       <section className="space-y-2.5">
         <h2 className="font-mono text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
-          Verified Credentials
+          Learning Record
         </h2>
 
         <div className="p-4 sm:p-5 rounded-2xl border border-white/[0.08] bg-[#141826]/90 flex items-center justify-between flex-wrap gap-4">
@@ -453,10 +453,10 @@ export default function ProgressPage() {
             </div>
             <div className="min-w-0 space-y-0.5">
               <h3 className="font-sans font-bold text-sm text-white truncate">
-                Verified Skill Passport
+                Skill Passport
               </h3>
               <p className="font-sans text-xs text-slate-400">
-                {soloSessionsCount} verified solo sessions • Calibration confidence breakdown • Shareable credential.
+                {soloSessionsCount} solo sessions recorded • Calibration breakdown • Evidence trail (not externally verified).
               </p>
             </div>
           </div>

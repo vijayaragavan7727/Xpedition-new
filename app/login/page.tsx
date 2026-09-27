@@ -11,7 +11,11 @@ import { GraduationCap, Target, Trophy, Sparkles } from 'lucide-react';
 function LoginContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
-  const error = searchParams.get('error');
+  const rawError = searchParams.get('error');
+  const error =
+    rawError === 'auth_unavailable'
+      ? 'Sign-in is unavailable: the authentication service is not configured.'
+      : rawError;
 
   return <AuthCard initialMode={mode} initialError={error} />;
 }

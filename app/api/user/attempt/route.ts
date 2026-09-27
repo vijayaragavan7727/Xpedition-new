@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { resolveLessonRequestIdentity } from '@/lib/concepts/routeConceptResolution';
 import { defaultSupabasePersistence } from '@/lib/persistence';
 
 export const runtime = 'nodejs';
@@ -28,7 +29,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing attempt record' }, { status: 400 });
     }
 
-    const { attempt, conceptId = 'default_concept', conceptName = 'Core Topic' } = body;
+    // Exact concept identity: no default concept. Canonical ids are normalised to
+    // the registry id/title; learner goal-graph ids must be sent explicitly.
+    const identity = resolveLessonRequestIdentity({
+      conceptId: body.conceptId ?? body.attempt?.conceptId,
+      conceptName: body.conceptName ?? body.attempt?.conceptName,
+    });
+    if (!identity.ok) {
+      return NextResponse.json({ error: identity.error }, { status: 400 });
+    }
+    const { attempt } = body;
+    const { conceptId, conceptName } = identity;
 
     const result = await defaultSupabasePersistence.recordAttempt({
       userId,

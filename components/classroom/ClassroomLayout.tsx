@@ -33,6 +33,7 @@ import {
   selectXiraContext,
 } from '@/lib/classroom/classRuntime';
 import { resolveStepStage } from '@/lib/classroom/classStage';
+import { currentAuthMode } from '@/lib/auth/authMode';
 import type { CanonicalConcept, ClassIntent } from '@/lib/concepts/types';
 import type { ClassroomLesson } from './types';
 
@@ -86,6 +87,10 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
     const sessionKey = `${lesson.conceptId}|${intent}`;
     if (initializedConceptRef.current === sessionKey) return;
     initializedConceptRef.current = sessionKey;
+    // Sessions are owner-scoped. With no auth service there is no learner
+    // identity, so no server session is requested (the API would fail closed
+    // with 503). The lesson itself is fully client-side and unaffected.
+    if (currentAuthMode() === 'unavailable') return;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
     fetch('/api/classroom/session', {

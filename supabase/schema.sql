@@ -267,7 +267,7 @@ CREATE TABLE IF NOT EXISTS public.world_state (
 -- 6. CREDENTIALS, EVALUATIONS & FEEDBACK
 -- =============================================================================
 
--- 6a. Passport Snapshots Table (Cryptographically verified student credentials)
+-- 6a. Passport Snapshots Table (internal learning-record snapshots; NOT signed or externally verified)
 CREATE TABLE IF NOT EXISTS public.passport_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -574,9 +574,9 @@ CREATE POLICY "Users can manage own passport_snapshots" ON public.passport_snaps
   WITH CHECK (auth.uid() = user_id);
 
 -- Intentional public read-only access for verified shared credentials by share_id
+-- Phase 3: the former public-read policy (USING (true)) exposed every snapshot,
+-- including user_id, to anyone. No publish flow exists, so there is no public read.
 DROP POLICY IF EXISTS "Allow public read access for passport_snapshots by share_id" ON public.passport_snapshots;
-CREATE POLICY "Allow public read access for passport_snapshots by share_id" ON public.passport_snapshots
-  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Users can view and set own experiment assignment" ON public.experiment_assignments;
 CREATE POLICY "Users can view and set own experiment assignment" ON public.experiment_assignments

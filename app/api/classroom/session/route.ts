@@ -4,6 +4,7 @@ import {
   xiraClassroomOrchestrator,
   ConceptUnavailableError,
   SessionNotFoundError,
+  SessionOwnerRequiredError,
 } from '@/lib/classroom/XiraClassroomOrchestrator';
 import { getCanonicalConcept } from '@/lib/concepts/conceptRegistry';
 import { parseClassIntent } from '@/lib/concepts/lessonResolver';
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
     const { user, errorResponse } = await requireServerAuth(request);
     if (errorResponse) {
       return errorResponse;
+    }
+    if (!user) {
+      return NextResponse.json({ success: false, error: { code: 'UNAUTHENTICATED', message: 'Authentication required.' } }, { status: 401 });
     }
 
     const config = getProductionConfig();
@@ -94,7 +98,7 @@ export async function POST(request: Request) {
       const session = await xiraClassroomOrchestrator.createSession(
         concept.id,
         (initialStage as ClassroomStage) || 'INTRODUCE',
-        { ownerId: user?.id, intent: parseClassIntent(intent) }
+        { ownerId: user.id, intent: parseClassIntent(intent) }
       );
 
       const response = NextResponse.json({
@@ -128,7 +132,7 @@ export async function POST(request: Request) {
       const updatedSession = await xiraClassroomOrchestrator.processLearnerAction(
         sessionId,
         learnerAction as ClassroomLearnerAction,
-        user?.id
+        user.id
       );
       if (updatedSession.conceptId !== concept.id) {
         // The session belongs to a different concept than the caller claims.
@@ -156,6 +160,12 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   } catch (error: any) {
+    if (error instanceof SessionOwnerRequiredError) {
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHENTICATED', message: 'Authentication required.' } },
+        { status: 401 }
+      );
+    }
     if (error instanceof SessionNotFoundError) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Classroom session not found.' } },
