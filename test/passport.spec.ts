@@ -75,7 +75,7 @@ for (const vp of VIEWPORTS) {
     const errors = watch(page);
     await page.goto('/passport', { waitUntil: 'networkidle' });
     await page.waitForSelector('[data-testid="passport-book"]', { timeout: 60000 });
-    const wide = vp.width >= 768;
+    const wide = vp.width >= 1024;
 
     await expect(page.getByTestId('passport-name')).toHaveText('Asha');
     await expect(page.getByTestId('passport-level')).toContainText('Level');

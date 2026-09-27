@@ -10,21 +10,30 @@ interface LearningJourneyHeroProps {
 export const LearningJourneyHero: React.FC<LearningJourneyHeroProps> = ({ learnerName }) => {
   return (
     <div className="relative w-full overflow-hidden mb-1.5 sm:mb-5 select-none rounded-xl sm:rounded-3xl bg-[#FAF8F5]">
-      {/* Mobile (< 640px): Exact Visuals from Reference Image */}
-      <div className="sm:hidden relative w-full h-[102px] xs:h-[110px] rounded-xl overflow-hidden border border-[#EBE7DF]/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      {/* Mobile (< 640px): the same live composition, compact (the learner's own name,
+          not a picture with a name painted into it). */}
+      <div className="sm:hidden relative w-full h-[108px] xs:h-[114px] rounded-xl overflow-hidden border border-[#EBE7DF]/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <Image
-          src="/images/learning-journey/hero-banner-exact.png"
-          alt="Your Learning Journey Continues"
+          src="/images/learning-journey/learning-journey-bg.jpg"
+          alt=""
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          className="object-cover object-[center_35%] opacity-90"
         />
-        {/* Semantic accessibility layer for screen readers */}
-        <div className="sr-only">
-          <p>Welcome back, {learnerName || 'Learner'}!</p>
-          <h1>Your Learning Journey Continues ✨</h1>
-          <p>Small steps. Big dreams. One concept at a time.</p>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#FAF8F5]/95 via-[#FAF8F5]/80 to-transparent" />
+        <div className="absolute bottom-0 right-2 w-16 h-[84px] pointer-events-none">
+          <Image src="/images/learning-journey/buddy-wave.png" alt="" fill sizes="64px" className="object-contain object-bottom" />
+        </div>
+        <div className="absolute inset-0 flex flex-col justify-center pl-3.5 pr-20">
+          <p className="font-sans font-bold text-[11px] text-[#0F5132] flex items-center gap-1.5 min-w-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0F5132] shrink-0" />
+            <span className="truncate">Welcome back, {learnerName || 'Learner'}!</span>
+          </p>
+          <h1 className="font-serif font-black text-[19px] xs:text-[21px] text-[#1F2937] tracking-tight leading-[1.12] mt-0.5">
+            Your Learning Journey Continues <span className="text-amber-500 text-base" aria-hidden="true">✨</span>
+          </h1>
+          <p className="font-sans text-[10.5px] text-slate-600 mt-0.5 font-medium truncate">Small steps. Big dreams. One concept at a time.</p>
         </div>
       </div>
 

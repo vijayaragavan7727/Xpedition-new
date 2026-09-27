@@ -141,7 +141,7 @@ const Stamp: React.FC<{ stamp: SubjectStamp; onOpen: (s: SubjectStamp) => void }
       data-stamp-state={stamp.state}
       onClick={() => onOpen(stamp)}
       aria-label={`${stamp.subject}: ${STAMP_STATE_LABEL[stamp.state]}${notStarted ? '' : `, ${conceptsLabel}${stamp.bestMastery !== null ? `, best mastery ${stamp.bestMastery}%` : ''}`}. Open details.`}
-      className="group relative w-full max-w-[104px] md:[@media(max-height:820px)]:max-w-[84px] mx-auto flex flex-col items-center cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F5A45] transition-transform hover:-translate-y-0.5"
+      className="group relative w-full max-w-[104px] lg:[@media(max-height:820px)]:max-w-[84px] mx-auto flex flex-col items-center cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F5A45] transition-transform hover:-translate-y-0.5"
     >
       <span className="relative block w-full aspect-[94/120]">
         <Image
@@ -152,8 +152,8 @@ const Stamp: React.FC<{ stamp: SubjectStamp; onOpen: (s: SubjectStamp) => void }
           className={`object-contain select-none ${notStarted ? 'grayscale opacity-45' : ''}`}
           style={stamp.state === 'in_progress' ? { opacity: 0.9 } : undefined}
         />
-        {/* Real values written into the stamp's blank area (room for it from sm up) */}
-        <span className="hidden sm:flex absolute left-[14%] right-[14%] top-[57%] bottom-[14%] flex-col items-center justify-center text-center leading-tight">
+        {/* Real values written into the stamp's blank area (room for it from xl up) */}
+        <span className="hidden xl:flex absolute left-[14%] right-[14%] top-[57%] bottom-[14%] flex-col items-center justify-center text-center leading-tight">
           <span className="text-[10.5px] font-bold" style={{ color: notStarted ? MUTED : stamp.color }}>
             {STAMP_STATE_LABEL[stamp.state]}
           </span>
@@ -169,8 +169,8 @@ const Stamp: React.FC<{ stamp: SubjectStamp; onOpen: (s: SubjectStamp) => void }
           </span>
         )}
       </span>
-      {/* Phones: the same values as a caption under the stamp, so nothing overlaps the artwork */}
-      <span className="sm:hidden mt-0.5 text-center leading-[1.15]">
+      {/* Smaller stamps: the same values as a caption under the stamp, so nothing overlaps the artwork */}
+      <span className="xl:hidden mt-0.5 text-center leading-[1.15]">
         <span className="block text-[10px] font-bold whitespace-nowrap" style={{ color: notStarted ? MUTED : stamp.color }}>
           {STAMP_STATE_LABEL[stamp.state]}
         </span>
@@ -194,7 +194,7 @@ const EVIDENCE_ITEMS: Array<{ key: keyof PassportView['totals'] | 'xp'; label: s
 ];
 
 const EvidenceStrip: React.FC<{ view: PassportView }> = ({ view }) => (
-  <section aria-labelledby="learning-evidence-heading" className="mt-3 pt-2.5 md:[@media(max-height:820px)]:mt-2 md:[@media(max-height:820px)]:pt-2 max-[399px]:mt-2.5 border-t" style={{ borderColor: RULE }}>
+  <section aria-labelledby="learning-evidence-heading" className="mt-3 pt-2.5 lg:[@media(max-height:820px)]:mt-2 lg:[@media(max-height:820px)]:pt-2 max-[399px]:mt-2.5 border-t" style={{ borderColor: RULE }}>
     <SectionLabel id="learning-evidence-heading">Learning Evidence</SectionLabel>
     <ul data-testid="evidence-strip" className="grid grid-cols-6 gap-x-1">
       {EVIDENCE_ITEMS.map((item) => {
@@ -457,7 +457,7 @@ const IdentityPage: React.FC<{ view: PassportView; onShare: () => void }> = ({ v
 const ExpeditionsPage: React.FC<{ view: PassportView; onOpen: (s: SubjectStamp) => void }> = ({ view, onOpen }) => (
   <div data-testid="passport-expeditions">
     <PageTitle title="My Expeditions" note="Subject stamps earned from your learning evidence" />
-    <div data-testid="stamp-grid" className="grid grid-cols-4 gap-x-2 sm:gap-x-3 gap-y-2.5 md:[@media(max-height:820px)]:gap-y-1.5">
+    <div data-testid="stamp-grid" className="grid grid-cols-4 gap-x-2 sm:gap-x-3 gap-y-2.5 lg:[@media(max-height:820px)]:gap-y-1.5">
       {view.subjects.map((s) => (
         <Stamp key={s.slug} stamp={s} onOpen={onOpen} />
       ))}
@@ -469,7 +469,7 @@ const ExpeditionsPage: React.FC<{ view: PassportView; onOpen: (s: SubjectStamp) 
     )}
     <EvidenceStrip view={view} />
     {view.isNewLearner && (
-      <div data-testid="passport-empty" className="mt-3 pt-2.5 md:[@media(max-height:820px)]:mt-2 md:[@media(max-height:820px)]:pt-2 border-t border-dashed text-[12px]" style={{ borderColor: RULE, color: MUTED }}>
+      <div data-testid="passport-empty" className="mt-3 pt-2.5 lg:[@media(max-height:820px)]:mt-2 lg:[@media(max-height:820px)]:pt-2 border-t border-dashed text-[12px]" style={{ borderColor: RULE, color: MUTED }}>
         <p>
           <span className="font-semibold" style={{ color: INK }}>Ready for its first stamp. </span>
           Answer questions in a Class or a quest: every answer, activity and assessment is recorded here.
@@ -592,10 +592,10 @@ export const PassportBook: React.FC<PassportBookProps> = ({ view, metrics, onSha
   const [page, setPage] = useState(0);
   const [openStamp, setOpenStamp] = useState<SubjectStamp | null>(null);
   const pageCount = PAGE_TITLES.length;
-  // Two pages per spread from md up; one page at a time on phones.
+  // Two pages per spread from lg up; one page at a time on phones.
   const [wide, setWide] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)');
+    const mq = window.matchMedia('(min-width: 1024px)');
     const sync = () => setWide(mq.matches);
     sync();
     mq.addEventListener('change', sync);
@@ -629,9 +629,9 @@ export const PassportBook: React.FC<PassportBookProps> = ({ view, metrics, onSha
   return (
     <div data-testid="passport-book" data-page={page} className="relative flex flex-col min-h-0 h-full">
       {/* Leather cover: a physical passport resting on a soft, lit surface */}
-      <div className="relative flex-1 min-h-0 rounded-[22px] md:rounded-[26px] p-[6px] md:p-[9px] bg-[linear-gradient(160deg,#1E4C3D_0%,#143A2D_55%,#0F2E23_100%)] shadow-[0_28px_50px_-24px_rgba(40,32,15,0.55),0_10px_24px_-12px_rgba(40,32,15,0.35),0_0_0_1px_rgba(10,32,25,0.6)]">
-        <div className="h-full rounded-[17px] md:rounded-[20px] border border-dashed border-[#C9A45C]/45 p-[3px]">
-          <div className="relative h-full grid grid-cols-1 md:grid-cols-2 rounded-[14px] md:rounded-[17px] overflow-hidden">
+      <div className="relative flex-1 min-h-0 rounded-[22px] lg:rounded-[26px] p-[6px] lg:p-[9px] bg-[linear-gradient(160deg,#1E4C3D_0%,#143A2D_55%,#0F2E23_100%)] shadow-[0_28px_50px_-24px_rgba(40,32,15,0.55),0_10px_24px_-12px_rgba(40,32,15,0.35),0_0_0_1px_rgba(10,32,25,0.6)]">
+        <div className="h-full rounded-[17px] lg:rounded-[20px] border border-dashed border-[#C9A45C]/45 p-[3px]">
+          <div className="relative h-full grid grid-cols-1 lg:grid-cols-2 rounded-[14px] lg:rounded-[17px] overflow-hidden">
             {pages.map((node, i) => {
               const onMobile = i === page;
               const onDesktop = Math.floor(i / 2) === spread;
@@ -644,7 +644,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ view, metrics, onSha
                   }}
                   aria-label={PAGE_TITLES[i]}
                   data-passport-page={i + 1}
-                  className={`${onMobile ? 'flex' : 'hidden'} ${onDesktop ? 'md:flex' : 'md:hidden'} passport-page flex-col relative min-w-0 h-full overflow-y-auto overscroll-contain px-4 pt-3.5 pb-1.5 max-[399px]:pt-3 max-[399px]:pb-1 sm:px-5 md:px-6 md:pt-5`}
+                  className={`${onMobile ? 'flex' : 'hidden'} ${onDesktop ? 'lg:flex' : 'lg:hidden'} passport-page flex-col relative min-w-0 h-full overflow-y-auto overscroll-contain px-4 pt-3.5 pb-1.5 max-[399px]:pt-3 max-[399px]:pb-1 sm:px-5 lg:px-6 lg:pt-5`}
                   style={{
                     backgroundColor: '#F4ECDA',
                     backgroundImage: `${isLeft ? 'linear-gradient(90deg, rgba(0,0,0,0) 90%, rgba(90,60,20,0.16) 100%)' : 'linear-gradient(90deg, rgba(90,60,20,0.18) 0%, rgba(0,0,0,0) 9%)'}, linear-gradient(rgba(250,245,233,0.45), rgba(250,245,233,0.45)), url(/images/passport/texture.png)`,
@@ -660,7 +660,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ view, metrics, onSha
               );
             })}
             {/* Spine */}
-            <span aria-hidden="true" className="hidden md:block pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 w-6 bg-[linear-gradient(90deg,rgba(80,55,20,0)_0%,rgba(80,55,20,0.14)_50%,rgba(80,55,20,0)_100%)]" />
+            <span aria-hidden="true" className="hidden lg:block pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 w-6 bg-[linear-gradient(90deg,rgba(80,55,20,0)_0%,rgba(80,55,20,0.14)_50%,rgba(80,55,20,0)_100%)]" />
           </div>
         </div>
       </div>
@@ -677,8 +677,8 @@ export const PassportBook: React.FC<PassportBookProps> = ({ view, metrics, onSha
           <ChevronLeft className="w-5 h-5" />
         </button>
         <span data-testid="passport-page-label" className="min-w-[112px] text-center text-[13px] font-semibold text-[#3A3326]">
-          <span className="md:hidden">{PAGE_TITLES[page]} · {page + 1}/{pageCount}</span>
-          <span className="hidden md:inline">Pages {spread * 2 + 1}–{spread * 2 + 2} of {pageCount}</span>
+          <span className="lg:hidden">{PAGE_TITLES[page]} · {page + 1}/{pageCount}</span>
+          <span className="hidden lg:inline">Pages {spread * 2 + 1}–{spread * 2 + 2} of {pageCount}</span>
         </span>
         <span aria-hidden="true" className="flex gap-1.5">
           {Array.from({ length: pageCount }, (_, i) => (

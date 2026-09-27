@@ -64,11 +64,11 @@ export default function LoginPage() {
           Desktop: Split-Screen (~55% Left Brand Story / ~45% Right Auth Card)
           Mobile: Canonical Recomposed Vertical Stream (ZERO duplicate rendering)
           ========================================================================= */}
-      <div className="relative z-10 w-full min-h-[100dvh] flex flex-col justify-between px-3 py-2 sm:p-6 md:p-8 lg:p-12 xl:p-14 max-w-[1600px] mx-auto box-border">
+      <div className="relative z-10 w-full min-h-[100dvh] flex flex-col justify-between px-3 py-2 sm:p-6 md:p-8 lg:p-12 xl:p-14 lg:[@media(max-height:820px)]:py-5 xl:[@media(max-height:820px)]:py-6 max-w-[1600px] mx-auto box-border">
         {/* Top Header: Logo for Mobile & Desktop */}
         <header className="w-full flex items-center justify-center lg:justify-start pt-0 pb-0.5 sm:pb-1 lg:pb-0 lg:mb-4">
           <Link
-            href="/"
+            href="/login"
             className="inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] rounded-lg"
           >
             <XpeditionLogo />
@@ -76,7 +76,7 @@ export default function LoginPage() {
         </header>
 
         {/* Canonical Main Grid Layout (Single representation in DOM tree) */}
-        <main className="w-full my-auto grid grid-cols-1 lg:grid-cols-12 gap-y-2 sm:gap-y-5 lg:gap-y-4 lg:gap-x-10 xl:gap-x-14 items-center py-0.5 sm:py-6">
+        <main className="w-full my-auto grid grid-cols-1 lg:grid-cols-12 gap-y-2 sm:gap-y-5 lg:gap-y-4 lg:gap-x-10 xl:gap-x-14 items-center py-0.5 sm:py-6 lg:[@media(max-height:760px)]:py-1">
           {/* 1. Main Editorial Headline & Tagline */}
           <div className="order-1 lg:order-none lg:col-span-7 text-center lg:text-left">
             <div className="space-y-0.5 sm:space-y-3 mb-0 lg:mb-6">
@@ -144,15 +144,15 @@ export default function LoginPage() {
         <footer className="w-full py-1.5 sm:py-3 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs font-sans text-slate-600 gap-1 sm:gap-2 select-none mt-1 sm:mt-2">
           <span>© {new Date().getFullYear()} Xpedition. All rights reserved.</span>
           <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs font-medium">
-            <Link href="/privacy" className="hover:text-slate-900 transition-colors">
+            <Link href="/privacy" prefetch={false} className="hover:text-slate-900 transition-colors">
               Privacy
             </Link>
             <span>•</span>
-            <Link href="/terms" className="hover:text-slate-900 transition-colors">
+            <Link href="/terms" prefetch={false} className="hover:text-slate-900 transition-colors">
               Terms
             </Link>
             <span>•</span>
-            <Link href="/trust" className="hover:text-slate-900 transition-colors">
+            <Link href="/trust" prefetch={false} className="hover:text-slate-900 transition-colors">
               Trust Center
             </Link>
           </div>

@@ -6,8 +6,13 @@
  */
 
 import { UserStoreData } from '../store';
+import { resolveHomeState } from '../home/homeState';
+import { resolveConceptVisual } from '../home/homeDashboardModel';
+import { buildPassportView } from '../passport/passportView';
+import { getCanonicalConcept } from '../concepts/conceptRegistry';
 
-export type NodeStatus = 'completed' | 'current' | 'locked';
+/** 'open' = available in the learner's pathway but not the current lesson. */
+export type NodeStatus = 'completed' | 'current' | 'open' | 'locked';
 
 export interface JourneyNode {
   id: string;
@@ -92,7 +97,7 @@ export function resolveLearningJourneyData(
       estimatedMinutes: 6,
       description: 'Master scalar and vector quantities, coordinate systems, and baseline SI unit standards.',
       conceptId: 'physics_foundations',
-      coords: { x: 14, y: 18 },
+      coords: { x: 14, y: 27 },
     },
     {
       id: 'node-2',
@@ -103,7 +108,7 @@ export function resolveLearningJourneyData(
       estimatedMinutes: 10,
       description: 'Analyze acceleration, velocity vectors, and Newton’s governing laws of linear motion.',
       conceptId: 'motion_forces',
-      coords: { x: 42, y: 16 },
+      coords: { x: 42, y: 25 },
     },
     {
       id: 'node-3',
@@ -173,46 +178,113 @@ export function resolveLearningJourneyData(
     },
   ];
 
+  // ---------------------------------------------------------------------------
+  // Everything below reflects the learner's own record. The template path above
+  // is only a layout (8 map positions) and a suggested pathway for learners who
+  // have not chosen a goal yet; it never marks anything completed for them.
+  // ---------------------------------------------------------------------------
+  const store: UserStoreData = storeData ?? {
+    handle: 'Learner',
+    activeGraphId: 'graph_default',
+    graphs: [],
+    goalText: '',
+    concepts: [],
+    quests: [],
+    attempts: [],
+    rewardsCount: 0,
+    flowState: 'unknown',
+  };
+  const home = resolveHomeState(store);
+  const stats = home.stats;
+  const attempts = store.attempts ?? [];
+  const pathway = home.pathway.concepts;
+  const levelTitle = stats.level >= 4 ? 'Rising Explorer' : stats.level >= 2 ? 'Pathfinder' : 'Apprentice';
+
+  const coords = defaultNodes.map((n) => n.coords);
+  let nodes: JourneyNode[];
+  if (pathway.length > 0) {
+    const currentId = home.mission.conceptId || home.pathway.currentConceptId;
+    nodes = pathway.slice(0, coords.length).map((c, idx) => {
+      const practised = attempts.some((a) => a.conceptId === c.id);
+      const isCurrent = c.id === currentId;
+      // Only the current lesson carries the "Current Lesson" beacon; the rest of the
+      // learner's own pathway stays open (Class can teach any of its concepts).
+      const status: NodeStatus = c.isMastered ? 'completed' : isCurrent ? 'current' : 'open';
+      return {
+        id: `node-${idx + 1}`,
+        stepNumber: idx + 1,
+        title: c.name,
+        subtitle: c.isMastered ? 'Mastered' : isCurrent ? 'Current Lesson' : practised ? 'In progress' : 'Not started',
+        status,
+        conceptId: c.id,
+        coords: coords[idx],
+      };
+    });
+  } else {
+    // No goal yet: the suggested pathway, with nothing completed.
+    nodes = defaultNodes.map((n, idx) => ({
+      ...n,
+      status: idx === 0 ? 'current' : 'locked',
+      subtitle: idx === 0 ? 'Suggested start' : 'Not started',
+    }));
+  }
+
+  const current = nodes.find((n) => n.status === 'current') ?? nodes.find((n) => n.status === 'open') ?? nodes[0];
+  const currentIdx = nodes.indexOf(current);
+  const template = defaultNodes.find((n) => n.conceptId === current.conceptId);
+  const canonical = getCanonicalConcept(current.conceptId);
+  const subjectTitle = canonical?.subject || (pathway.length > 0 ? store.goalText || 'Your pathway' : 'Physics');
+  const masteredCount = pathway.filter((c) => c.isMastered).length;
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const answersToday = attempts.filter((a) => a.timestamp >= startOfToday.getTime()).length;
+
+  const passportView = buildPassportView(store);
+  const firstStamp =
+    passportView.subjects.find((x) => x.state === 'mastered') ?? passportView.subjects.find((x) => x.state === 'in_progress');
+
   return {
     learnerName: profileName,
     greetingTitle: 'Your Learning Journey Continues',
     quoteSubtitle: 'Small steps. Big dreams. One concept at a time.',
     subject: {
-      id: 'physics_mechanics',
-      title: 'Physics',
-      topic: 'Mechanics',
-      completedCount: 2,
-      totalCount: 8,
-      progressPercentage: 37,
-      level: 4,
-      levelTitle: 'Rising Explorer',
+      id: canonical?.subject?.toLowerCase().replace(/\s+/g, '_') || 'pathway',
+      title: pathway.length > 0 ? store.goalText || 'Your pathway' : 'Physics',
+      topic: pathway.length > 0 ? `Now: ${subjectTitle}` : 'Suggested pathway',
+      completedCount: masteredCount,
+      totalCount: pathway.length > 0 ? pathway.length : nodes.length,
+      progressPercentage: attempts.length > 0 ? stats.masteryPercentage : 0,
+      level: stats.level,
+      levelTitle,
     },
     currentLesson: {
-      conceptId: 'dc_motor',
-      title: 'DC Motor & Commutation',
-      conceptNumberLabel: 'Concept 3 of 8',
-      estimatedMinutes: 8,
+      conceptId: current.conceptId,
+      title: current.title,
+      conceptNumberLabel: `Concept ${currentIdx + 1} of ${nodes.length}`,
+      estimatedMinutes: template?.estimatedMinutes ?? (home.mission.estimatedMinutes || 8),
       description:
-        'Explore how a DC motor converts electrical energy into mechanical energy using electromagnetic interactions.',
-      imageSrc: '/images/learning-journey/dc-motor.png',
-      route: '/class?concept=dc_motor',
+        template?.description ??
+        (pathway.length > 0 ? `Continue ${current.title} in Class: theory on the Smart Board, then practice.` : ''),
+      imageSrc: template?.conceptId === 'dc_motor' ? '/images/learning-journey/dc-motor.png' : resolveConceptVisual(current.conceptId, subjectTitle),
+      route: `/class?concept=${encodeURIComponent(current.conceptId)}`,
     },
-    nodes: defaultNodes,
+    nodes,
     progress: {
-      percentage: 68,
-      level: 4,
-      levelTitle: 'Rising Explorer',
-      currentXp: 1240,
-      targetXp: 2000,
+      percentage: attempts.length > 0 ? stats.masteryPercentage : 0,
+      level: stats.level,
+      levelTitle,
+      currentXp: stats.xp,
+      targetXp: stats.xp + stats.progressToNextLevel,
     },
     todayFocus: [
-      { id: 'f1', text: 'Complete DC Motor lesson', isCompleted: false },
-      { id: 'f2', text: 'Attempt 5 practice questions', isCompleted: true },
+      { id: 'f1', text: `Complete ${current.title} lesson`, isCompleted: false },
+      { id: 'f2', text: 'Attempt 5 practice questions', isCompleted: answersToday >= 5 },
       { id: 'f3', text: 'Explore career paths', isCompleted: false },
     ],
     passport: {
-      subject: 'Physics',
-      status: 'Applied',
+      subject: firstStamp ? firstStamp.subject : 'No stamps yet',
+      status: firstStamp ? (firstStamp.state === 'mastered' ? 'Mastered' : 'In progress') : 'Start a lesson',
       route: '/passport',
       coverSrc: '/images/learning-journey/passport-mini.png',
     },

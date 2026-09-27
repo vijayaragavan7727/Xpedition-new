@@ -695,15 +695,15 @@ export const AuthCard: React.FC<AuthCardProps> = ({ initialMode = 'signin', init
 
         {/* Unobtrusive Trust, Terms, & Privacy Links (Visible on desktop; mobile has page footer) */}
         <div className="hidden lg:flex text-center pt-4 mt-3 border-t border-slate-100 font-sans text-[11px] text-slate-400 items-center justify-center gap-3">
-          <Link href="/privacy" className="hover:text-slate-600 transition-colors">
+          <Link href="/privacy" prefetch={false} className="hover:text-slate-600 transition-colors">
             Privacy
           </Link>
           <span>•</span>
-          <Link href="/terms" className="hover:text-slate-600 transition-colors">
+          <Link href="/terms" prefetch={false} className="hover:text-slate-600 transition-colors">
             Terms
           </Link>
           <span>•</span>
-          <Link href="/trust" className="hover:text-slate-600 transition-colors">
+          <Link href="/trust" prefetch={false} className="hover:text-slate-600 transition-colors">
             Trust Center
           </Link>
         </div>

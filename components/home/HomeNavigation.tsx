@@ -39,7 +39,8 @@ export const HomeDesktopSidebar: React.FC = () => {
             href="/home"
             className="inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#184E38] rounded-lg"
           >
-            <XpeditionLogo />
+            {/* Sized to the sidebar width so the wordmark never runs past its edge. */}
+            <XpeditionLogo className="gap-2.5 [&_span]:!text-[19px] lg:[&_span]:!text-[21px] [&_span]:!tracking-[0.12em]" />
           </Link>
         </div>
 

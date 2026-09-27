@@ -223,3 +223,42 @@ body {
 .xp-buddy-pose[data-pose='cheer'] { animation: xp-buddy-hop 1.1s ease-out 2; }
 .xp-buddy-pose[data-pose='support'] { --xp-buddy-lean: 3deg; animation: xp-buddy-breathe 3.2s ease-in-out infinite; }
 .xp-buddy-pose[data-pose='rest'] { animation: xp-buddy-breathe 6s ease-in-out infinite; }
+
+/* ---------------------------------------------------------------------------
+   Explorer ambient atmosphere (components/ambient/ExplorerAmbient.tsx).
+   Behind light pages only; transform/opacity animations (compositor friendly).
+   Reduced motion: the global rule above stops the drift, the static scene stays.
+   --------------------------------------------------------------------------- */
+.xp-ambient { position: absolute; inset: 0; }
+@keyframes xp-ambient-orb {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.9; }
+  50% { transform: translate3d(28px, -22px, 0) scale(1.06); opacity: 1; }
+}
+.xp-ambient-orb { animation: xp-ambient-orb 38s ease-in-out infinite; will-change: transform; }
+.xp-ambient-orb--late { animation-duration: 46s; animation-delay: -18s; }
+@keyframes xp-ambient-mote {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  12% { opacity: 1; }
+  80% { opacity: 0.8; }
+  100% { transform: translate3d(14px, -120px, 0); opacity: 0; }
+}
+.xp-ambient-mote { animation: xp-ambient-mote 30s linear infinite; will-change: transform, opacity; }
+@keyframes xp-ambient-trail-light {
+  0% { transform: translate3d(-200px, 0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translate3d(100vw, 0, 0); opacity: 0; }
+}
+.xp-ambient-trail-light {
+  background: radial-gradient(ellipse 50% 22% at 50% 62%, rgba(255, 244, 214, 0.75), rgba(255, 244, 214, 0) 70%);
+  animation: xp-ambient-trail-light 24s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes xp-ambient-turn { to { transform: rotate(360deg); } }
+.xp-ambient-compass { animation: xp-ambient-turn 240s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the static atmosphere: motes rest in place, the travelling light and the compass stop. */
+  .xp-ambient-mote { animation: none !important; opacity: 0.7; }
+  .xp-ambient-orb, .xp-ambient-compass { animation: none !important; }
+  .xp-ambient-trail-light { animation: none !important; opacity: 0; }
+}

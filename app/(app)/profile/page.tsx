@@ -7,6 +7,7 @@ import { getStoreData, saveLearnerProfile, clearStoreData, UserStoreData } from 
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Save, LogOut, Download, Trash2, Check, User, Clock3, GraduationCap } from 'lucide-react';
 import { HomeDesktopSidebar, HomeMobileBottomNav } from '@/components/home/HomeNavigation';
+import { ExplorerAmbient } from '@/components/ambient/ExplorerAmbient';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -83,7 +84,9 @@ export default function ProfilePage() {
   return (
     <div className="min-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden">
       <HomeDesktopSidebar />
-      <main className="flex-1 min-w-0 min-h-[100dvh] overflow-y-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-10">
+      <main className="relative isolate flex-1 min-w-0 min-h-[100dvh] overflow-y-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-10">
+        {/* Atmosphere in the empty margins, behind the cards */}
+        <ExplorerAmbient variant="profile" className="!fixed -z-10" />
         <div className="max-w-3xl mx-auto space-y-5 pb-12">
         <div className="flex items-center justify-between gap-3">
           <div><p className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#0F5132]">Your account</p><h1 className="mt-1 font-serif text-2xl sm:text-3xl font-black">Profile</h1><p className="mt-1 text-xs sm:text-sm text-slate-500">Keep your learning setup simple and personal.</p></div>

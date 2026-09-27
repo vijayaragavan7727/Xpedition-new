@@ -6,12 +6,14 @@
  *
  * Invariants:
  * 1. Zero duplicate intelligence/mastery engines — delegates directly to resolveHomeState().
- * 2. Learner display name is derived from authenticated profile with graceful fallback ("Vijaya").
+ * 2. Learner display name is derived from authenticated profile with a neutral fallback ("Learner").
  * 3. Concept visuals and learning cards are dynamic and support any course (Physics, Python, Biology, Math, etc.).
  * 4. Sample reference assets (DC Motor, Magnetic Fields) serve as high-fidelity visual representations.
  */
 
 import { UserStoreData } from '../store';
+import { buildPassportView, PASSPORT_SUBJECTS } from '../passport/passportView';
+import { getCanonicalConcept } from '../concepts/conceptRegistry';
 import { resolveHomeState, HomeState } from './homeState';
 
 export interface ConceptVisualProps {
@@ -104,11 +106,23 @@ export function resolveConceptVisual(conceptId: string, subject?: string, isNext
   if (normId.includes('magnet') || normId.includes('field') || normId.includes('induction') || normId.includes('flux')) {
     return '/images/home/home-magnetic-fields.png';
   }
-  if (normSub.includes('physics')) {
+  // Otherwise show the concept's subject stamp (a motor picture on a heart or
+  // periodic-table card misrepresents the lesson).
+  const canonicalSubject = getCanonicalConcept(conceptId)?.subject?.toLowerCase() ?? '';
+  const stamp = PASSPORT_SUBJECTS.find((s) => {
+    const name = s.subject.toLowerCase();
+    return canonicalSubject === name || (!canonicalSubject && normSub.includes(name));
+  });
+  if (stamp) return `/images/passport/stamp-${stamp.slug}.png`;
+  if (!canonicalSubject && normSub.includes('physics')) {
     return isNextUp ? '/images/home/home-magnetic-fields.png' : '/images/home/home-dc-motor.png';
   }
-  // Generic fallbacks for sample illustration demonstration
-  return isNextUp ? '/images/home/home-magnetic-fields.png' : '/images/home/home-dc-motor.png';
+  return '/images/passport/cover-front.png';
+}
+
+/** Subject shown on a lesson card: the concept's canonical subject when known. */
+function subjectForConcept(conceptId: string | undefined, fallback: string): string {
+  return (conceptId && getCanonicalConcept(conceptId)?.subject) || fallback;
 }
 
 /**
@@ -125,8 +139,7 @@ export function resolveHomeDashboardData(
     storeData?.learnerProfile?.name ||
     (storeData?.handle && storeData.handle !== 'Learner' && storeData.handle !== 'Explorer' ? storeData.handle : null);
 
-  // Per instruction: default test state name is Vijaya
-  const learnerName = rawName || 'Vijaya';
+  const learnerName = rawName || 'Learner';
 
   // 2. Resolve Canonical Home State from existing intelligence
   const baseStore: UserStoreData = storeData || {
@@ -165,9 +178,10 @@ export function resolveHomeDashboardData(
 
   const currentSubject = isDefaultOrEmpty
     ? 'Physics'
-    : baseStore.goalText?.includes('Physics')
-    ? 'Physics'
-    : baseStore.goalText || 'Physics';
+    : subjectForConcept(
+        activeSession?.conceptId || homeState.mission.conceptId,
+        baseStore.goalText?.includes('Physics') ? 'Physics' : baseStore.goalText || 'Physics'
+      );
 
   const currentTopic = isDefaultOrEmpty
     ? 'Mechanics'
@@ -177,16 +191,22 @@ export function resolveHomeDashboardData(
   const currentConceptId = isDefaultOrEmpty ? 'dc_motor' : homeState.mission.conceptId;
   const currentRoute = `/class?concept=${encodeURIComponent(currentConceptId)}`;
 
+  // Nothing recorded on this concept yet: the learner is starting it, not resuming.
+  const hasStartedCurrent =
+    !isDefaultOrEmpty &&
+    (activeSession?.conceptId === currentConceptId || attempts.some((a) => a.conceptId === currentConceptId));
+
   const continueLearning: ContinueLearningCardData = {
     conceptId: currentConceptId,
     title: currentTitle,
     subject: currentSubject,
     topic: currentTopic,
-    durationLabel: `${durationMin} min left`,
+    durationLabel: hasStartedCurrent ? `${durationMin} min left` : `${durationMin} min`,
     route: currentRoute,
-    buttonLabel: 'Resume Lesson',
+    // A learner with nothing recorded yet is starting, not resuming.
+    buttonLabel: hasStartedCurrent ? 'Resume Lesson' : 'Start Lesson',
     visualAsset: resolveConceptVisual(currentConceptId, currentSubject, false),
-    badgeLabel: 'Continue Learning',
+    badgeLabel: hasStartedCurrent ? 'Continue Learning' : isDefaultOrEmpty ? 'Suggested First Lesson' : 'Start Learning',
   };
 
   // 5. Next Up Card Data
@@ -200,7 +220,7 @@ export function resolveHomeDashboardData(
 
   const nextSubject = isDefaultOrEmpty
     ? 'Physics'
-    : currentSubject;
+    : subjectForConcept(nextConceptFromPathway?.id, currentSubject);
 
   const nextUp: NextUpCardData = {
     conceptId: isDefaultOrEmpty ? 'electromagnetic_force' : (nextConceptFromPathway?.id || 'electromagnetic_force'),
@@ -214,72 +234,58 @@ export function resolveHomeDashboardData(
     iconType: 'magnet',
   };
 
-  // 6. Your Progress Card Data
-  // If user has real attempts, show calculated progress. If brand new test state, match sample metrics gracefully
-  const hasRealAttempts = attempts.length > 0;
-  const progressPercentage = hasRealAttempts
-    ? Math.max(5, homeState.stats.masteryPercentage)
-    : 68;
-
-  const progressLevel = hasRealAttempts
-    ? homeState.stats.level
-    : 4;
-
+  // 6. Your Progress Card Data: always the learner's real figures (the same
+  //    XP / level formula the Passport uses); a new learner sees zeros.
+  const stats = homeState.stats;
+  const progressLevel = stats.level;
   const progressLevelTitle = progressLevel >= 4 ? 'Rising Explorer' : progressLevel >= 2 ? 'Pathfinder' : 'Apprentice';
-  const currentXp = hasRealAttempts ? homeState.stats.xp : 1240;
-  const targetXp = hasRealAttempts ? homeState.stats.level * 500 : 2000;
 
   const progress: ProgressCardData = {
-    percentage: progressPercentage,
+    percentage: attempts.length > 0 ? stats.masteryPercentage : 0,
     level: progressLevel,
     levelTitle: progressLevelTitle,
-    currentXp,
-    targetXp,
-    streak: homeState.stats.streak,
+    currentXp: stats.xp,
+    targetXp: stats.xp + stats.progressToNextLevel,
+    streak: stats.streak,
   };
 
-  // 7. Today's Focus Checklist
+  // 7. Today's Focus Checklist: ticked only by what was actually recorded today.
   const isLessonComplete = Boolean(activeSession && activeSession.currentIndex >= activeSession.totalLength);
-  const hasAttemptedPractice = attempts.length >= 3;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const answersToday = attempts.filter((a) => a.timestamp >= startOfToday.getTime()).length;
 
   const todaysFocus: FocusItem[] = [
     {
       id: 'focus-lesson',
       label: `Complete ${isDefaultOrEmpty ? 'DC Motor' : currentTitle} lesson`,
-      completed: isLessonComplete || true, // Completed in visual sample
+      completed: isLessonComplete,
     },
     {
       id: 'focus-practice',
       label: 'Attempt 5 practice questions',
-      completed: hasAttemptedPractice || true, // Completed in visual sample
+      completed: answersToday >= 5,
     },
     {
       id: 'focus-explore',
       label: 'Explore career paths',
-      completed: true, // Completed in visual sample
+      completed: false,
     },
   ];
 
-  // 8. Your Passports Card Data
-  const passportSubjects = Array.from(
-    new Set([
-      currentSubject,
-      ...(baseStore.graphs || []).map((g) => g.goalText || '').filter(Boolean),
-      'Mathematics',
-      'Programming',
-      'Biology',
-    ])
-  ).slice(0, 4);
-
-  const passports: PassportCardData[] = passportSubjects.map((subjectTitle, index) => ({
-    hasPassport: true,
-    subjectTitle,
-    statusBadge: index === 0 ? 'Applied' : 'In Progress',
-    route: '/passport',
-    coverImage: '/images/home/home-passport-preview.png',
-    emptyStateText: 'Build evidence-backed skill credentials as you complete learning pathways.',
-    emptyStateCta: 'Explore Learning',
-  }));
+  // 8. Your Passports Card Data: subject stamps the learner's record supports.
+  const passportView = buildPassportView(baseStore);
+  const passports: PassportCardData[] = passportView.subjects
+    .filter((subject) => subject.state !== 'not_started')
+    .sort((a, b) => (a.state === b.state ? 0 : a.state === 'mastered' ? -1 : 1))
+    .slice(0, 4)
+    .map((subject) => ({
+      hasPassport: true,
+      subjectTitle: subject.subject,
+      statusBadge: subject.state === 'mastered' ? 'Mastered' : 'In progress',
+      route: '/passport',
+      coverImage: '/images/home/home-passport-preview.png',
+    }));
 
   // 9. Explore the World Banner
   const worldCta = {

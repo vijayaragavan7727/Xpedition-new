@@ -13,7 +13,7 @@ process.env.CLASS_E2E_AUTH = 'stub';
 
 export default defineConfig({
   testDir: __dirname,
-  testMatch: ['classConceptIdentity.spec.ts', 'phase4LearnerSwitch.spec.ts'],
+  testMatch: ['classConceptIdentity.spec.ts', 'phase4LearnerSwitch.spec.ts', 'appEntryRouting.spec.ts'],
   globalSetup: require.resolve('./support/stubAuthGlobalSetup'),
   timeout: 600000,
   workers: 1,

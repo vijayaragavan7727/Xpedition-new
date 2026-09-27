@@ -47,6 +47,10 @@ export async function middleware(request: NextRequest) {
   // reach protected routes. Production with missing config never gets through.
   if (!supabaseUrl || !supabaseAnonKey) {
     const mode = currentAuthMode();
+    if (pathname === '/') {
+      // Root is not a page: it opens the current sign-in (or the learner's Home in the dev bypass).
+      return NextResponse.redirect(new URL(mode === 'dev_local' ? '/home' : '/login', request.url));
+    }
     if (mode === 'dev_local' || !isProtectedPath(pathname)) {
       return response;
     }
@@ -87,7 +91,15 @@ export async function middleware(request: NextRequest) {
     console.warn('[Middleware Auth Warning] getUser fetch failed:', err);
   }
 
-  // 7. Protected route check
+  // 7. Root entry: there is no separate landing page. Signed-in learners go to
+  //    Home; everyone else lands directly on the current sign-in / sign-up screen.
+  if (pathname === '/') {
+    const redirectResp = NextResponse.redirect(new URL(user ? '/home' : '/login', request.url));
+    response.cookies.getAll().forEach((c) => redirectResp.cookies.set(c.name, c.value));
+    return redirectResp;
+  }
+
+  // 8. Protected route check
   const isProtectedRoute = isProtectedPath(pathname);
 
   if (isProtectedRoute && !user) {

@@ -57,7 +57,7 @@ export const TopBar: React.FC = () => {
   const avatarSrc = `/world/characters/${avatarId}.png`;
 
   return (
-    <header className="sticky top-0 z-30 h-14 max-w-full min-w-0 border-b border-[#263130] bg-[#080B0D]/95 backdrop-blur-xl flex items-center justify-between px-3 sm:px-6 transition-colors select-none">
+    <header className="sticky top-0 z-30 h-14 w-full min-w-0 border-b border-[#263130] bg-[#080B0D]/95 backdrop-blur-xl flex items-center justify-between px-3 sm:px-6 transition-colors select-none">
       {/* Left: Brand Identity & Active Pathway Indicator */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <Link

@@ -252,7 +252,7 @@ export default function XiraPage() {
   ];
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto pb-10 font-sans select-none flex flex-col min-h-[calc(100vh-8.5rem)]">
+    <div className="space-y-4 max-w-3xl mx-auto pb-10 font-sans select-none flex flex-col min-h-[calc(100dvh-8.5rem-56px)] md:min-h-[calc(100dvh-8.75rem)]">
       {/* =========================================================================
           1. XIRA HEADER (Clean, Calm, Simple)
           ========================================================================= */}

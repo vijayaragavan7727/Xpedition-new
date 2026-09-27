@@ -311,9 +311,13 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
             <div className="space-y-1.5 sm:space-y-2">
               {todaysFocus.map((item) => (
                 <div key={item.id} className="flex items-center gap-2 sm:gap-2.5 text-left">
-                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#184E38] text-white flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </div>
+                  {item.completed ? (
+                    <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#184E38] text-white flex items-center justify-center shrink-0" aria-label="Done">
+                      <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </div>
+                  ) : (
+                    <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-[1.5px] border-slate-400 shrink-0" aria-label="Not done yet" />
+                  )}
                   <span className="font-sans text-[11px] sm:text-xs text-slate-700 font-medium">
                     {item.label}
                   </span>
@@ -364,6 +368,12 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
                 }
               }}
             >
+              {passports.length === 0 && (
+                <div className="p-3 rounded-xl bg-[#FAF8F5] border border-dashed border-[#DCD5C6] text-[11px] sm:text-xs text-slate-600 leading-snug">
+                  No subject stamps yet. Answer questions in a Class or quest and your Passport records the evidence.
+                  <Link href="/passport" className="block mt-1.5 font-semibold text-[#184E38] hover:underline">Open your Passport</Link>
+                </div>
+              )}
               <div className="flex gap-3 w-max">
                 {passports.map((passport, index) => (
                   <div key={passport.subjectTitle} id={`passport-slide-${index}`} className="w-[min(100%,360px)] sm:w-full shrink-0 snap-center p-2.5 sm:p-3 rounded-xl bg-[#FAF8F5] border border-[#EBE7DF] flex items-center justify-between gap-3">

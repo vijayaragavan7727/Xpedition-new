@@ -16,6 +16,7 @@ import { getStoreData, UserStoreData } from '@/lib/store';
 import { calibrationScore, confidenceBreakdown } from '@/lib/engine/calibration';
 import { thetaToPercent } from '@/lib/engine/mastery';
 import PassportShareModal from '@/components/PassportShareModal';
+import { ExplorerAmbient } from '@/components/ambient/ExplorerAmbient';
 import { PassportBook, type PassportSkillMetrics } from '@/components/passport/PassportBook';
 import { buildPassportView } from '@/lib/passport/passportView';
 import { HANDS_ON_CONCEPTS } from '@/lib/passport/evidenceModel';
@@ -85,8 +86,10 @@ export default function LearnerPassportPage() {
       const cs = getComputedStyle(wrap);
       const padTop = parseFloat(cs.paddingTop) || 0;
       const padBottom = parseFloat(cs.paddingBottom) || 0;
-      // Below md the app's fixed bottom tab bar (60px) overlays the scroll area.
-      const gap = window.innerWidth >= 768 ? 20 : 60 + 10;
+      // Below md the app's fixed bottom navigation overlays the scroll area.
+      const bottomNav = document.querySelector('nav[aria-label="Mobile Primary Navigation"]') as HTMLElement | null;
+      const navHeight = bottomNav && getComputedStyle(bottomNav).display !== 'none' ? bottomNav.offsetHeight : 0;
+      const gap = window.innerWidth >= 768 ? 20 : navHeight + 12;
       setFit({ height: Math.max(460, scroller.clientHeight - padTop - gap), pullUp: padBottom - gap });
     };
     measure();
@@ -115,15 +118,13 @@ export default function LearnerPassportPage() {
     <div
       ref={fitRef}
       data-testid="learner-passport"
-      /* lg+: the shell reserves a 240px left gutter (lg:pl-[240px]) that is empty here; shift by half so the book is centred in the viewport. */
-      className="relative lg:-left-[120px] max-w-[1040px] mx-auto flex flex-col font-sans select-none"
+      className="relative max-w-[1040px] mx-auto flex flex-col font-sans select-none"
       style={fit ? { height: fit.height, marginBottom: -fit.pullUp } : undefined}
     >
-      {/* Light, luminous paper-room backdrop behind the book (this page only). */}
-      <div aria-hidden className="fixed inset-x-0 top-14 bottom-0 -z-10 pointer-events-none bg-[#F6F3EC]">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_45%,rgba(255,255,255,0.95),rgba(255,255,255,0)_70%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_88%_6%,rgba(214,228,238,0.55),rgba(214,228,238,0)_70%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_8%_96%,rgba(236,222,190,0.5),rgba(236,222,190,0)_70%)]" />
+      {/* Light, luminous paper-room backdrop behind the book, with the quiet
+          explorer atmosphere (motes, contours, a travelling light) in the margins. */}
+      <div aria-hidden className="fixed inset-0 -z-10 pointer-events-none bg-[#F6F3EC]">
+        <ExplorerAmbient variant="passport" />
       </div>
 
       {/* Title: the passport cover and what this record is */}
