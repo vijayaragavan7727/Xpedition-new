@@ -10,7 +10,7 @@ import path from 'path';
  */
 export default defineConfig({
   testDir: __dirname,
-  testMatch: ['classConceptIdentity.spec.ts', 'classTeachingFlow.spec.ts', 'classVisualSystem.spec.ts'],
+  testMatch: ['classConceptIdentity.spec.ts', 'classTeachingFlow.spec.ts', 'classVisualSystem.spec.ts', 'classTeachingBoard.spec.ts'],
   timeout: 600000,
   workers: 1,
   reporter: [['list']],

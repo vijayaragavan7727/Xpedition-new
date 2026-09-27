@@ -56,6 +56,7 @@ export const CALCULUS_DERIVATIVES_LESSON: ClassroomLesson = {
         'Example: f(1) = 0.4 − 1.2 = −0.8 and f(2) = 0.4·8 − 1.2·2 = 0.8, so the average rate of change on [1, 2] is (0.8 − (−0.8)) ÷ (2 − 1) = 1.6.',
       formulaSnippet: '[f(b) − f(a)] / (b − a)',
       visualType: 'graph',
+      visualData: { secant: [1, 2] },
       checkQuestion: {
         id: 'q_calc_step_average',
         prompt: 'For f(x) = 0.4x³ − 1.2x, what is the average rate of change from x = 0 to x = 2?',
@@ -87,6 +88,7 @@ export const CALCULUS_DERIVATIVES_LESSON: ClassroomLesson = {
         'The slope of the tangent at x = a is the instantaneous rate of change there. This limit is the derivative f′(a).',
       formulaSnippet: "f′(a) = lim(h→0) [f(a + h) − f(a)] / h",
       visualType: 'graph',
+      visualData: { secant: [1, 2] },
       tryThis: 'Place the tangent point at x = 1.5 and then x = −1.5. Is the tangent steeper there or near x = 0?',
       hintText: 'Steeper tangent means a larger rate of change.',
     },

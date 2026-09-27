@@ -43,7 +43,17 @@ export interface SmartBoardVisualRendererProps {
   onHotspotClick?: (hotspotId: string) => void;
   /** Reports hands-on board activity (trace / ordering / challenge) as learner evidence. */
   onActivity?: (result: { completed: boolean; wrong: number }) => void;
+  /**
+   * Part of the visual the current explanation is about (a `data-part` token).
+   * Everything else is dimmed so the learner sees what the theory refers to.
+   */
+  focus?: string | null;
   className?: string;
+}
+
+/** Only simple identifiers become CSS selectors (focus comes from authored lesson content). */
+export function safeFocusToken(focus?: string | null): string | null {
+  return focus && /^[A-Za-z_][A-Za-z0-9_]*$/.test(focus) ? focus : null;
 }
 
 export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> = React.memo(({
@@ -53,6 +63,7 @@ export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> =
   onToggleRotation,
   onHotspotClick,
   onActivity,
+  focus,
   className = '',
 }) => {
   if (!payload) {
@@ -78,13 +89,19 @@ export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> =
   const visualData = (payload.visualData ?? {}) as Record<string, unknown>;
   const lessonContext = (visualData.lessonContext as SemanticLessonContext | undefined) ?? null;
 
+  const focusToken = safeFocusToken(focus);
   const wrap = (node: React.ReactNode) => (
     <div
       data-testid="smartboard-visual"
       data-visual-kind={kind ?? 'semantic_lesson'}
       data-visual-concept={payloadConceptId}
-      className="w-full h-full"
+      data-visual-focus={focusToken ?? undefined}
+      className="xp-visual-focus-scope w-full h-full"
     >
+      {focusToken && (
+        <style>{`.xp-visual-focus-scope[data-visual-focus="${focusToken}"] [data-part]:not([data-part~="${focusToken}"]){opacity:.22}
+.xp-visual-focus-scope[data-visual-focus="${focusToken}"] [data-part~="${focusToken}"]{filter:drop-shadow(0 0 6px rgba(125,211,252,.95))}`}</style>
+      )}
       {node}
     </div>
   );
@@ -217,12 +234,7 @@ const DCMotorScientificRenderer: React.FC<{
       <div className="w-full flex items-center justify-between border-b border-white/[0.08] pb-2 text-xs font-mono select-none z-10 shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-cyan-300 font-bold tracking-wider text-[11px] sm:text-xs uppercase">
-            ⚡ DC Motor & Commutator Mechanism
-          </span>
-          <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-500/30 text-[9px] text-cyan-400">
-            Stage: {stage.toUpperCase()}
-          </span>
+          <span className="text-cyan-300 font-bold tracking-wider text-[11px] uppercase">DC motor · labelled mechanism</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -267,65 +279,6 @@ const DCMotorScientificRenderer: React.FC<{
             <span className="hidden sm:inline">{isRotating ? 'Spinning' : 'Paused'}</span>
           </button>
         </div>
-      </div>
-
-      {/* Stage-Aware Pedagogical Visual Cue Banner */}
-      <div className="w-full px-2.5 py-1 bg-black/40 border-b border-white/[0.06] flex items-center justify-between text-[11px] font-mono select-none shrink-0 z-10">
-        {stage === 'introduce' || stage === 'INTRODUCE' ? (
-          <div className="flex items-center gap-2 text-cyan-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            <span className="font-bold">INTRODUCE:</span>
-            <span className="text-slate-300">Clean DC motor overview — Energy conversion: Electrical (V · I) ──▶ Mechanical (τ · ω)</span>
-          </div>
-        ) : stage === 'explain' || stage === 'EXPLAIN' ? (
-          <div className="flex items-center gap-2 text-amber-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            <span className="font-bold">EXPLAIN:</span>
-            <span className="text-slate-300">Labelled scientific diagram — 5 core components & Fleming&apos;s Left Hand Rule</span>
-          </div>
-        ) : stage === 'demonstrate' || stage === 'DEMONSTRATE' ? (
-          <div className="flex items-center gap-2 text-emerald-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-bold">DEMONSTRATE:</span>
-            <span className="text-slate-300">Continuous rotational mechanism — Commutator inverts current every 180°</span>
-          </div>
-        ) : stage === 'interact' || stage === 'INTERACT' ? (
-          <div className="flex items-center gap-2 text-sky-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-            <span className="font-bold">INTERACT:</span>
-            <span className="text-slate-300">Toggle Polarity (+/-) or click any component hotspot to inspect physics</span>
-          </div>
-        ) : stage === 'question' || stage === 'QUESTION' ? (
-          <div className="flex items-center gap-2 text-purple-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-            <span className="font-bold">QUESTION:</span>
-            <span className="text-slate-300">Visual Prediction: If current direction reverses, what happens to torque τ?</span>
-          </div>
-        ) : stage === 'feedback' || stage === 'FEEDBACK' ? (
-          <div className="flex items-center gap-2 text-teal-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
-            <span className="font-bold">FEEDBACK:</span>
-            <span className="text-slate-300">Lorentz Force Law: F = I · (L × B) confirms torque direction strictly follows current vector</span>
-          </div>
-        ) : stage === 'challenge' || stage === 'CHALLENGE' || stage === 'practice' || stage === 'PRACTICE' ? (
-          <div className="flex items-center gap-2 text-orange-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-            <span className="font-bold">CHALLENGE:</span>
-            <span className="text-slate-300">Diagnostic scenario: What happens if commutator gap is filled with conductor?</span>
-          </div>
-        ) : stage === 'assess' || stage === 'ASSESS' ? (
-          <div className="flex items-center gap-2 text-indigo-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-            <span className="font-bold">ASSESS:</span>
-            <span className="text-slate-300">Evaluate component functions: Stator field (B), Armature coil (I), and Commutator gap</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-cyan-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            <span className="font-bold">EXPLORE:</span>
-            <span className="text-slate-300">Interactive DC Motor exploration and physical simulation</span>
-          </div>
-        )}
       </div>
 
       {/* Main Visual Surface */}
@@ -411,7 +364,7 @@ const DCMotorScientificRenderer: React.FC<{
             </g>
 
             {/* 1. MAGNETIC FIELD (B) FLUX LINES (N -> S) */}
-            <g opacity="0.65">
+            <g opacity="0.65" data-part="field">
               <line x1="170" y1="100" x2="490" y2="100" stroke="#06B6D4" strokeWidth="1.5" strokeDasharray="6 4" markerEnd="url(#cyanArrow)" />
               <line x1="170" y1="130" x2="490" y2="130" stroke="#06B6D4" strokeWidth="1.5" strokeDasharray="6 4" markerEnd="url(#cyanArrow)" />
               <line x1="170" y1="160" x2="490" y2="160" stroke="#22D3EE" strokeWidth="2" strokeDasharray="6 4" markerEnd="url(#cyanArrow)" />
@@ -426,6 +379,7 @@ const DCMotorScientificRenderer: React.FC<{
             {/* 2. STATOR MAGNETS (N on Left, S on Right) */}
             {/* Left Stator: North Pole */}
             <g
+              data-part="magnets field"
               className="cursor-pointer transition-transform hover:opacity-95"
               onClick={() => handleHotspotSelect('Permanent Stator Magnets')}
             >
@@ -442,6 +396,7 @@ const DCMotorScientificRenderer: React.FC<{
 
             {/* Right Stator: South Pole */}
             <g
+              data-part="magnets field"
               className="cursor-pointer transition-transform hover:opacity-95"
               onClick={() => handleHotspotSelect('Permanent Stator Magnets')}
             >
@@ -457,7 +412,7 @@ const DCMotorScientificRenderer: React.FC<{
             </g>
 
             {/* 3. CENTRAL STEEL ROTATION AXLE */}
-            <g onClick={() => handleHotspotSelect('Central Rotation Axle')} className="cursor-pointer">
+            <g data-part="axle" onClick={() => handleHotspotSelect('Central Rotation Axle')} className="cursor-pointer">
               <rect x="190" y="154" width="290" height="12" rx="6" fill="url(#axleGrad)" stroke="#CBD5E1" strokeWidth="1" />
               {/* Axle Bearings */}
               <circle cx="210" cy="160" r="11" fill="#334155" stroke="#94A3B8" strokeWidth="2" />
@@ -476,6 +431,7 @@ const DCMotorScientificRenderer: React.FC<{
               }}
               onClick={() => handleHotspotSelect('Armature Copper Coil')}
               className="cursor-pointer"
+              data-part="coil current axle"
             >
               {/* Coil Loop Shadow */}
               <rect
@@ -547,7 +503,7 @@ const DCMotorScientificRenderer: React.FC<{
 
             {/* 5. LORENTZ FORCE (F) VECTORS & TORQUE (τ) COUPLE */}
             {!currentReversed ? (
-              <g>
+              <g data-part="force torque">
                 {/* Left Arm Force: UPWARD Vector */}
                 <line x1="240" y1="95" x2="240" y2="45" stroke="#10B981" strokeWidth="4" markerEnd="url(#forceArrowUp)" />
                 <rect x="205" y="30" width="70" height="18" rx="4" fill="#064E3B" stroke="#10B981" strokeWidth="1" />
@@ -569,7 +525,7 @@ const DCMotorScientificRenderer: React.FC<{
                 </text>
               </g>
             ) : (
-              <g>
+              <g data-part="force torque">
                 {/* Reversed Forces: Left DOWN, Right UP */}
                 <line x1="240" y1="95" x2="240" y2="145" stroke="#10B981" strokeWidth="4" markerEnd="url(#forceArrowDown)" />
                 <rect x="205" y="148" width="75" height="18" rx="4" fill="#064E3B" stroke="#10B981" strokeWidth="1" />
@@ -593,6 +549,7 @@ const DCMotorScientificRenderer: React.FC<{
 
             {/* 6. SPLIT-RING COMMUTATOR & CARBON BRUSHES (Axle Output End) */}
             <g
+              data-part="commutator brushes"
               transform="translate(420, 142)"
               onClick={() => handleHotspotSelect('Split-Ring Commutator')}
               className="cursor-pointer"
@@ -644,13 +601,13 @@ const DCMotorScientificRenderer: React.FC<{
             {/* 7. PEDAGOGICAL COMPONENT LABELS / HOTSPOTS PINNED ON THE DRAWING */}
             <g className="font-mono text-[9px] font-bold">
               {/* Permanent Stator */}
-              <g onClick={() => handleHotspotSelect('Permanent Stator Magnets')} className="cursor-pointer">
+              <g data-part="magnets field" onClick={() => handleHotspotSelect('Permanent Stator Magnets')} className="cursor-pointer">
                 <circle cx="120" cy="70" r="4" fill="#22D3EE" />
                 <line x1="120" y1="70" x2="120" y2="80" stroke="#22D3EE" strokeWidth="1" />
               </g>
 
               {/* Carbon Brushes */}
-              <g onClick={() => handleHotspotSelect('Carbon Brushes')} className="cursor-pointer">
+              <g data-part="brushes" onClick={() => handleHotspotSelect('Carbon Brushes')} className="cursor-pointer">
                 <rect x="420" y="240" width="95" height="18" rx="4" fill="#0F172A" stroke="#94A3B8" strokeWidth="1" />
                 <text x="467" y="252" fill="#E2E8F0" textAnchor="middle">
                   • Carbon Brushes
@@ -659,7 +616,7 @@ const DCMotorScientificRenderer: React.FC<{
               </g>
 
               {/* Split-Ring Commutator */}
-              <g onClick={() => handleHotspotSelect('Split-Ring Commutator')} className="cursor-pointer">
+              <g data-part="commutator" onClick={() => handleHotspotSelect('Split-Ring Commutator')} className="cursor-pointer">
                 <rect x="365" y="202" width="120" height="18" rx="4" fill="#0F172A" stroke="#D97706" strokeWidth="1" />
                 <text x="425" y="214" fill="#FCD34D" textAnchor="middle">
                   • Split-Ring Commutator
@@ -668,7 +625,7 @@ const DCMotorScientificRenderer: React.FC<{
               </g>
 
               {/* Armature Coil */}
-              <g onClick={() => handleHotspotSelect('Armature Copper Coil')} className="cursor-pointer">
+              <g data-part="coil current" onClick={() => handleHotspotSelect('Armature Copper Coil')} className="cursor-pointer">
                 <rect x="290" y="240" width="115" height="18" rx="4" fill="#0F172A" stroke="#F59E0B" strokeWidth="1" />
                 <text x="347" y="252" fill="#FBBF24" textAnchor="middle">
                   • Armature Copper Coil
@@ -677,7 +634,7 @@ const DCMotorScientificRenderer: React.FC<{
               </g>
 
               {/* Central Axle */}
-              <g onClick={() => handleHotspotSelect('Central Rotation Axle')} className="cursor-pointer">
+              <g data-part="axle" onClick={() => handleHotspotSelect('Central Rotation Axle')} className="cursor-pointer">
                 <rect x="180" y="202" width="115" height="18" rx="4" fill="#0F172A" stroke="#94A3B8" strokeWidth="1" />
                 <text x="237" y="214" fill="#CBD5E1" textAnchor="middle">
                   • Central Rotation Axle
@@ -717,20 +674,6 @@ const DCMotorScientificRenderer: React.FC<{
         </div>
       )}
 
-      {/* Bottom Educational Purpose & Governing Formula Bar */}
-      <div className="w-full border-t border-white/[0.08] pt-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-300 select-none z-10 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">
-            F = I · (L × B)
-          </span>
-          <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold border border-cyan-500/30">
-            τ = 2 · F · r
-          </span>
-        </div>
-        <div className="text-slate-400 text-right truncate max-w-sm hidden sm:block">
-          {payload.purpose || 'Continuous rotational torque powered by Lorentz force and commutator polarity inversion.'}
-        </div>
-      </div>
     </div>
   );
 });
@@ -850,29 +793,59 @@ const ProjectileSimulationRenderer: React.FC<{
           })}
 
           {/* Parabolic Trajectory Path */}
-          <path d={pathD} fill="none" stroke="#06B6D4" strokeWidth="3" strokeDasharray="6 4" opacity="0.85" />
+          <path data-part="trajectory" d={pathD} fill="none" stroke="#06B6D4" strokeWidth="3" strokeDasharray="6 4" opacity="0.85" />
+
+          {/* Landing point: the range R on the ground */}
+          <g data-part="range">
+            <line x1="80" y1="248" x2={80 + (Math.min(maxRange, 60) / 60) * 500} y2="248" stroke="#10B981" strokeWidth="2" />
+            <circle cx={80 + (Math.min(maxRange, 60) / 60) * 500} cy="240" r="4" fill="#10B981" />
+            <text x={80 + (Math.min(maxRange, 60) / 60) * 250} y="270" fill="#6EE7B7" fontSize="9" fontFamily="monospace" textAnchor="middle">
+              range R = {maxRange.toFixed(1)} m
+            </text>
+          </g>
+
+          {/* Launch velocity and its components (drawn to a common scale) */}
+          <defs>
+            <marker id="projArrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="#E2E8F0" />
+            </marker>
+          </defs>
+          <g data-part="launch components">
+            <line x1="80" y1="240" x2={80 + vx * 3.2} y2={240 - vy * 3.2} stroke="#E2E8F0" strokeWidth="2" markerEnd="url(#projArrow)" />
+            <text x={86 + vx * 3.2} y={236 - vy * 3.2} fill="#E2E8F0" fontSize="9" fontFamily="monospace">v₀</text>
+          </g>
+          <g data-part="components vx">
+            <line x1="80" y1="240" x2={80 + vx * 3.2} y2="240" stroke="#F472B6" strokeWidth="2" markerEnd="url(#projArrow)" />
+            <text x={80 + vx * 1.6} y="234" fill="#F9A8D4" fontSize="9" fontFamily="monospace" textAnchor="middle">vₓ</text>
+          </g>
+          <g data-part="components vy">
+            <line x1="80" y1="240" x2="80" y2={240 - vy * 3.2} stroke="#A78BFA" strokeWidth="2" markerEnd="url(#projArrow)" />
+            <text x="70" y={240 - vy * 1.6} fill="#C4B5FD" fontSize="9" fontFamily="monospace" textAnchor="end">v_y</text>
+          </g>
 
           {/* Target Flag at 45m */}
-          <g transform={`translate(${80 + (45 / 60) * 500}, 210)`}>
+          <g data-part="range" transform={`translate(${80 + (45 / 60) * 500}, 210)`}>
             <line x1="0" y1="30" x2="0" y2="0" stroke="#F59E0B" strokeWidth="2" />
             <polygon points="0,0 16,7 0,14" fill="#F59E0B" />
             <text x="0" y="38" fill="#FCD34D" fontSize="9" fontFamily="monospace" textAnchor="middle">Target 45m</text>
           </g>
 
           {/* Launcher Cannon at (80, 240) */}
-          <g transform={`translate(80, 240) rotate(${-angle})`}>
+          <g data-part="launch" transform={`translate(80, 240) rotate(${-angle})`}>
             <rect x="0" y="-7" width="28" height="14" rx="3" fill="#64748B" stroke="#94A3B8" strokeWidth="1.5" />
           </g>
           <circle cx="80" cy="240" r="9" fill="#1E293B" stroke="#38BDF8" strokeWidth="2" />
 
           {/* Flying Projectile Ball */}
-          <circle cx={ballSvgX} cy={ballSvgY} r="7" fill="#22D3EE" stroke="#FFFFFF" strokeWidth="2">
+          <circle data-part="trajectory" cx={ballSvgX} cy={ballSvgY} r="7" fill="#22D3EE" stroke="#FFFFFF" strokeWidth="2">
             <animate attributeName="opacity" values="0.8;1;0.8" dur="0.8s" repeatCount="indefinite" />
           </circle>
 
-          {/* Max Height Apex Marker */}
-          <g transform={`translate(${80 + (maxRange * 0.5 / 60) * 500}, ${240 - (maxHeight / 25) * 180})`}>
+          {/* Max Height Apex Marker: v_y = 0 here, vₓ unchanged */}
+          <g data-part="apex vx" transform={`translate(${80 + (maxRange * 0.5 / 60) * 500}, ${240 - (maxHeight / 25) * 180})`}>
             <circle cx="0" cy="0" r="4" fill="#F59E0B" />
+            <line x1="0" y1="0" x2={vx * 2.2} y2="0" stroke="#F472B6" strokeWidth="2" markerEnd="url(#projArrow)" />
+            <text x={vx * 2.2 + 4} y="3" fill="#F9A8D4" fontSize="8" fontFamily="monospace">vₓ (v_y = 0)</text>
             <text x="0" y="-8" fill="#FCD34D" fontSize="9" fontFamily="monospace" textAnchor="middle">
               Apex: {maxHeight.toFixed(1)}m
             </text>
@@ -969,6 +942,12 @@ const GraphRenderer: React.FC<{
     return `M ${points.join(' L ')}`;
   }, []);
 
+  // Optional secant between two x values (lesson step data), e.g. [1, 2].
+  const secant = Array.isArray((payload.visualData as { secant?: unknown } | undefined)?.secant)
+    ? ((payload.visualData as { secant: number[] }).secant.slice(0, 2) as [number, number])
+    : null;
+  const fOf = (x: number) => (x * x * x) / 2.5 - 1.2 * x;
+
   const curY = (tangentX * tangentX * tangentX) / 2.5 - 1.2 * tangentX;
   const slope = (3 * (tangentX * tangentX)) / 2.5 - 1.2;
   const tangentPx = 270 + tangentX * 80;
@@ -1048,13 +1027,31 @@ const GraphRenderer: React.FC<{
             {isDerivative ? (
               /* Calculus Derivative Tangent Plot */
               <>
-                <path d={calcCurvePath} fill="none" stroke="#38BDF8" strokeWidth="3" strokeLinecap="round" />
+                <path data-part="curve" d={calcCurvePath} fill="none" stroke="#38BDF8" strokeWidth="3" strokeLinecap="round" />
+                {secant && (
+                  <g data-part="secant">
+                    <line
+                      x1={270 + secant[0] * 80}
+                      y1={130 - fOf(secant[0]) * 45}
+                      x2={270 + secant[1] * 80}
+                      y2={130 - fOf(secant[1]) * 45}
+                      stroke="#34D399"
+                      strokeWidth="2.5"
+                    />
+                    {secant.map((sx) => (
+                      <circle key={sx} cx={270 + sx * 80} cy={130 - fOf(sx) * 45} r="4" fill="#34D399" stroke="#FFFFFF" strokeWidth="1.5" />
+                    ))}
+                    <text x={270 + secant[1] * 80 + 8} y={130 - fOf(secant[1]) * 45 + 14} fill="#6EE7B7" fontSize="9" fontFamily="monospace">
+                      secant slope = {((fOf(secant[1]) - fOf(secant[0])) / (secant[1] - secant[0])).toFixed(2)}
+                    </text>
+                  </g>
+                )}
                 {/* Tangent line */}
-                <line x1={t1Px} y1={t1Py} x2={t2Px} y2={t2Py} stroke="#F59E0B" strokeWidth="2.5" />
+                <line data-part="tangent" x1={t1Px} y1={t1Py} x2={t2Px} y2={t2Py} stroke="#F59E0B" strokeWidth="2.5" />
                 {/* Tangent contact point */}
-                <circle cx={tangentPx} cy={tangentPy} r="5" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="2" />
+                <circle data-part="tangent point" cx={tangentPx} cy={tangentPy} r="5" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="2" />
                 {/* Rate of Change Callout */}
-                <text x="70" y="45" fill="#FCD34D" fontSize="11" fontFamily="monospace" fontWeight="bold">
+                <text data-part="tangent point" x="70" y="45" fill="#FCD34D" fontSize="11" fontFamily="monospace" fontWeight="bold">
                   Tangent Slope m = {slope.toFixed(2)}
                 </text>
                 <text x="70" y="62" fill="#94A3B8" fontSize="9" fontFamily="monospace">
@@ -1329,6 +1326,7 @@ const TimelineRenderer: React.FC<{
               <div
                 key={m.id ?? idx}
                 data-milestone={m.id}
+                data-part={m.id}
                 className={`w-[74px] sm:w-[84px] flex flex-col items-center text-center relative transition-opacity ${
                   highlight.length > 0 && !highlight.includes(m.id) ? 'opacity-40' : 'opacity-100'
                 }`}

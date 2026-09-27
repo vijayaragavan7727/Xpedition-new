@@ -223,9 +223,9 @@ export const ClassroomXiraAssistant: React.FC<ClassroomXiraAssistantProps> = Rea
             )}
             {observation.revisit && observation.revisit.length > 0 && onObservationAction && (
               <div className="flex flex-col gap-1 pt-0.5">
-                {observation.revisit.map((r) => (
+                {observation.revisit.map((r, i) => (
                   <button
-                    key={r.index}
+                    key={`${r.index}-${i}`}
                     type="button"
                     data-revisit-step={r.index}
                     onClick={() => onObservationAction({ kind: 'revisit', stepIndex: r.index })}

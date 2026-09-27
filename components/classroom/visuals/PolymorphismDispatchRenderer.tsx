@@ -54,7 +54,7 @@ export const PolymorphismDispatchRenderer: React.FC<PolymorphismDispatchRenderer
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 min-h-0">
-        <pre className={`rounded-lg border p-2 whitespace-pre-wrap leading-snug ${focus === 'interface' ? 'border-cyan-400 bg-cyan-950/40' : 'border-white/10 bg-black/30'} text-cyan-200`}>
+        <pre data-part="interface" className={`rounded-lg border p-2 whitespace-pre-wrap leading-snug ${focus === 'interface' ? 'border-cyan-400 bg-cyan-950/40' : 'border-white/10 bg-black/30'} text-cyan-200`}>
 {`interface Shape {
   area(): number;
 }
@@ -65,12 +65,12 @@ function totalArea(shapes: Shape[]) {
   return sum;
 }`}
         </pre>
-        <pre className={`rounded-lg border p-2 whitespace-pre-wrap leading-snug ${focus === 'implementations' || focus === 'dispatch' ? 'border-emerald-400 bg-emerald-950/30' : 'border-white/10 bg-black/30'} text-emerald-200`}>
+        <pre data-part="implementations" className={`rounded-lg border p-2 whitespace-pre-wrap leading-snug ${focus === 'implementations' || focus === 'dispatch' ? 'border-emerald-400 bg-emerald-950/30' : 'border-white/10 bg-black/30'} text-emerald-200`}>
           {CLASS_SOURCE[selected.kind].join('\n')}
         </pre>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div data-part="dispatch" className="flex flex-wrap items-center gap-1.5">
         <span className="text-slate-400">shapes =</span>
         {OBJECTS.map((o) => (
           <button
@@ -98,7 +98,7 @@ function totalArea(shapes: Shape[]) {
         </button>
       </div>
 
-      <div data-testid="dispatch-trace" className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-slate-200 leading-relaxed">
+      <div data-testid="dispatch-trace" data-part="dispatch" className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-slate-200 leading-relaxed">
         {ran ? (
           <>
             <div>declared type: <span className="text-cyan-300">Shape</span> · runtime type: <span className="text-emerald-300">{selected.kind}</span></div>

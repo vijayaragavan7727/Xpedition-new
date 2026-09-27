@@ -99,6 +99,24 @@ const SUB: Partial<Record<NodeId, string>> = {
 };
 
 /** Flow edges between consecutive structures (drawn as arrows). */
+/** Visual-part tokens for focus highlighting (see SmartBoardVisualRenderer `focus`). */
+const NODE_PARTS: Record<NodeId, string> = {
+  RA: 'RA right systemic',
+  RV: 'RV right pulmonary',
+  LUNGS: 'LUNGS pulmonary',
+  LA: 'LA left pulmonary',
+  LV: 'LV left systemic',
+  BODY: 'BODY systemic',
+};
+function edgeParts(from: NodeId, to: NodeId): string {
+  const parts = [`${from}_${to}`];
+  if (from === 'LUNGS' || to === 'LUNGS') parts.push('pulmonary');
+  if (from === 'BODY' || to === 'BODY') parts.push('systemic');
+  if ((from === 'RA' && to === 'RV') || (from === 'LA' && to === 'LV')) parts.push(from === 'RA' ? 'right' : 'left');
+  parts.push(to);
+  return parts.join(' ');
+}
+
 const EDGES: Array<{ from: NodeId; to: NodeId; d: string; label: string }> = [
   { from: 'BODY', to: 'RA', d: 'M 200 272 L 70 272 L 70 98 L 108 98', label: 'venae cavae' },
   { from: 'RA', to: 'RV', d: 'M 180 134 L 180 150', label: '' },
@@ -172,11 +190,11 @@ export const HeartCirculationRenderer: React.FC<{
         </defs>
 
         {/* Septum */}
-        <line x1="280" y1="60" x2="280" y2="232" stroke="#FFFFFF" strokeWidth="3" strokeDasharray="4 3" />
+        <line data-part="septum" x1="280" y1="60" x2="280" y2="232" stroke="#FFFFFF" strokeWidth="3" strokeDasharray="4 3" />
         <text x="280" y="244" fill="#CBD5E1" fontSize="9" fontFamily="monospace" textAnchor="middle">septum</text>
 
         {visibleEdges.map((e) => (
-          <g key={`${e.from}-${e.to}`} data-edge={`${e.from}-${e.to}`}>
+          <g key={`${e.from}-${e.to}`} data-edge={`${e.from}-${e.to}`} data-part={edgeParts(e.from, e.to)}>
             <path d={e.d} fill="none" stroke="#FBBF24" strokeWidth="2.5" markerEnd="url(#heart-arrow)" />
           </g>
         ))}
@@ -190,6 +208,7 @@ export const HeartCirculationRenderer: React.FC<{
             <g
               key={id}
               data-heart-node={id}
+              data-part={NODE_PARTS[id]}
               role={isTrace ? 'button' : undefined}
               tabIndex={isTrace ? 0 : undefined}
               aria-label={isTrace ? `Select ${NODE_LABEL[id]}` : undefined}
@@ -222,7 +241,7 @@ export const HeartCirculationRenderer: React.FC<{
         })}
 
         {showValves && (
-          <g data-testid="heart-valves">
+          <g data-testid="heart-valves" data-part="valves">
             {/* Atrioventricular valves */}
             <rect x="160" y="138" width="40" height="8" rx="2" fill="#FDE68A" />
             <text x="206" y="146" fill="#FDE68A" fontSize="9" fontFamily="monospace">tricuspid</text>

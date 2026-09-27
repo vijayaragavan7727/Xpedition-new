@@ -133,18 +133,18 @@ async function runTests() {
   });
 
   // 5. Stage-Aware Visual Support
-  test('5. SmartBoardVisualRenderer handles lesson stage-aware overlays and cues', () => {
-    const rendererPath = path.join(process.cwd(), 'components/classroom/SmartBoardVisualRenderer.tsx');
-    const content = fs.readFileSync(rendererPath, 'utf-8');
-
-    assert(content.includes("stage === 'INTRODUCE'"), 'Must handle INTRODUCE stage');
-    assert(content.includes("stage === 'EXPLAIN'"), 'Must handle EXPLAIN stage');
-    assert(content.includes("stage === 'DEMONSTRATE'"), 'Must handle DEMONSTRATE stage');
-    assert(content.includes("stage === 'INTERACT'"), 'Must handle INTERACT stage');
-    assert(content.includes("stage === 'QUESTION'"), 'Must handle QUESTION stage');
-    assert(content.includes("stage === 'FEEDBACK'"), 'Must handle FEEDBACK stage');
-    assert(content.includes("stage === 'CHALLENGE'"), 'Must handle CHALLENGE stage');
-    assert(content.includes("stage === 'ASSESS'"), 'Must handle ASSESS stage');
+  test('5. Smart Board teaching is stage-aware and the visual follows the explanation', () => {
+    // The DC-only stage banner (canned text such as a "diagnostic scenario" the lesson never
+    // asks) was replaced by lesson-owned theory: the board shows the stage chip, and each
+    // "How it works" point highlights the part of the visual it explains (focus → data-part).
+    const renderer = fs.readFileSync(path.join(process.cwd(), 'components/classroom/SmartBoardVisualRenderer.tsx'), 'utf-8');
+    const board = fs.readFileSync(path.join(process.cwd(), 'components/classroom/SmartBoard.tsx'), 'utf-8');
+    const theory = fs.readFileSync(path.join(process.cwd(), 'components/classroom/BoardTeaching.tsx'), 'utf-8');
+    assert(board.includes('CLASS_STAGE_LABELS[stage]'), 'board shows the teaching stage');
+    assert(board.includes('<BoardTeaching') && board.includes('focus={visualFocus}'), 'theory drives the visual focus');
+    assert(renderer.includes('data-visual-focus') && renderer.includes('[data-part~='), 'renderer highlights the focused part');
+    assert(theory.includes("'core'") && theory.includes("'how'") && theory.includes("'formula'"), 'theory sections are revealed progressively');
+    assert(!renderer.includes('Diagnostic scenario: What happens if commutator gap is filled'), 'no canned DC stage text');
   });
 
   // 6. Non-DC Topics Resolve Different Visual Types

@@ -191,6 +191,12 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
   const [isMobileXiraOpen, setIsMobileXiraOpen] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
+  // Buddy narrates the "How it works" point the learner is looking at. Feedback
+  // on an answer and the class result always take priority (runtime-owned).
+  const [teachLine, setTeachLine] = useState<{ stepId: string; line: string } | null>(null);
+  const handleTeachLine = useCallback((stepId: string, line: string | null) => setTeachLine(line ? { stepId, line } : null), []);
+  const buddyDialogue =
+    !state.feedback && !state.completed && teachLine && teachLine.stepId === step.id ? teachLine.line : buddy.dialogue;
   const xiraNeedsAttention = Boolean(xiraObservation && (xiraObservation.kind === 'misconception' || xiraObservation.kind === 'scaffold'));
 
   const completedRef = useRef(false);
@@ -443,8 +449,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
             data-testid="buddy-column"
             className="order-2 lg:order-1 min-h-0 h-[108px] sm:h-[116px] lg:h-full flex lg:flex-col lg:justify-end"
           >
-            <BuddyTeacherStage dialogue={buddy.dialogue} state={buddy.mood} variant="stage" className="hidden lg:flex" />
-            <BuddyTeacherStage dialogue={buddy.dialogue} state={buddy.mood} variant="compact" className="lg:hidden" accessory={xiraButton} />
+            <BuddyTeacherStage dialogue={buddyDialogue} state={buddy.mood} variant="stage" className="hidden lg:flex" />
+            <BuddyTeacherStage dialogue={buddyDialogue} state={buddy.mood} variant="compact" className="lg:hidden" accessory={xiraButton} />
           </div>
 
           {/* Smart Board: the main teaching surface, framed as a wall display. */}
@@ -474,6 +480,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
                 onOpenTool={handleOpenTool}
                 artworkUrl={state.artwork?.conceptId === state.conceptId && state.artwork.stepIndex === state.stepIndex ? state.artwork.assetUrl : undefined}
                 completion={completion}
+                onTeachLine={handleTeachLine}
                 className="h-full w-full"
               />
             </div>

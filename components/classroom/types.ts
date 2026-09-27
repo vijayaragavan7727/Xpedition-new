@@ -116,6 +116,40 @@ export interface ClassroomLessonStep {
   };
   /** Canonical class stage for this step (see lib/classroom/classStage.ts). */
   stage?: ClassStepStage;
+  /**
+   * Structured teaching content for the Smart Board (see lib/classroom/lessons/lessonTeaching.ts):
+   * the theory that the visual supports. Lesson-owned; never shared across concepts.
+   */
+  teach?: StepTeaching;
+}
+
+/** One explained step of "How it works", linked to a part of the visual. */
+export interface TeachingPoint {
+  text: string;
+  /** Visual part to highlight (matches a `data-part` token in the step's visual). */
+  focus?: string;
+  /** What Buddy says while the learner looks at this point. */
+  buddy?: string;
+}
+
+/**
+ * The theory for one lesson step, shown on the Smart Board as one teaching unit
+ * with the visual: Why → Core idea → How it works (linked to the visual) →
+ * Key takeaway. Short, concept-specific, never generic.
+ */
+export interface StepTeaching {
+  /** Why this matters (1–2 short sentences). */
+  why?: string;
+  /** Core idea: 3–5 concise teaching points. */
+  points: string[];
+  /** How it works: ordered explanation, each point linked to the visual. */
+  how?: TeachingPoint[];
+  /** What the learner should look at in the visual. */
+  observe?: string;
+  /** One-line key takeaway. */
+  takeaway: string;
+  /** Lesson formulas (FormulaItem ids) explained on this step. */
+  formulaIds?: string[];
 }
 
 /**
@@ -212,5 +246,7 @@ export interface ClassroomLesson {
   isOutline?: boolean;
   /** Lesson-level deterministic visual data shared by all steps (e.g. timeline milestones). */
   visualData?: Record<string, unknown>;
+  /** One-line definition of the concept, shown on the Smart Board. */
+  definition?: string;
 }
 

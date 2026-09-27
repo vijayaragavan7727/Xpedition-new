@@ -7,6 +7,7 @@
 
 import { ClassroomLesson } from '@/components/classroom/types';
 import { applyLessonPedagogy } from './lessons/lessonPedagogy';
+import { applyLessonTeaching } from './lessons/lessonTeaching';
 import { PERIODIC_TABLE_LESSON } from './lessons/periodicTable';
 import { POLYMORPHISM_LESSON } from './lessons/polymorphism';
 import { CALCULUS_DERIVATIVES_LESSON } from './lessons/calculusDerivatives';
@@ -1404,7 +1405,7 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = Obje
     CALCULUS_DERIVATIVES_LESSON,
     INDUSTRIAL_REVOLUTION_LESSON,
   ].map((lesson) => {
-    const enriched = applyLessonPedagogy(lesson);
+    const enriched = applyLessonTeaching(applyLessonPedagogy(lesson));
     return [enriched.conceptId, enriched];
   })
 );

@@ -16,7 +16,7 @@
 
 import React, { useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Sparkles, HelpCircle, CheckCircle2, RotateCw, Lightbulb, Trophy, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, HelpCircle, CheckCircle2, RotateCw, Lightbulb, Trophy, ArrowRight, Eye } from 'lucide-react';
 import type { ClassroomLesson, ClassroomToolType } from './types';
 import type { AdaptiveDirective } from '@/lib/classroom/classroomIntelligence';
 import type { CanonicalConcept } from '@/lib/concepts/types';
@@ -25,6 +25,7 @@ import { REVEAL_AFTER_ATTEMPTS } from '@/lib/classroom/classRuntime';
 import { orderOptions } from '@/lib/classroom/optionOrder';
 import { StickyNote } from '@/components/learning-objects';
 import { SmartBoardVisualRenderer } from './SmartBoardVisualRenderer';
+import { BoardTeaching, useTeachingState } from './BoardTeaching';
 import { buildStepVisualPayload } from '@/lib/classroom/visualIdentity';
 import { resolveStepStage, CLASS_STAGE_LABELS } from '@/lib/classroom/classStage';
 
@@ -57,6 +58,8 @@ export interface SmartBoardProps {
    * Set once the learner finishes the lesson: the board shows the class result
    * built from the recorded evidence (never step XP or invented mastery).
    */
+  /** Buddy narrates the "How it works" point the learner is on (null = Buddy's lesson line). */
+  onTeachLine?: (stepId: string, line: string | null) => void;
   completion?: {
     summary: LessonEvidenceSummary;
     onRevisit: (stepIndex: number) => void;
@@ -168,6 +171,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
   adaptiveDirective,
   artworkUrl,
   completion,
+  onTeachLine,
   className = '',
 }) => {
   const step = lesson.steps[stepIndex];
@@ -206,6 +210,28 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
     [onBoardActivity, step.id]
   );
   const activity = stepEvidence?.activity;
+  // Theory for this step, and the part of the visual the current explanation is about.
+  const teach = step.teach;
+  const stepFormulas = useMemo(
+    () => (teach?.formulaIds ?? []).map((id) => lesson.formulas?.find((f) => f.id === id)).filter((f): f is NonNullable<typeof f> => Boolean(f)),
+    [teach, lesson.formulas]
+  );
+  const handleBuddyLine = useCallback((line: string | null) => onTeachLine?.(step.id, line), [onTeachLine, step.id]);
+  const teaching = useTeachingState(step.id, teach, handleBuddyLine);
+  const theoryLocked = !(boardView?.showKeyPrinciple ?? true);
+  const visualFocus = theoryLocked ? null : teaching.focus;
+  const howPoints = teach?.how ?? [];
+  const activeHow = !theoryLocked && teaching.tab === 'how' ? howPoints[teaching.point] : undefined;
+  const visualColumnRef = React.useRef<HTMLDivElement>(null);
+  // A visual that needs the full board width (all 18 groups of the periodic
+  // table) sits under the theory instead of beside it.
+  const wideVisual = concept.visualKind === 'periodic_table_interactive';
+  // Phones: the visual sits above the theory, so bring it into view when the
+  // learner moves to a "How it works" point that highlights part of it.
+  React.useEffect(() => {
+    if (!activeHow || typeof window === 'undefined' || window.innerWidth >= 768) return;
+    visualColumnRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [activeHow]);
   const surfaceRef = React.useRef<HTMLDivElement>(null);
   const isComplete = Boolean(completion);
   React.useEffect(() => {
@@ -271,26 +297,26 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
           </div>
         )}
 
+        {/* 1. Concept + step: what this is, in one line */}
         <div className="space-y-1 shrink-0">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 data-testid="board-title" className="font-sans font-black text-lg sm:text-xl lg:text-2xl text-white tracking-tight">
-              {boardView?.title ?? step.boardTitle}
-            </h2>
-            {step.formulaSnippet && onOpenTool && (
-              <button
-                type="button"
-                onClick={() => onOpenTool('formula')}
-                title="Inspect formula card"
-                className="inline-flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 max-w-full text-left px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/35 hover:bg-amber-500/25 text-amber-200 text-xs font-mono font-bold transition-all cursor-pointer shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300"
-              >
-                <span className="shrink-0">📐 Formula:</span>
-                <span className="text-white font-bold">{step.formulaSnippet}</span>
-              </button>
-            )}
-          </div>
-          <p data-testid="board-summary" className="font-sans text-xs sm:text-[13px] text-slate-300 leading-relaxed max-w-3xl font-medium">
-            {summaryText}
-          </p>
+          {stepIndex === 0 && lesson.definition && (
+            <p data-testid="board-concept" className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-sky-300/90">
+              {lesson.topicTitle}
+            </p>
+          )}
+          <h2 data-testid="board-title" className="font-sans font-black text-lg sm:text-xl lg:text-2xl text-white tracking-tight">
+            {boardView?.title ?? step.boardTitle}
+          </h2>
+          {/* First step: the concept's one-line definition leads; later steps: the step summary. */}
+          {stepIndex === 0 && lesson.definition ? (
+            <p data-testid="board-summary" data-board-definition="true" className="font-sans text-[13px] sm:text-sm text-white/90 leading-relaxed max-w-3xl">
+              {lesson.definition}
+            </p>
+          ) : (
+            <p data-testid="board-summary" className="font-sans text-[12.5px] sm:text-[13px] text-slate-200 leading-relaxed max-w-3xl">
+              {summaryText}
+            </p>
+          )}
         </div>
 
         {adaptiveDirective?.smartBoardCallout && (
@@ -320,56 +346,120 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
           </div>
         )}
 
-        {/* The board scrolls instead of squeezing: the grid keeps its natural height
-            (flex-none), so the visual can never be painted over the key idea or the
-            check (it was, on phones and on 1366×768). */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 xl:gap-4 items-stretch flex-none min-h-[220px]">
-          <div
-            data-testid="smartboard-visual-column"
-            className={`md:col-span-8 relative w-full h-full min-w-0 flex flex-col items-stretch justify-center overflow-hidden ${
-              concept.visualKind === 'periodic_table_interactive' ? 'min-h-[380px]' : 'min-h-[280px]'
-            }`}
-          >
-            <SmartBoardVisualRenderer
-              payload={visualPayload}
-              activeConceptId={concept.id}
-              isRotating={isRotating}
-              onToggleRotation={handleToggleRotation}
-              onHotspotClick={handleHotspotClick}
-              onActivity={handleActivity}
-            />
-          </div>
-
-          <div className="md:col-span-4 flex flex-col justify-center gap-2.5 sm:gap-3 min-w-0">
-            {step.keyPrinciple && !showKeyPrinciple && (
-              <div data-testid="key-principle-locked" className="p-3 sm:p-3.5 rounded-2xl bg-[#090F26]/70 border border-dashed border-amber-500/30 space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-300/80 font-sans font-bold text-xs">
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-400/80" />
-                  <span>Predict first</span>
-                </div>
-                <p className="font-sans text-[11px] sm:text-xs text-slate-300 leading-relaxed">
-                  Commit to an answer below. The key idea appears after your first attempt.
+        {/* 2. One teaching unit: THEORY + the VISUAL it explains.
+            The board scrolls instead of squeezing: the grid keeps its natural
+            height (flex-none), so the visual can never be painted over the
+            theory or the check. */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 xl:gap-4 items-start flex-none">
+          {teach ? (
+            <div className={`order-2 md:order-1 min-w-0 ${wideVisual ? 'md:col-span-12' : 'md:col-span-5'}`}>
+              <BoardTeaching
+                stepId={step.id}
+                teach={teach}
+                formulas={stepFormulas}
+                formulaSnippet={step.formulaSnippet}
+                locked={!showKeyPrinciple}
+                state={teaching}
+              />
+            </div>
+          ) : null}
+          <div className={`order-1 md:order-2 ${teach && !wideVisual ? 'md:col-span-7' : 'md:col-span-12'} min-w-0 flex flex-col gap-1.5`}>
+            {teach?.observe && (
+              <p data-testid="visual-observe" className="flex items-start gap-1.5 text-[11.5px] sm:text-xs text-slate-300">
+                <Eye className="w-3.5 h-3.5 mt-0.5 text-sky-300 shrink-0" aria-hidden="true" />
+                <span>
+                  <span className="font-semibold text-sky-200">Look at: </span>
+                  {teach.observe}
+                </span>
+              </p>
+            )}
+            <div
+              ref={visualColumnRef}
+              data-testid="smartboard-visual-column"
+              className={`relative w-full min-w-0 flex flex-col items-stretch justify-center overflow-hidden ${
+                concept.visualKind === 'periodic_table_interactive' ? 'min-h-[380px]' : 'min-h-[260px]'
+              }`}
+            >
+              <SmartBoardVisualRenderer
+                payload={visualPayload}
+                activeConceptId={concept.id}
+                isRotating={isRotating}
+                onToggleRotation={handleToggleRotation}
+                onHotspotClick={handleHotspotClick}
+                onActivity={handleActivity}
+                focus={visualFocus}
+              />
+            </div>
+            {activeHow && (
+              <div
+                data-testid="visual-caption"
+                className="md:hidden flex items-center gap-2 rounded-xl border border-sky-400/35 bg-sky-500/10 px-2.5 py-2 text-[12px] text-sky-50"
+              >
+                <button
+                  type="button"
+                  aria-label="Previous point"
+                  disabled={teaching.point === 0}
+                  onClick={() => teaching.showPoint(teaching.point - 1)}
+                  className="w-8 h-8 shrink-0 rounded-lg border border-white/15 flex items-center justify-center disabled:opacity-30"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <p className="flex-1 min-w-0 leading-snug">
+                  <span className="font-mono text-[10px] text-sky-300 mr-1">
+                    {teaching.point + 1}/{howPoints.length}
+                  </span>
+                  {activeHow.text}
                 </p>
+                <button
+                  type="button"
+                  aria-label="Next point"
+                  disabled={teaching.point >= howPoints.length - 1}
+                  onClick={() => teaching.showPoint(teaching.point + 1)}
+                  className="w-8 h-8 shrink-0 rounded-lg border border-white/15 flex items-center justify-center disabled:opacity-30"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             )}
+          </div>
+        </div>
 
-            {step.keyPrinciple && showKeyPrinciple && (
-              <div data-testid="key-principle" className="p-3 sm:p-3.5 rounded-2xl bg-[#090F26]/90 border border-amber-500/25 space-y-1 shadow-md">
-                <div className="flex items-center gap-1.5 text-amber-300 font-sans font-bold text-xs">
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Key Principle</span>
+        {/* 3. Key takeaway (after the first attempt on predict-first steps) */}
+        {!teach && step.keyPrinciple && !showKeyPrinciple && (
+          <div data-testid="key-principle-locked" className="p-3 rounded-2xl bg-[#090F26]/70 border border-dashed border-amber-500/30 text-[12px] text-slate-300">
+            <span className="font-semibold text-amber-200">Predict first. </span>
+            Commit to an answer below. The key idea appears after your first attempt.
+          </div>
+        )}
+        {showKeyPrinciple && (teach?.takeaway || step.keyPrinciple) && (
+          <div data-testid="key-principle" className="shrink-0 flex items-start gap-2.5 px-3 py-2.5 rounded-2xl bg-amber-500/[0.07] border border-amber-400/30">
+            <Lightbulb className="w-4 h-4 mt-0.5 text-amber-300 shrink-0" aria-hidden="true" />
+            <p className="font-sans text-[12.5px] sm:text-[13px] text-slate-100 leading-relaxed whitespace-pre-line">
+              <span className="font-bold text-amber-200">Key takeaway: </span>
+              {teach?.takeaway ?? step.keyPrinciple}
+            </p>
+          </div>
+        )}
+
+        {/* 4. Learner action: Try This + hands-on board activity */}
+        {(step.tryThis || activityKind) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 shrink-0">
+            {step.tryThis && (
+              <div data-testid="try-this" className={`p-3 rounded-2xl bg-[#080E24]/90 border border-sky-500/25 space-y-1 ${activityKind ? '' : 'md:col-span-2'}`}>
+                <div className="flex items-center gap-1.5 text-sky-300 font-sans font-bold text-xs">
+                  <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Try This</span>
                 </div>
-                <p className="font-sans text-[11px] sm:text-xs text-slate-200 leading-relaxed whitespace-pre-line">{step.keyPrinciple}</p>
+                <p className="font-sans text-[12px] sm:text-[12.5px] text-slate-200 leading-relaxed">{step.tryThis}</p>
               </div>
             )}
-
             {activityKind && (
               <div
                 data-testid="board-activity-status"
                 data-activity-completed={activity?.completed ? 'true' : 'false'}
-                className={`px-3 py-2 rounded-2xl border text-[11px] font-sans ${
+                className={`px-3 py-2.5 rounded-2xl border text-[12px] font-sans ${
                   activity?.completed ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' : 'bg-white/[0.03] border-white/[0.1] text-slate-300'
-                }`}
+                } ${step.tryThis ? '' : 'md:col-span-2'}`}
               >
                 {activity?.completed
                   ? `Board activity done${activity.wrong ? ` (${activity.wrong} wrong turn${activity.wrong > 1 ? 's' : ''} on the way)` : ' with no wrong turns'}.`
@@ -380,18 +470,8 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                       : 'Board activity: order the events on the timeline. It counts towards your evidence for this class.'}
               </div>
             )}
-
-            {step.tryThis && (
-              <div data-testid="try-this" className="p-3 sm:p-3.5 rounded-2xl bg-[#080E24]/90 border border-sky-500/25 space-y-1 shadow-md">
-                <div className="flex items-center gap-1.5 text-sky-300 font-sans font-bold text-xs">
-                  <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Try This</span>
-                </div>
-                <p className="font-sans text-[11px] sm:text-xs text-slate-200 leading-relaxed">{step.tryThis}</p>
-              </div>
-            )}
           </div>
-        </div>
+        )}
 
         {question && (
           <div
