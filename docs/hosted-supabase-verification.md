@@ -8,7 +8,10 @@ Status when this runbook was written (commit 94c43a8): **BLOCKED**. None of the 
 
 ## 1. What the live test reads, and from where
 
-`npm run test:supabase:live` runs `XP_REQUIRE_LIVE_SUPABASE=1 npx tsx test/phase4SupabaseLive.test.ts`.
+- Database/RLS layer: `npm run test:supabase:live` runs `npx tsx test/phase4SupabaseLive.test.ts`.
+  - Missing variables → prints `BLOCKED`, exits 0 and claims nothing.
+  - `npm run test:supabase:live:strict` turns BLOCKED into exit 1, for release gating.
+- Application layer: `npm run test:e2e:hosted` runs `test/phase4HostedApp.spec.ts`. Missing variables → every test is skipped as BLOCKED.
 
 The test reads **only `process.env`**. It loads no `.env` file (there is no dotenv), so the variables must be present in the shell that runs the command.
 
@@ -78,58 +81,54 @@ cd <repo>
 git checkout phase-4-production-security
 npm ci
 set -a; source .env.test.local; set +a     # exports the six variables into this shell only
-npm run test:supabase:live
+npm run test:supabase:live:strict          # §6A database/RLS layer
+
+# §6B application layer: build and start the app against the SAME test project
+npm run build
+MOCK_VISUAL_GENERATION=true npx next start -p 3400 &   # mock images: ComfyUI is not configured
+npm run test:e2e:hosted                    # XP_HOSTED_APP_URL overrides http://localhost:3400
 ```
+
+Each run prints a ledger. Every check is labelled `DATABASE_RLS_ALLOWED`, `DATABASE_RLS_DENIED`, `APPLICATION_ALLOWED`, `APPLICATION_DENIED` or `BLOCKED`, and the run ends with counts of database/RLS, application, allowed, denied and blocked checks. The application ledger is saved to `test/artifacts/hosted-supabase/hosted-app-ledger.json`.
 
 - Without all six variables, the command prints `BLOCKED: missing …` and exits 1. It never reports a pass.
 - A pass prints `PHASE 4 LIVE SUPABASE SUMMARY: N passed, 0 failed`.
 
 ## 6. What the verification must cover
 
-### A. Database / RLS checks (the existing live test, run with each learner's own JWT)
+### A. Database / RLS checks: `test/phase4SupabaseLive.test.ts`
 
-| Area | Covered by `test/phase4SupabaseLive.test.ts` today | Still to add before sign-off |
+Every check calls Supabase directly with a learner's own JWT, or anon. A denial is labelled `DATABASE_RLS_DENIED` only when it is proven at the database:
+- the owner can see the row, but the other actor gets 0 rows; or
+- the insert/RPC is rejected with SQLSTATE 42501; or
+- the update/delete affects 0 rows.
+
+| Area | Checks |
+|---|---|
+| Original Phase 4 checks (unchanged) | A creates rows; A reads; B cannot read, update, delete or forge; per-learner shared rate limiter |
+| H1 Anonymous | anon cannot read A's session, attempts, quest attempts, notes (`xira_memories`), `generation_jobs`, learning record, profile; anon cannot call the limiter or insert rows |
+| H2 A's own data | A reads and updates own session; reads own attempts and quest attempts; reads and updates own notes; reads own job row |
+| H3 Learning record | A **creates** a `passport_snapshots` row, then reads it; B and anon cannot read it; B cannot forge or update it |
+| H4 Cross-learner | B read, update, delete and upsert-takeover of A's session; B read of A's attempts, notes and jobs; B forgery of attempts, quest attempts, telemetry and jobs; A's row verified unchanged |
+
+### B. Application checks: `test/phase4HostedApp.spec.ts` (real browser, real login form)
+
+| Test | What is verified | Layers |
 |---|---|---|
-| A creates owned rows (session, quest attempt, memory, visual job) | yes | – |
-| A reads own session | yes | A updates own session; A reads own attempts and notes |
-| B read of A's session / attempts / notes (memories) / visual jobs | yes | – |
-| B update/delete of A's session (row unchanged) | yes | – |
-| B forging rows as A (quest attempt, telemetry) | yes | – |
-| Passport / learning record | only "B reads A's snapshots → 0". **Vacuous today: A never creates one** | A inserts a snapshot; A reads it; B and anon get 0 |
-| Anonymous access to learner-private tables | **not covered** | an anon client reads every learner table → 0 rows or refused |
-| Shared rate limiter (per learner, shared) | yes | – |
-| Labelling | – | every denial labelled **DATABASE/RLS DENIED** |
+| HA1 Session reload | A logs in, opens `/class`, and the server session is created. The row appears in the hosted DB with `user_id = A`. After a reload the session is still A's and A can still drive it through the API. For B, the API returns 404 and the DB returns 0 rows or 0 affected. Anon reads 0 rows | APPLICATION_ALLOWED/DENIED plus DATABASE_RLS_ALLOWED/DENIED |
+| HA2 Visual job | A creates a job, reads its status and gets the private image. B's status, query and image requests get 404; anon's image request gets 401. **Jobs are in app memory, so this is application-level only.** The database layer for `generation_jobs` is H4.9/H4.13 above | APPLICATION only |
+| HA3 Logout/switch (390×844 and 1440×900) | A logs in, a session and learning record are created, and local state is added. A signs out: no A keys remain and the Class is in guest mode. B logs in on the same browser: `/class`, `/home`, `/passport` and `/progress` show none of A's data or email, and `localStorage` has none of A's keys. B's DB reads of A's record and session are denied | APPLICATION_DENIED plus DATABASE_RLS_DENIED |
 
-### B. Application-level checks (app running against the hosted test project)
-
-These need the app built and started with the test project's variables:
-
-```bash
-set -a; source .env.test.local; set +a
-npm run build && npx next start -p 3300
-```
-
-Each check is labelled **APPLICATION DENIED** (Xpedition route/owner check) or **DATABASE/RLS DENIED**.
-
-1. **Session reload.** A signs in, opens `/class?concept=periodic_table`, and the session is created (`data-persistence="server_session"`). A reloads and the session is still A's. The row in `classroom_sessions` has `user_id = A`, confirmed by reading it as A. B posting to `/api/classroom/session` with A's `sessionId` → **404 (application)**. B selecting that row directly → **0 rows (RLS)**.
-2. **Visual-job ownership.**
-   - A: `POST /api/visual-generation` → job owned by A. `GET /api/visual-generation/<id>` and `/asset` return 200 for A.
-   - B: the same URLs → **404 (application)**.
-   - Anonymous: → **401 (application)**.
-   - Needs `MOCK_VISUAL_GENERATION=true` on the test server, because ComfyUI is not configured.
-   - Jobs live in the app process, not in Supabase (see `lib/security/stateInventory.ts`), so this check is application-level only. The `generation_jobs` table check in §A is the RLS layer.
-3. **Logout/switch.** In a real browser: A signs in with the real login form → learner state exists → A signs out → B signs in → none of A's session, notes, progress or local learner state is visible, and no `__u_<A id>` / `xpedition_user_<A id>` keys remain in `localStorage`.
-
-§6A's "still to add" items and all of §6B are **test code only**. They are to be added with your approval; no application code or schema changes are required.
+The login step checks that the browser received the `sb-<project-ref>-auth-token` cookie for the configured test project. This proves the app under test is using that project.
 
 ## 7. Clean up afterwards
 
-- The live test deletes the session, quest-attempt and memory rows it created.
+- The tests delete the session, quest-attempt, attempt, memory and learning-record rows they created.
 - Learners cannot delete `generation_jobs` or `rate_limit_hits` rows (there are no policies for that, by design). Remove them in the SQL Editor:
 
   ```sql
   delete from public.generation_jobs where job_id like 'job_live_%';
-  delete from public.rate_limit_hits where bucket like 'live-test-%';
+  delete from public.rate_limit_hits where bucket like 'live-%';
   ```
 
 - Then either:
