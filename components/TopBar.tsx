@@ -57,9 +57,9 @@ export const TopBar: React.FC = () => {
   const avatarSrc = `/world/characters/${avatarId}.png`;
 
   return (
-    <header className="sticky top-0 z-30 h-14 border-b border-[#263130] bg-[#080B0D]/95 backdrop-blur-xl flex items-center justify-between px-3 sm:px-6 transition-colors select-none">
+    <header className="sticky top-0 z-30 h-14 max-w-full min-w-0 border-b border-[#263130] bg-[#080B0D]/95 backdrop-blur-xl flex items-center justify-between px-3 sm:px-6 transition-colors select-none">
       {/* Left: Brand Identity & Active Pathway Indicator */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <Link
           href="/home"
           className="flex items-center gap-2 group focus-visible:ring-2 focus-visible:ring-[#0B7066]/50 outline-none rounded-xl p-1 transition-colors"
@@ -75,10 +75,10 @@ export const TopBar: React.FC = () => {
 
         <span className="text-[#8E9693] text-xs hidden sm:inline" aria-hidden="true">/</span>
 
-        <div className="relative">
+        <div className="relative min-w-0">
           <button
             onClick={() => setShowGoalSwitcher(!showGoalSwitcher)}
-            className="flex items-center gap-2 px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] border border-transparent hover:border-[#263130] transition-colors text-left focus-visible:ring-2 focus-visible:ring-[#0B7066]/50 outline-none"
+            className="flex items-center gap-2 min-w-0 max-w-full px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05] border border-transparent hover:border-[#263130] transition-colors text-left focus-visible:ring-2 focus-visible:ring-[#0B7066]/50 outline-none"
             aria-expanded={showGoalSwitcher}
             aria-label={`Current pathway: ${goalTitle}. Click to switch pathway`}
           >
@@ -138,7 +138,7 @@ export const TopBar: React.FC = () => {
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         {/* 3D Lab Direct Launcher */}
         <Link
           href="/teach"

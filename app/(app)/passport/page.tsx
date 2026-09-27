@@ -9,7 +9,7 @@
  * (lib/passport/trustLanguage.ts).
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { createPortal } from 'react-dom';
 import { getStoreData, UserStoreData } from '@/lib/store';
@@ -67,10 +67,37 @@ function skillMetrics(store: UserStoreData): PassportSkillMetrics & { accuracyMa
 export default function LearnerPassportPage() {
   const [storeData, setStoreData] = useState<UserStoreData | null>(null);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const fitRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<{ height: number; pullUp: number } | null>(null);
 
   useEffect(() => {
     setStoreData(getStoreData());
   }, []);
+
+  // Screen fit: the passport fills the scroll area the app shell gives this page,
+  // so the open book sits inside one viewport (pages scroll inside the book if needed).
+  useLayoutEffect(() => {
+    const el = fitRef.current;
+    const wrap = el?.parentElement;
+    const scroller = wrap?.parentElement;
+    if (!el || !wrap || !scroller) return;
+    const measure = () => {
+      const cs = getComputedStyle(wrap);
+      const padTop = parseFloat(cs.paddingTop) || 0;
+      const padBottom = parseFloat(cs.paddingBottom) || 0;
+      // Below md the app's fixed bottom tab bar (60px) overlays the scroll area.
+      const gap = window.innerWidth >= 768 ? 20 : 60 + 10;
+      setFit({ height: Math.max(460, scroller.clientHeight - padTop - gap), pullUp: padBottom - gap });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(scroller);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [storeData]);
 
   const view = useMemo(() => (storeData ? buildPassportView(storeData) : null), [storeData]);
   const metrics = useMemo(() => (storeData ? skillMetrics(storeData) : null), [storeData]);
@@ -85,20 +112,35 @@ export default function LearnerPassportPage() {
   }
 
   return (
-    <div data-testid="learner-passport" className="max-w-[1040px] mx-auto pt-2 pb-24 lg:pb-10 font-sans select-none">
+    <div
+      ref={fitRef}
+      data-testid="learner-passport"
+      /* lg+: the shell reserves a 240px left gutter (lg:pl-[240px]) that is empty here; shift by half so the book is centred in the viewport. */
+      className="relative lg:-left-[120px] max-w-[1040px] mx-auto flex flex-col font-sans select-none"
+      style={fit ? { height: fit.height, marginBottom: -fit.pullUp } : undefined}
+    >
+      {/* Light, luminous paper-room backdrop behind the book (this page only). */}
+      <div aria-hidden className="fixed inset-x-0 top-14 bottom-0 -z-10 pointer-events-none bg-[#F6F3EC]">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_45%,rgba(255,255,255,0.95),rgba(255,255,255,0)_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_88%_6%,rgba(214,228,238,0.55),rgba(214,228,238,0)_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_40%_at_8%_96%,rgba(236,222,190,0.5),rgba(236,222,190,0)_70%)]" />
+      </div>
+
       {/* Title: the passport cover and what this record is */}
-      <header className="flex items-center gap-4 mb-5">
-        <div className="relative w-[52px] sm:w-[64px] aspect-[168/232] shrink-0 drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)]">
-          <Image src="/images/passport/cover-front.png" alt="Xpedition passport cover" fill sizes="64px" className="object-contain" priority />
+      <header className="shrink-0 flex items-center gap-3 mb-2.5 md:mb-3.5">
+        <div className="relative w-[30px] sm:w-[36px] aspect-[168/232] shrink-0 drop-shadow-[0_4px_8px_rgba(40,32,15,0.3)]">
+          <Image src="/images/passport/cover-front.png" alt="Xpedition passport cover" fill sizes="36px" className="object-contain" priority />
         </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#C9A45C]">Xpedition</p>
-          <h1 className="font-black text-2xl sm:text-3xl text-white tracking-tight">Your Learning Passport</h1>
-          <p className="text-[13px] text-slate-300">Identity · progress · skills · evidence · milestones, from your own learning record.</p>
+        <div className="min-w-0 leading-tight">
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-[#9A7A3C]">Xpedition</p>
+          <h1 className="font-black text-[19px] sm:text-[22px] text-[#2A2418] tracking-tight">Your Learning Passport</h1>
         </div>
+        <p className="hidden md:block ml-auto text-[12px] text-[#6B5E48] text-right max-w-[360px]">From your own learning record: identity, progress, skills, evidence and milestones.</p>
       </header>
 
-      <PassportBook view={view} metrics={metrics} onShare={() => setIsShareOpen(true)} />
+      <div className="flex-1 min-h-0">
+        <PassportBook view={view} metrics={metrics} onShare={() => setIsShareOpen(true)} />
+      </div>
 
       {/* Portal to <body> so the app shell's navigation never covers the dialog. */}
       {isShareOpen && createPortal(
