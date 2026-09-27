@@ -139,3 +139,21 @@ Then run it with `XP_REQUIRE_LIVE_SUPABASE=1`.
 5. World localStorage: intentionally out of scope.
 6. Social tables (`guilds`, `guild_members`, `matchmaking_queue`) allow authenticated learners to read membership and queue rows by design. This needs a product decision and was not changed.
 7. `feedback` accepts anonymous inserts (spam risk, no data exposure).
+
+## 7. Hosted Supabase verification attempt (2026-09-27, commit 48e1dc4)
+
+Result: **BLOCKED (configuration)**. Nothing was live-verified.
+
+`npm run test:supabase:live` exited 1 with:
+`BLOCKED: missing NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, XP_TEST_USER_A_EMAIL, XP_TEST_USER_A_PASSWORD, XP_TEST_USER_B_EMAIL, XP_TEST_USER_B_PASSWORD.`
+
+- None of the six variables are set in the environment.
+- No `.env*` file other than `.env.example` exists.
+- No credentials were invented, and no application code was changed.
+
+Coverage note for the next attempt. `test/phase4SupabaseLive.test.ts` checks database/RLS behaviour directly with two real users. It does not yet cover the app-level checks against hosted Supabase:
+- session reload through `/api/classroom/session`;
+- a visual job created through the API, and B fetching A's private image;
+- browser logout/switch with real Supabase logins.
+
+Those need the app running against the hosted project and should be added alongside the live run.
