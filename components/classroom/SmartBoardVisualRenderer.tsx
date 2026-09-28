@@ -10,6 +10,7 @@ import { PeriodicTableRenderer, type PeriodicTableMode } from './visuals/Periodi
 import { PolymorphismDispatchRenderer } from './visuals/PolymorphismDispatchRenderer';
 import { SemanticLessonRenderer } from './visuals/SemanticLessonRenderer';
 import { HeartCirculationRenderer, type HeartMode } from './visuals/HeartCirculationRenderer';
+import { NeuralNetworkTeachingRenderer } from './visuals/NeuralNetworkTeachingRenderer';
 import { pickNext, chronological } from '@/lib/classroom/timelineOrder';
 import { orderOptions } from '@/lib/classroom/optionOrder';
 import {
