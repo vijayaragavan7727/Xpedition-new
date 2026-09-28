@@ -41,6 +41,7 @@ const AUTHORED_VISUAL_KIND: Record<string, ConceptVisualKind> = {
   binary_search: 'binary_search_trace',
   polymorphism: 'polymorphism_dispatch',
   periodic_table: 'periodic_table_interactive',
+  neural_network_basics: 'neural_network_teaching',
 };
 
 /** Explicit alternative ids. Exact-match only; never substrings. */

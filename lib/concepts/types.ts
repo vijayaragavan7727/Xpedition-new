@@ -24,6 +24,7 @@ export type ConceptVisualKind =
   | 'binary_search_trace'
   | 'polymorphism_dispatch'
   | 'periodic_table_interactive'
+  | 'neural_network_teaching'
   /** Deterministic concept map built from the CURRENT lesson's own content. */
   | 'semantic_lesson';
 
