@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { callXiraChat } from '@/lib/xira/remote';
 import { requireServerAuth } from '@/lib/auth/serverAuth';
 import {
   runIntelligence,
@@ -26,6 +27,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ reply: "I'm here! What would you like to explore today?" });
     }
     const trimmedMessage = rawTrimmed.slice(0, 1000);
+
+    const remoteReply = await callXiraChat({ message: trimmedMessage, context });
+    if (remoteReply) {
+      return NextResponse.json({ reply: remoteReply, provider: 'ungalthozhan' });
+    }
 
     const {
       scope = 'home',
