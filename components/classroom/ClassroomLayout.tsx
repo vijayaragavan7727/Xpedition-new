@@ -344,7 +344,7 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
       data-testid="classroom"
       data-persistence={persistence}
       data-class-stage={state.completed ? 'complete' : stage}
-      className={`h-[100dvh] max-h-[100dvh] w-full bg-[#040714] text-slate-100 flex flex-col overflow-hidden relative pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] ${className}`}
+      className={`xp-classroom h-[100dvh] max-h-[100dvh] w-full bg-[#040714] text-slate-100 flex flex-col overflow-hidden relative pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] ${className}`}
     >
       {/* Identity probe: read by browser tests to assert the identity chain. */}
       <div
