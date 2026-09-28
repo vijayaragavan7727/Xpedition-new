@@ -133,7 +133,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-6 pt-1.5 sm:pt-4 items-stretch">
           {/* Interactive trail built from the learner's own pathway (all widths; the
               former phone picture had fixed "Completed" statuses painted into it). */}
-          <div className="flex lg:col-span-7 xl:col-span-8 relative h-[290px] sm:h-[400px] md:min-h-[440px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-3 sm:p-4 flex-col justify-between">
+          <div className="xp-journey-map flex lg:col-span-7 xl:col-span-8 relative h-[290px] sm:h-[400px] md:min-h-[440px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-3 sm:p-4 flex-col justify-between">
             {/* Soft illustrated landscape terrain background */}
             <div className="absolute inset-0 opacity-25 pointer-events-none">
               <Image
@@ -265,7 +265,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
           </div>
 
           {/* Current Lesson Area (Horizontal on Mobile matching reference, Pedestal on Desktop) */}
-          <div className="lg:col-span-5 xl:col-span-4 flex flex-col justify-between rounded-xl sm:rounded-2xl bg-[#FAF8F5] border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 md:p-6 shadow-2xs sm:shadow-xs">
+          <div className="xp-journey-current lg:col-span-5 xl:col-span-4 flex flex-col justify-between rounded-xl sm:rounded-2xl bg-[#FAF8F5] border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 md:p-6 shadow-2xs sm:shadow-xs">
             {/* Desktop Pedestal Illustration */}
             <div className="hidden sm:flex relative w-full h-32 md:h-42 rounded-xl overflow-hidden bg-gradient-to-br from-[#E8F5EE] via-[#FAF9F5] to-[#E5EFE8] border border-[#D5E6DC] items-center justify-center p-2.5 sm:p-3 shadow-inner">
               <div
