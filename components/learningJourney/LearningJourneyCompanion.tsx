@@ -5,7 +5,7 @@ import Image from 'next/image';
 
 export const LearningJourneyCompanion: React.FC = () => {
   return (
-    <div className="relative flex flex-col xs:flex-row items-center xs:items-end justify-between select-none pointer-events-none mt-3 sm:mt-6 pt-3 sm:pt-4 pb-2 gap-3 xs:gap-0">
+    <div className="xp-journey-companion relative flex flex-col xs:flex-row items-center xs:items-end justify-between select-none pointer-events-none mt-3 sm:mt-6 pt-3 sm:pt-4 pb-2 gap-3 xs:gap-0">
       {/* 1. Buddy Companion + Speech Bubble + Grounding Shadow */}
       <div className="relative flex flex-col items-center xs:items-start shrink-0">
         {/* Speech Bubble - flows safely above Buddy */}
