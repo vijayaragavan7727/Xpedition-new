@@ -316,56 +316,80 @@ body {
 
 
 /* ---------------------------------------------------------------------------
-   Shared viewport-fit system
-   Short desktop/laptop screens use layout zoom so the scaled composition
-   participates in layout and does not leave a phantom scroll box behind.
+   Responsive viewport fitting — no visual zoom.
+   Short desktop/laptop screens use tighter layout spacing so the real content
+   remains at normal scale and participates in normal document layout.
    --------------------------------------------------------------------------- */
 @media (min-width: 1024px) and (max-height: 900px) {
-  /* Desktop/laptop: these pages are viewport compositions, not scroll surfaces. */
-  html, body {
-    height: 100%;
-    overflow: hidden !important;
-  }
-  .xp-home-main,
-  .xp-learn-main,
-  .xp-profile-main {
-    overflow: hidden !important;
-    min-height: 0 !important;
-    max-height: 100dvh !important;
-  }
+  html, body { height: 100%; overflow: hidden !important; }
+
   .xp-home-page,
   .xp-learn-page {
     height: 100dvh !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
   }
-  .xp-home-fit,
-  .xp-learn-fit,
-  .xp-profile-fit,
-  .xp-passport-fit {
-    zoom: .82;
-    width: 121.9512%;
-    margin-left: -10.9756%;
-    max-width: none;
-  }
-  .xp-home-main { padding-top: 8px !important; padding-bottom: 12px !important; }
-  .xp-learn-main { padding-top: 8px !important; padding-bottom: 12px !important; }
-  .xp-profile-main { padding-top: 10px !important; padding-bottom: 12px !important; }
-}
-@media (min-width: 1024px) and (max-height: 740px) {
-  .xp-home-fit,
-  .xp-learn-fit,
-  .xp-profile-fit,
-  .xp-passport-fit {
-    zoom: .74;
-    width: 135.1352%;
-    margin-left: -17.5676%;
-  }
+
   .xp-home-main,
-  .xp-learn-main,
-  .xp-profile-main { padding-top: 4px !important; padding-bottom: 6px !important; }
-  .xp-classroom > header { height: 44px !important; }
-  .xp-classroom > main { padding-top: 4px !important; padding-bottom: 0 !important; }
-  .xp-classroom > footer { padding-top: 2px !important; padding-bottom: 4px !important; }
+  .xp-learn-main {
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .xp-home-fit,
+  .xp-learn-fit,
+  .xp-profile-fit,
+  .xp-passport-fit {
+    zoom: 1 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+  }
+
+  /* Home: reduce vertical whitespace, never scale content. */
+  .xp-home-main {
+    padding-top: 6px !important;
+    padding-bottom: 10px !important;
+  }
+  .xp-home-fit { display: flex; flex-direction: column; gap: 8px !important; }
+  .xp-home-fit > header { min-height: 36px; }
+  .xp-home-fit section { min-height: 0 !important; }
+  .xp-home-fit > section:first-of-type {
+    min-height: 112px !important;
+  }
+  .xp-home-fit > div { gap: 8px !important; }
+  .xp-home-fit > div > div {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  /* Learn: tighten vertical rhythm while preserving every section. */
+  .xp-learn-main {
+    padding-top: 6px !important;
+    padding-bottom: 10px !important;
+  }
+  .xp-learn-fit { padding-bottom: 4px; }
+  .xp-learn-fit > * { margin-bottom: 8px !important; }
+  .xp-learn-fit .mt-6 { margin-top: 8px !important; }
+  .xp-learn-fit .mb-5 { margin-bottom: 8px !important; }
+  .xp-learn-fit .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px !important; }
+  .xp-learn-fit .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px !important; }
 }
 
+@media (min-width: 1024px) and (max-height: 740px) {
+  .xp-home-main,
+  .xp-learn-main { padding-top: 3px !important; padding-bottom: 5px !important; }
+
+  .xp-home-fit { gap: 5px !important; }
+  .xp-home-fit > section:first-of-type { min-height: 92px !important; }
+  .xp-home-fit > div { gap: 5px !important; }
+  .xp-home-fit > div > div {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .xp-learn-fit > * { margin-bottom: 5px !important; }
+  .xp-learn-fit .space-y-5 > :not([hidden]) ~ :not([hidden]),
+  .xp-learn-fit .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 5px !important; }
+}
