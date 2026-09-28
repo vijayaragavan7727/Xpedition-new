@@ -82,9 +82,9 @@ export default function ProfilePage() {
   const goal = storeData.goalText || 'Your Learning Journey';
 
   return (
-    <div className="xp-profile-page min-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden">
+    <div className="xp-profile-page h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden">
       <HomeDesktopSidebar />
-      <main className="relative isolate flex-1 min-w-0 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-6">
+      <main className="xp-profile-main relative isolate flex-1 min-w-0 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-6">
         {/* Atmosphere in the empty margins, behind the cards */}
         <ExplorerAmbient variant="profile" className="!fixed -z-10" />
         <div className="xp-profile-fit max-w-3xl mx-auto space-y-4 pb-3">
