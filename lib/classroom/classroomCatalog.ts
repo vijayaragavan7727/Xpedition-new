@@ -12,6 +12,7 @@ import { PERIODIC_TABLE_LESSON } from './lessons/periodicTable';
 import { POLYMORPHISM_LESSON } from './lessons/polymorphism';
 import { CALCULUS_DERIVATIVES_LESSON } from './lessons/calculusDerivatives';
 import { INDUSTRIAL_REVOLUTION_LESSON } from './lessons/industrialRevolution';
+import { NEURAL_NETWORK_BASICS_LESSON } from './neuralNetwork/neuralNetworkBasics';
 // Module cycle note: the resolver imports this catalog too. That is safe because
 // the concept registry is built lazily on first use, never at module evaluation.
 import { resolveClassLesson } from '../concepts/lessonResolver';
@@ -1404,6 +1405,7 @@ export const CANONICAL_CLASSROOM_LESSONS: Record<string, ClassroomLesson> = Obje
     POLYMORPHISM_LESSON,
     CALCULUS_DERIVATIVES_LESSON,
     INDUSTRIAL_REVOLUTION_LESSON,
+    NEURAL_NETWORK_BASICS_LESSON,
   ].map((lesson) => {
     const enriched = applyLessonTeaching(applyLessonPedagogy(lesson));
     return [enriched.conceptId, enriched];
