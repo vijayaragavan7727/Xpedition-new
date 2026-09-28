@@ -320,12 +320,24 @@ body {
    Short desktop/laptop screens use layout zoom so the scaled composition
    participates in layout and does not leave a phantom scroll box behind.
    --------------------------------------------------------------------------- */
-@media (min-width: 1024px) and (max-height: 820px) {
+@media (min-width: 1024px) and (max-height: 900px) {
+  /* Desktop/laptop: these pages are viewport compositions, not scroll surfaces. */
+  html, body {
+    height: 100%;
+    overflow: hidden !important;
+  }
   .xp-home-main,
   .xp-learn-main,
   .xp-profile-main {
     overflow: hidden !important;
     min-height: 0 !important;
+    max-height: 100dvh !important;
+  }
+  .xp-home-page,
+  .xp-learn-page {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
   }
   .xp-home-fit,
   .xp-learn-fit,
