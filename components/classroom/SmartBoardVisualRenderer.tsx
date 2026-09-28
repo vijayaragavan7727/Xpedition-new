@@ -145,6 +145,8 @@ export const SmartBoardVisualRenderer: React.FC<SmartBoardVisualRendererProps> =
       return wrap(<CodeVisualizerRenderer payload={payload} className={className} />);
     case 'polymorphism_dispatch':
       return wrap(<PolymorphismDispatchRenderer focus={String(visualData.focus ?? 'overview')} className={className} />);
+    case 'neural_network_teaching':
+      return wrap(<NeuralNetworkTeachingRenderer mode={String(visualData.neuralMode ?? 'm1')} className={className} />);
     case 'periodic_table_interactive':
       return wrap(
         <PeriodicTableRenderer
