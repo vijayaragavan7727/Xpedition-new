@@ -307,12 +307,6 @@ body {
   .xp-profile-action { transition: transform 180ms var(--xp-ease-out), box-shadow 180ms ease; }
   .xp-profile-action:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(24,78,56,.10); }
 }
-@media (min-width: 1024px) and (max-height: 820px) {
-  /* Desktop laptop fit: preserve the whole composition instead of creating a
-     page-level scroll just because the viewport is short. */
-  .xp-profile-fit { transform: scale(.82); transform-origin: top center; width: 121.95%; margin-left: -10.975%; }
-  .xp-passport-fit { transform: scale(.88); transform-origin: top center; width: 113.64%; margin-left: -6.82%; }
-}
 @media (prefers-reduced-motion: reduce) {
   .xp-profile-page, .xp-passport-page, .xp-profile-avatar, .xp-profile-ring, .xp-passport-shimmer, .xp-passport-page-content {
     animation: none !important;
@@ -323,77 +317,43 @@ body {
 
 /* ---------------------------------------------------------------------------
    Shared viewport-fit system
-   Short desktop/laptop screens must fit the learning composition itself,
-   not rely on a transform that leaves the original layout box oversized.
+   Short desktop/laptop screens use layout zoom so the scaled composition
+   participates in layout and does not leave a phantom scroll box behind.
    --------------------------------------------------------------------------- */
-@media (min-width: 768px) and (max-height: 820px) {
+@media (min-width: 1024px) and (max-height: 820px) {
   .xp-home-main,
   .xp-learn-main,
   .xp-profile-main {
     overflow: hidden !important;
     min-height: 0 !important;
   }
-
   .xp-home-fit,
   .xp-learn-fit,
-  .xp-profile-fit {
+  .xp-profile-fit,
+  .xp-passport-fit {
     zoom: .82;
     width: 121.9512%;
     margin-left: -10.9756%;
     max-width: none;
   }
-
-  .xp-home-main {
-    padding-top: 8px !important;
-    padding-bottom: 12px !important;
-  }
-
-  .xp-learn-main {
-    padding-top: 8px !important;
-    padding-bottom: 12px !important;
-  }
-
-  .xp-profile-main {
-    padding-top: 10px !important;
-    padding-bottom: 12px !important;
-  }
+  .xp-home-main { padding-top: 8px !important; padding-bottom: 12px !important; }
+  .xp-learn-main { padding-top: 8px !important; padding-bottom: 12px !important; }
+  .xp-profile-main { padding-top: 10px !important; padding-bottom: 12px !important; }
 }
-
-@media (min-width: 768px) and (max-height: 740px) {
+@media (min-width: 1024px) and (max-height: 740px) {
   .xp-home-fit,
   .xp-learn-fit,
-  .xp-profile-fit {
+  .xp-profile-fit,
+  .xp-passport-fit {
     zoom: .74;
     width: 135.1352%;
     margin-left: -17.5676%;
   }
-
   .xp-home-main,
   .xp-learn-main,
-  .xp-profile-main {
-    padding-top: 4px !important;
-    padding-bottom: 6px !important;
-  }
-
-  .xp-classroom > header {
-    height: 44px !important;
-  }
-
-  .xp-classroom > main {
-    padding-top: 4px !important;
-    padding-bottom: 0 !important;
-  }
-
-  .xp-classroom > footer {
-    padding-top: 2px !important;
-    padding-bottom: 4px !important;
-  }
+  .xp-profile-main { padding-top: 4px !important; padding-bottom: 6px !important; }
+  .xp-classroom > header { height: 44px !important; }
+  .xp-classroom > main { padding-top: 4px !important; padding-bottom: 0 !important; }
+  .xp-classroom > footer { padding-top: 2px !important; padding-bottom: 4px !important; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .xp-home-fit,
-  .xp-learn-fit,
-  .xp-profile-fit {
-    transition: none !important;
-  }
-}
