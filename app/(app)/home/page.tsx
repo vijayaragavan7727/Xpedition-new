@@ -74,7 +74,7 @@ export default function HomePage() {
   }, [dashboardData?.continueLearning?.conceptId, dashboardData?.continueLearning?.title, dashboardData?.progress?.percentage, storeData?.learnerProfile]);
 
   return (
-    <div className="relative min-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden selection:bg-[#184E38] selection:text-white">
+    <div className="xp-home-page relative h-[100dvh] max-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden selection:bg-[#184E38] selection:text-white">
       {/* Desktop Left Sidebar (>= 768px) */}
       <HomeDesktopSidebar />
 
