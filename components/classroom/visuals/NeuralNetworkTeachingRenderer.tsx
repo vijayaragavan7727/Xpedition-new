@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import {
-  attention, backpropagate, deepNetworkForward, forwardShallowNetwork, forwardSingleNeuron,
+  attention, multiHeadAttention, backpropagate, deepNetworkForward, forwardShallowNetwork, forwardSingleNeuron,
   positionalEncoding, transformerBlock, tokenPrediction, updateWeights, INPUTS,
   M3_HIDDEN_BIAS, M3_OUTPUT_BIAS, M3_OUTPUT_WEIGHTS, M3_WEIGHTS,
 } from '@/lib/classroom/neuralNetwork/neuralNetworkModel';
@@ -68,14 +68,14 @@ export const NeuralNetworkTeachingRenderer: React.FC<{mode?:string;className?:st
   const gradients=useMemo(()=>backpropagate(INPUTS,1),[]);
   const updated=useMemo(()=>updateWeights(M3_WEIGHTS,M3_HIDDEN_BIAS,M3_OUTPUT_WEIGHTS,M3_OUTPUT_BIAS,gradients,.5),[gradients]);
   const deep=useMemo(()=>deepNetworkForward(layers),[layers]);
-  const attn=useMemo(()=>attention(V,query,WQ,WK,WV),[query]);
+  const attn=useMemo(()=>attention(V,query,WQ,WK,WV),[query]);\n  const multi=useMemo(()=>multiHeadAttention(V,query),[query]);
   const pos=useMemo(()=>[0,1,2].map(i=>positionalEncoding(i,4)),[]);
   const reversedPos=useMemo(()=>[2,1,0].map(i=>positionalEncoding(i,4)),[]);
   const block=useMemo(()=>transformerBlock([.2,.4,.1,.3],[.1,.2,.05,.1]),[]);
   const prediction=useMemo(()=>tokenPrediction(block.output),[block.output]);
   const sceneRef=useRef<HTMLDivElement>(null);
 
-  useEffect(()=>{if(!sceneRef.current)return;const vals=m==='m1'||m==='m2'?[x1,x2,w1,w2,bias,single.output]:m==='m3'||m==='m4'?[...shallow.hidden,shallow.output,...M3_OUTPUT_WEIGHTS]:m==='m5'?deep.layers.flat():m==='m6'||m==='m7'?attn.weights.concat(attn.output):m==='m8'?block.output:prediction.probabilities;return mountScene(sceneRef.current,m,vals);},[m,x1,x2,w1,w2,bias,single.output,shallow,deep,attn,block,prediction.probabilities,ran]);
+  useEffect(()=>{if(!sceneRef.current)return;const vals=m==='m1'||m==='m2'?[x1,x2,w1,w2,bias,single.output]:m==='m3'||m==='m4'?[...shallow.hidden,shallow.output,...M3_OUTPUT_WEIGHTS]:m==='m5'?deep.layers.flat():m==='m6'?attn.weights.concat(attn.output):m==='m7'?multi.heads[0].weights.concat(multi.heads[1].weights,multi.projected):m==='m8'?block.output:prediction.probabilities;return mountScene(sceneRef.current,m,vals);},[m,x1,x2,w1,w2,bias,single.output,shallow,deep,attn,block,prediction.probabilities,ran,multi]);
 
   let title='',lines:string[]=[];
   if(m==='m1'){title='M1 · Neuron';lines=['0.8×0.5 = 0.40','0.4×0.7 = 0.28','0.40 + 0.28 + 0.10 = 0.78','sigmoid(0.78) ≈ '+single.output.toFixed(3)];}
@@ -84,7 +84,7 @@ export const NeuralNetworkTeachingRenderer: React.FC<{mode?:string;className?:st
   if(m==='m4'){title='M4 · Backprop';lines=['prediction '+gradients.prediction.toFixed(3)+' · target 1','loss '+gradients.loss.toFixed(4),'δoutput '+gradients.outputDelta.toFixed(4),'η = 0.5','updated output bias '+updated.outputBias.toFixed(3)];}
   if(m==='m5'){title='M5 · Deep network';lines=[layers+' hidden layers','output '+deep.output.toFixed(3),'Every layer transforms the previous representation.'];}
   if(m==='m6'){title='M6 · Attention · '+TOKENS[query];lines=attn.weights.map((v,i)=>TOKENS[i]+' → '+v.toFixed(3)).concat(['output ['+attn.output.map(v=>v.toFixed(3)).join(', ')+']']);}
-  if(m==='m7'){title='M7 · Heads + position';lines=['Head A and Head B use separate deterministic projections','PE(0) ['+pos[0].map(v=>v.toFixed(3)).join(', ')+']','PE(1) ['+pos[1].map(v=>v.toFixed(3)).join(', ')+']','PE(2) ['+pos[2].map(v=>v.toFixed(3)).join(', ')+']','Reverse order uses the same position vectors on different tokens.'];}
+  if(m==='m7'){title='M7 · Heads + position';lines=['Head A weights ['+multi.heads[0].weights.map(v=>v.toFixed(3)).join(', ')+']','Head B weights ['+multi.heads[1].weights.map(v=>v.toFixed(3)).join(', ')+']','Concatenate → ['+multi.concatenated.map(v=>v.toFixed(3)).join(', ')+']','Project → ['+multi.projected.map(v=>v.toFixed(3)).join(', ')+']','Head A and Head B use separate deterministic projections','PE(0) ['+pos[0].map(v=>v.toFixed(3)).join(', ')+']','PE(1) ['+pos[1].map(v=>v.toFixed(3)).join(', ')+']','PE(2) ['+pos[2].map(v=>v.toFixed(3)).join(', ')+']','Reverse order uses the same position vectors on different tokens.'];}
   if(m==='m8'){title='M8 · Transformer block';lines=['residual ['+block.attentionResidual.map(v=>v.toFixed(3)).join(', ')+']','LayerNorm ['+block.normalizedAttention.map(v=>v.toFixed(3)).join(', ')+']','FFN ['+block.ffnOutput.map(v=>v.toFixed(3)).join(', ')+']','final norm ['+block.output.map(v=>v.toFixed(3)).join(', ')+']'];}
   if(m==='m9'){title='M9 · Token prediction';lines=prediction.probabilities.map((v,i)=>['the','cat','sat','on','mat','runs'][i]+': '+(v*100).toFixed(1)+'%').concat(['predicted token: '+prediction.predictedToken]);}
 
