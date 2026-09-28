@@ -40,7 +40,7 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
         <LearningJourneyTopBar learnerName={data.learnerName} />
 
         {/* Scrollable Page Body */}
-        <main className="xp-learn-main flex-1 min-h-0 flex flex-col justify-start overflow-y-auto px-2.5 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-4 md:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-12 max-w-[1440px] w-full mx-auto box-border"><div className="xp-learn-fit w-full">
+        <main className="xp-learn-main flex-1 min-h-0 flex flex-col justify-start overflow-hidden px-2.5 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-4 md:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-12 max-w-[1440px] w-full mx-auto box-border"><div className="xp-learn-fit w-full">
           {/* Main Hero Landscape Banner with Signpost */}
           <LearningJourneyHero learnerName={data.learnerName} />
 
