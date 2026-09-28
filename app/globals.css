@@ -353,3 +353,9 @@ body {
     margin-left: -15.79%;
   }
 }
+
+@media (min-width: 1024px) and (max-height: 740px) {
+  .xp-classroom > header { height: 44px !important; }
+  .xp-classroom > main { padding-top: 4px !important; padding-bottom: 0 !important; }
+  .xp-classroom > footer { padding-top: 2px !important; padding-bottom: 4px !important; }
+}
