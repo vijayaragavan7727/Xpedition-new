@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { callXiraLesson } from '@/lib/xira/remote';
 import { callAi } from '@/lib/ai';
 import { requireServerAuth } from '@/lib/auth/serverAuth';
 import { resolveLessonRequestIdentity } from '@/lib/concepts/routeConceptResolution';
@@ -42,6 +43,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: true, message: identity.error }, { status: 400 });
     }
     const { conceptId, conceptName, conceptSummary } = identity;
+
+    const remoteLesson = await callXiraLesson({
+      conceptId,
+      conceptName,
+      conceptSummary,
+      language: String(body.language || 'english'),
+      startingLevel: String(body.startingLevel || 'Complete beginner'),
+      masteryPercentage: Number(body.masteryPercentage || 0),
+      isQuickLearn: Boolean(body.isQuickLearn),
+    });
+    if (remoteLesson) {
+      return NextResponse.json({ ...remoteLesson, provider: 'ungalthozhan' });
+    }
     const {
       language = 'english',
       startingLevel = 'Complete beginner',
