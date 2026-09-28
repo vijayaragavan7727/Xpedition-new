@@ -112,7 +112,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
       {/* =========================================================================
           HERO SECTION: GREETING + QUOTE + SCENIC LEARNING WORLD LANDSCAPE
           ========================================================================= */}
-      <section className="relative w-full rounded-[18px] sm:rounded-[22px] overflow-hidden bg-gradient-to-r from-[#FAF8F5] via-[#F4F0E8] to-[#EAE4D7] border border-[#EBE7DF] min-h-[105px] sm:min-h-[155px] flex items-center shadow-sm">
+      <section className="relative xp-home-hero w-full rounded-[18px] sm:rounded-[22px] overflow-hidden bg-gradient-to-r from-[#FAF8F5] via-[#F4F0E8] to-[#EAE4D7] border border-[#EBE7DF] min-h-[105px] sm:min-h-[155px] flex items-center shadow-sm">
         {/* Left Side: Editorial Greeting & Motivational Quote */}
         <div className="relative z-10 p-3.5 sm:p-6 lg:py-5 lg:px-7 max-w-xl">
           <h1 className="font-['Georgia',serif] text-xl sm:text-[28px] lg:text-[32px] font-bold text-slate-900 tracking-tight leading-tight">
@@ -143,7 +143,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
       {/* =========================================================================
           LEARNING CARDS ROW: CONTINUE LEARNING (62%) + NEXT UP (38%)
           ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-4 lg:gap-4.5 items-stretch">
+      <div className="xp-home-learning-row grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-4 lg:gap-4.5 items-stretch">
         {/* CARD 1: CONTINUE LEARNING */}
         <div className="lg:col-span-7 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5.5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-md">
           <div>
@@ -238,7 +238,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
       {/* =========================================================================
           MIDDLE ROW: YOUR PROGRESS (30%) + TODAY'S FOCUS (38%) + YOUR PASSPORTS (32%)
           ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2.5 sm:gap-4 lg:gap-5 items-stretch">
+      <div className="xp-home-middle-row grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2.5 sm:gap-4 lg:gap-5 items-stretch">
         {/* CARD 3: YOUR PROGRESS */}
         <div className="lg:col-span-4 bg-white rounded-[18px] sm:rounded-[20px] p-3.5 sm:p-5 border border-[#EBE7DF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <h3 className="font-sans font-bold text-xs sm:text-base text-slate-900">Your Progress</h3>
@@ -412,7 +412,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = ({ data }) =>
       {/* =========================================================================
           BOTTOM BANNER: EXPLORE THE WORLD (PIXEL-PERFECT ASSET ON DESKTOP, RESPONSIVE ON MOBILE)
           ========================================================================= */}
-      <section className="relative w-full rounded-[18px] sm:rounded-[20px] overflow-hidden border border-[#EBE7DF] shadow-sm hover:shadow-md transition-shadow mb-1 md:mb-0">
+      <section className="xp-home-world-banner relative w-full rounded-[18px] sm:rounded-[20px] overflow-hidden border border-[#EBE7DF] shadow-sm hover:shadow-md transition-shadow mb-1 md:mb-0">
         {/* Desktop / Tablet View (>= 768px): Display complete supplied asset seamlessly */}
         <Link
           href={worldCta.route}
