@@ -319,3 +319,37 @@ body {
   }
   .xp-passport-stamp, .xp-profile-action { transition: none !important; }
 }
+
+/* ---------------------------------------------------------------------------
+   App viewport fit: Home, Learn and Profile
+   Desktop laptop viewports should not create a page-level scrollbar just
+   because the composition is a few pixels taller than the available height.
+   Mobile keeps natural scrolling for accessibility and dense content.
+   --------------------------------------------------------------------------- */
+@media (min-width: 1024px) and (max-height: 820px) {
+  .xp-home-main,
+  .xp-learn-main,
+  .xp-profile-main { overflow: hidden !important; }
+
+  .xp-home-fit,
+  .xp-learn-fit,
+  .xp-profile-fit {
+    transform: scale(.82);
+    transform-origin: top center;
+    width: 121.95%;
+    margin-left: -10.975%;
+  }
+
+  .xp-home-fit,
+  .xp-learn-fit { will-change: transform; }
+}
+
+@media (min-width: 1024px) and (max-height: 740px) {
+  .xp-home-fit,
+  .xp-learn-fit,
+  .xp-profile-fit {
+    transform: scale(.76);
+    width: 131.58%;
+    margin-left: -15.79%;
+  }
+}
