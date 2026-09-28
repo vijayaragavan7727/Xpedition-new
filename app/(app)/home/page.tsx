@@ -79,8 +79,8 @@ export default function HomePage() {
       <HomeDesktopSidebar />
 
       {/* Main Dashboard Canvas Area */}
-      <main className="flex-1 min-h-[100dvh] overflow-y-auto px-3 sm:px-6 md:px-8 lg:px-9 py-2 sm:py-4 lg:py-3.5 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-8 max-w-[1400px] w-full box-border min-w-0">
-        <HomeDashboardView data={dashboardData} />
+      <main className="xp-home-main flex-1 h-[100dvh] min-h-0 overflow-y-auto px-3 sm:px-6 md:px-8 lg:px-9 py-2 sm:py-4 lg:py-3.5 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-8 max-w-[1400px] w-full box-border min-w-0">
+        <div className="xp-home-fit"><HomeDashboardView data={dashboardData} /></div>
       </main>
 
       {/* Mobile Bottom Navigation Bar (< 1024px) */}
