@@ -209,14 +209,14 @@ export default function PassportShareModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 select-none font-sans">
-      <div className="bg-[#120E22] border border-[#00F0FF]/40 w-full max-w-xl rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-scaleUp">
+    <div className="fixed inset-0 z-[80] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 select-none font-sans">
+      <div role="dialog" aria-modal="true" aria-labelledby="passport-share-title" className="bg-[#120E22] border border-[#00F0FF]/40 w-full max-w-xl rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl animate-scaleUp">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-[#00F0FF]" />
-            <h2 className="font-sans font-bold text-lg text-white">
+            <h2 id="passport-share-title" className="font-sans font-bold text-lg text-white">
               Download Skill Passport
             </h2>
           </div>
@@ -224,6 +224,7 @@ export default function PassportShareModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close share dialog"
             className="w-8 h-8 rounded-full bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
