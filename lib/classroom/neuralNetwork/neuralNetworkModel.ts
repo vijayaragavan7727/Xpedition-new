@@ -34,3 +34,22 @@ export function feedForward(v:Vector){const w1:Matrix=[[.8,-.2,.4,.1],[.1,.7,-.3
 export function transformerBlock(v:Vector,a:Vector){const attentionResidual=add(v,a),normalizedAttention=layerNorm(attentionResidual),ffnOutput=feedForward(normalizedAttention),finalResidual=add(normalizedAttention,ffnOutput),output=layerNorm(finalResidual);return{attentionResidual,normalizedAttention,ffnOutput,finalResidual,output};}
 export const TOY_VOCAB=['the','cat','sat','on','mat','runs'];
 export function tokenPrediction(representation:Vector){const logits=TOY_VOCAB.map((_,i)=>representation.reduce((s,x,d)=>s+x*(((i+1)*(d+2))%5-2)/4,0)+(i===4?.35:0)),probabilities=softmax(logits),topIndex=probabilities.indexOf(Math.max(...probabilities));return{logits,probabilities,predictedToken:TOY_VOCAB[topIndex]};}
+
+
+export interface MultiHeadResult {
+  heads: AttentionResult[];
+  concatenated: Vector;
+  projected: Vector;
+}
+export function multiHeadAttention(tokens: Vector[], queryIndex = 2): MultiHeadResult {
+  const headA = attention(tokens, queryIndex, [[1,0,0],[0,1,0]], [[1,0,0],[1,1,0]], [[1,0,0],[0,1,0]]);
+  const headB = attention(tokens, queryIndex, [[0,1,0],[0,0,1]], [[0,1,0],[1,0,1]], [[0,0,1],[1,0,0]]);
+  const concatenated = headA.output.concat(headB.output);
+  const projection = [
+    [0.7,-0.2,0.3,0.1],
+    [0.1,0.6,-0.1,0.4],
+    [0.2,0.1,0.5,-0.3],
+    [-0.2,0.3,0.2,0.7],
+  ];
+  return { heads:[headA,headB], concatenated, projected:matVec(projection,concatenated) };
+}
