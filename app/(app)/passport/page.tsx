@@ -118,7 +118,7 @@ export default function LearnerPassportPage() {
     <div
       ref={fitRef}
       data-testid="learner-passport"
-      className="relative max-w-[1040px] mx-auto flex flex-col font-sans select-none"
+      className="xp-passport-page xp-passport-fit relative max-w-[1040px] mx-auto flex flex-col font-sans select-none"
       style={fit ? { height: fit.height, marginBottom: -fit.pullUp } : undefined}
     >
       {/* Light, luminous paper-room backdrop behind the book, with the quiet
@@ -129,7 +129,7 @@ export default function LearnerPassportPage() {
 
       {/* Title: the passport cover and what this record is */}
       <header className="shrink-0 flex items-center gap-3 mb-2.5 md:mb-3.5">
-        <div className="relative w-[30px] sm:w-[36px] aspect-[168/232] shrink-0 drop-shadow-[0_4px_8px_rgba(40,32,15,0.3)]">
+        <div className="xp-passport-cover relative w-[30px] sm:w-[36px] aspect-[168/232] shrink-0 drop-shadow-[0_4px_8px_rgba(40,32,15,0.3)]"><span className="xp-passport-shimmer" aria-hidden="true" />
           <Image src="/images/passport/cover-front.png" alt="Xpedition passport cover" fill sizes="36px" className="object-contain" priority />
         </div>
         <div className="min-w-0 leading-tight">
@@ -140,7 +140,7 @@ export default function LearnerPassportPage() {
       </header>
 
       <div className="flex-1 min-h-0">
-        <PassportBook view={view} metrics={metrics} onShare={() => setIsShareOpen(true)} />
+        <div className="xp-passport-page-content flex-1 min-h-0"><PassportBook view={view} metrics={metrics} onShare={() => setIsShareOpen(true)} /></div>
       </div>
 
       {/* Portal to <body> so the app shell's navigation never covers the dialog. */}
