@@ -82,12 +82,12 @@ export default function ProfilePage() {
   const goal = storeData.goalText || 'Your Learning Journey';
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden">
+    <div className="xp-profile-page min-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden">
       <HomeDesktopSidebar />
-      <main className="relative isolate flex-1 min-w-0 min-h-[100dvh] overflow-y-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-10">
+      <main className="relative isolate flex-1 min-w-0 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:pb-6">
         {/* Atmosphere in the empty margins, behind the cards */}
         <ExplorerAmbient variant="profile" className="!fixed -z-10" />
-        <div className="max-w-3xl mx-auto space-y-5 pb-12">
+        <div className="xp-profile-fit max-w-3xl mx-auto space-y-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div><p className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#0F5132]">Your account</p><h1 className="mt-1 font-serif text-2xl sm:text-3xl font-black">Profile</h1><p className="mt-1 text-xs sm:text-sm text-slate-500">Keep your learning setup simple and personal.</p></div>
           <Link href="/home" className="text-xs font-semibold text-[#0F5132] hover:underline">Back to Home</Link>
@@ -95,7 +95,7 @@ export default function ProfilePage() {
 
         <section className="rounded-3xl bg-white border border-[#EBE7DF] p-4 sm:p-6 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-[#184E38] text-white flex items-center justify-center text-xl font-black shadow-sm">{initials}</div>
+            <div className="xp-profile-avatar relative w-14 h-14 rounded-full bg-[#184E38] text-white flex items-center justify-center text-xl font-black shadow-sm"><span className="xp-profile-ring absolute -inset-1.5 rounded-full border border-[#9BC9AD]/70 pointer-events-none" aria-hidden="true" />{initials}</div>
             <div className="min-w-0"><h2 className="font-serif font-black text-lg truncate">{name || 'Explorer'}</h2><p className="text-xs text-slate-500 truncate">{goal}</p></div>
           </div>
         </section>
@@ -111,12 +111,12 @@ export default function ProfilePage() {
 
           <div><div className="flex items-center gap-2 mb-2"><GraduationCap className="w-4 h-4 text-[#0F5132]" /><span className="text-xs font-bold">Learning mode</span></div><div className="grid grid-cols-3 gap-2">{(['tutor','read','quest'] as const).map((mode) => <button key={mode} type="button" onClick={() => setLearningMode(mode)} className={`min-h-11 rounded-xl border text-xs font-bold capitalize ${learningMode === mode ? 'bg-[#E3EBE5] border-[#9BC9AD] text-[#0F5132]' : 'bg-[#FAF8F5] border-[#DDD6C8] text-slate-600'}`}>{mode}</button>)}</div></div>
 
-          <div className="flex items-center justify-between gap-3 pt-1"><span className="text-xs text-slate-500">{saved ? 'Saved successfully.' : 'Changes apply to future lessons.'}</span><button type="submit" disabled={saving} className="min-h-11 px-5 rounded-xl bg-[#184E38] text-white text-xs font-bold inline-flex items-center gap-2 disabled:opacity-50">{saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}{saved ? 'Saved' : 'Save changes'}</button></div>
+          <div className="flex items-center justify-between gap-3 pt-1"><span className="text-xs text-slate-500">{saved ? 'Saved successfully.' : 'Changes apply to future lessons.'}</span><button type="submit" disabled={saving} className="xp-profile-action min-h-11 px-5 rounded-xl bg-[#184E38] text-white text-xs font-bold inline-flex items-center gap-2 disabled:opacity-50">{saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}{saved ? 'Saved' : 'Save changes'}</button></div>
         </form>
 
         <section className="rounded-3xl bg-white border border-[#EBE7DF] p-4 sm:p-6 shadow-sm space-y-3">
           <h2 className="font-serif font-black text-base">Account</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><button type="button" onClick={exportData} className="min-h-11 rounded-xl border border-[#DDD6C8] bg-[#FAF8F5] text-xs font-bold text-slate-700 flex items-center justify-center gap-2"><Download className="w-4 h-4" /> Export learning data</button><button type="button" onClick={signOut} className="min-h-11 rounded-xl border border-[#DDD6C8] bg-[#FAF8F5] text-xs font-bold text-slate-700 flex items-center justify-center gap-2"><LogOut className="w-4 h-4" /> Sign out</button></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><button type="button" onClick={exportData} className="xp-profile-action min-h-11 rounded-xl border border-[#DDD6C8] bg-[#FAF8F5] text-xs font-bold text-slate-700 flex items-center justify-center gap-2"><Download className="w-4 h-4" /> Export learning data</button><button type="button" onClick={signOut} className="min-h-11 rounded-xl border border-[#DDD6C8] bg-[#FAF8F5] text-xs font-bold text-slate-700 flex items-center justify-center gap-2"><LogOut className="w-4 h-4" /> Sign out</button></div>
           <button type="button" onClick={() => setShowDanger((value) => !value)} className="text-[11px] text-slate-400 hover:text-rose-600">Account deletion</button>
           {showDanger && <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 space-y-3"><div className="flex items-center gap-2 text-rose-700 text-xs font-bold"><Trash2 className="w-4 h-4" /> Permanently delete your account data</div><input value={deleteText} onChange={(e) => setDeleteText(e.target.value)} placeholder="Type DELETE" className="w-full h-11 rounded-xl border border-rose-200 bg-white px-3 text-sm outline-none" /><button type="button" disabled={deleteText !== 'DELETE' || deleting} onClick={deleteAccount} className="min-h-11 px-4 rounded-xl bg-rose-600 text-white text-xs font-bold disabled:opacity-40">{deleting ? 'Deleting…' : 'Delete account'}</button></div>}
         </section>
