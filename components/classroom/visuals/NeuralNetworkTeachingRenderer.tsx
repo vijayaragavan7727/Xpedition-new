@@ -20,7 +20,6 @@ function mountScene(el: HTMLDivElement, mode: Mode, values: number[]) {
   const renderer = new THREE.WebGLRenderer({antialias:true,alpha:true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   renderer.setSize(Math.max(1,el.clientWidth),Math.max(1,el.clientHeight));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
   el.appendChild(renderer.domElement);
   scene.add(new THREE.AmbientLight(0x8bdcff,1.5));
   const light = new THREE.PointLight(0x60a5fa,28,25); light.position.set(0,3,6); scene.add(light);
@@ -70,7 +69,6 @@ export const NeuralNetworkTeachingRenderer: React.FC<{mode?:string;className?:st
   const deep=useMemo(()=>deepNetworkForward(layers),[layers]);
   const attn=useMemo(()=>attention(V,query,WQ,WK,WV),[query]);\n  const multi=useMemo(()=>multiHeadAttention(V,query),[query]);
   const pos=useMemo(()=>[0,1,2].map(i=>positionalEncoding(i,4)),[]);
-  const reversedPos=useMemo(()=>[2,1,0].map(i=>positionalEncoding(i,4)),[]);
   const block=useMemo(()=>transformerBlock([.2,.4,.1,.3],[.1,.2,.05,.1]),[]);
   const prediction=useMemo(()=>tokenPrediction(block.output),[block.output]);
   const sceneRef=useRef<HTMLDivElement>(null);
