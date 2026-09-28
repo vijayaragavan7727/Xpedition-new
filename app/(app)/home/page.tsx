@@ -74,12 +74,12 @@ export default function HomePage() {
   }, [dashboardData?.continueLearning?.conceptId, dashboardData?.continueLearning?.title, dashboardData?.progress?.percentage, storeData?.learnerProfile]);
 
   return (
-    <div className="xp-home-page relative h-[100dvh] max-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden selection:bg-[#184E38] selection:text-white">
+    <div className="xp-home-page relative min-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden selection:bg-[#184E38] selection:text-white">
       {/* Desktop Left Sidebar (>= 768px) */}
       <HomeDesktopSidebar />
 
       {/* Main Dashboard Canvas Area */}
-      <main className="xp-home-main flex-1 h-[100dvh] min-h-0 overflow-hidden px-3 sm:px-6 md:px-8 lg:px-9 py-2 sm:py-4 lg:py-3.5 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-8 max-w-[1400px] w-full box-border min-w-0">
+      <main className="xp-home-main flex-1 min-h-0 overflow-visible px-3 sm:px-6 md:px-8 lg:px-9 py-2 sm:py-4 lg:py-3.5 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-8 max-w-[1400px] w-full box-border min-w-0">
         <div className="xp-home-fit"><HomeDashboardView data={dashboardData} /></div>
       </main>
 
