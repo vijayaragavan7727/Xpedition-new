@@ -38,7 +38,7 @@ export const LearningJourneyHero: React.FC<LearningJourneyHeroProps> = ({ learne
       </div>
 
       {/* Desktop (>= 640px): Spacious Dynamic Landscape Canvas */}
-      <div className="xp-learn-hero-canvas hidden sm:block relative w-full sm:h-[180px] md:h-[220px] rounded-3xl overflow-hidden border border-[#EBE7DF]/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      <div className="xp-learn-hero-canvas hidden sm:block relative w-full sm:h-[145px] md:h-[160px] rounded-3xl overflow-hidden border border-[#EBE7DF]/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         {/* Soft landscape background */}
         <Image
           src="/images/learning-journey/learning-journey-bg.jpg"
