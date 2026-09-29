@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { ArrowRight, BrainCircuit, CheckCircle2, GitBranch, Maximize2, Play, RotateCcw, X, Zap } from 'lucide-react';
 
