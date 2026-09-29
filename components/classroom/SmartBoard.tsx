@@ -111,12 +111,14 @@ const NeuralReferenceVisual: React.FC<{ stepIndex: number }> = ({ stepIndex }) =
             </div>
 
             {/* The source image is deliberately unchanged. */}
-            <img
-              src={visual.src}
-              alt={visual.alt}
-              className="block h-auto max-h-[min(54vh,600px)] w-full object-contain transition-transform duration-700 hover:scale-[1.015]"
-              draggable={false}
-            />
+            <div className="flex aspect-[16/9] w-full items-center justify-center overflow-hidden bg-white">
+              <img
+                src={visual.src}
+                alt={visual.alt}
+                className="block max-h-full max-w-full object-contain"
+                draggable={false}
+              />
+            </div>
 
             {/* Physical-board style footer, kept separate from the reference image. */}
             <div className="flex items-center justify-between gap-3 border-t border-white/[0.08] bg-[#030916]/95 px-3 py-2">

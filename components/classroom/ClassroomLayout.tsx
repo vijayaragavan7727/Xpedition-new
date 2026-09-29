@@ -14,7 +14,7 @@
 
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, Search, Check, LogOut } from 'lucide-react';
+import { Sparkles, Search, Check, LogOut, BookOpen } from 'lucide-react';
 import type { ClassroomToolType } from './types';
 import { SmartBoard } from './SmartBoard';
 import { BuddyTeacherStage } from './BuddyTeacherStage';
@@ -489,15 +489,38 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
           </div>
 
           {/* Xira: contextual assistance beside the board (desktop). Phones open it as a sheet. */}
-          <div className="order-3 hidden lg:flex min-h-0 flex-col self-start max-h-full">
+          <div className="order-3 hidden lg:flex min-h-0 flex-col self-start max-h-full gap-3 overflow-y-auto pr-0.5">
             <ClassroomXiraAssistant
               context={xiraContext}
               prompts={lesson.xiraPrompts}
               observation={xiraObservation}
               onObservationAction={handleObservationAction}
               onOpenTool={handleOpenTool}
-              className="max-h-full w-full"
+              className="w-full"
             />
+
+            {concept.id === 'neural_network_basics' && (
+              <section
+                data-testid="neural-theory-card"
+                aria-label="Current step theory"
+                className="shrink-0 rounded-[22px] border border-sky-400/20 bg-[#071231]/90 p-3.5 shadow-[0_18px_45px_-26px_rgba(14,165,233,.7)] backdrop-blur-md"
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-sky-400/25 bg-sky-500/10 text-sky-300">
+                    <BookOpen className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-sky-300/80">Theory</p>
+                    <h3 className="truncate text-xs font-black text-white">{step.title}</h3>
+                  </div>
+                </div>
+                <p className="text-[10.5px] leading-relaxed text-slate-300">{step.boardSummary}</p>
+                <div className="mt-2 rounded-xl border border-indigo-400/20 bg-indigo-500/[0.07] px-2.5 py-2">
+                  <p className="text-[9px] font-mono font-bold uppercase tracking-[0.14em] text-indigo-300">Key idea</p>
+                  <p className="mt-0.5 text-[10.5px] leading-relaxed text-slate-200">{step.keyPrinciple}</p>
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </main>
