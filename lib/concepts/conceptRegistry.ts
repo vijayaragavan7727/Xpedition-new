@@ -52,6 +52,7 @@ const EXPLICIT_ALIASES: Record<string, string[]> = {
   calculus_derivatives: ['derivatives'],
   periodic_table: ['periodic_table_of_elements'],
   molecular_bonding: ['covalent_bonding'],
+  neural_network_basics: ['neural_network', 'neural_networks', 'neural-networks'],
 };
 
 /**
