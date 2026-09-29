@@ -110,7 +110,7 @@ function SideSteps({ current }: { current: number }) {
 
 function NeuralHologram({ deep = false }: { deep?: boolean }) {
   return (
-    <div className="relative rounded-[24px] border border-cyan-300/55 bg-[#020814]/85 p-4 sm:p-5 " + glow}>
+    <div className={"relative rounded-[24px] border border-cyan-300/55 bg-[#020814]/85 p-4 sm:p-5 " + glow}>
       <div className="absolute inset-0 rounded-[24px] bg-[radial-gradient(circle_at_center,rgba(14,165,233,.22),transparent_60%)]" />
       <div className="relative">
         <div className="text-center text-sm sm:text-xl font-black text-cyan-50">Neural Network</div>
