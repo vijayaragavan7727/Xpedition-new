@@ -207,6 +207,7 @@ function ExplorerOverlay({ mode, onClose }: { mode: Mode; onClose: () => void })
 export default function NeuralNetworkClassroomScene({ mode = 'm1', className = '' }: { mode?: string; className?: string }) {
   const m = clampMode(mode);
   const [explorerOpen, setExplorerOpen] = useState(false);
+  const [decision, setDecision] = useState<string | null>(null);
   const idx = Math.max(0, TOPICS.findIndex((x) => x[0] === m));
   const topic = TOPICS[idx] ?? TOPICS[0];
   const progress = ((idx + 1) / TOPICS.length) * 100;
@@ -261,7 +262,7 @@ export default function NeuralNetworkClassroomScene({ mode = 'm1', className = '
             <div className="rounded-xl border border-white/15 bg-white/[.05] px-2.5 py-1.5 text-right"><div className="text-[7px] text-slate-500">PATH</div><div className="font-mono text-[10px] text-cyan-100">{idx + 1} / {TOPICS.length}</div></div>
           </div>
           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-3"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 via-indigo-400 to-cyan-300 transition-[width] duration-700" style={{ width: progress + '%' }} /></div>
-          <div className="relative min-h-[430px]">{m === 'q1' && <div className="absolute inset-0 flex items-center justify-center"><DecisionTree selected={null} setSelected={() => {}} /></div>}{m !== 'q1' && <SceneContent mode={m} />}</div>
+          <div className="relative min-h-[430px]">{m === 'q1' && <div className="absolute inset-0 flex items-center justify-center"><DecisionTree selected={decision} setSelected={setDecision} /></div>}{m !== 'q1' && <SceneContent mode={m} />}</div>
         </div>
       </div>
 
