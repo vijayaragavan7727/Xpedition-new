@@ -214,7 +214,9 @@ export default function NeuralNetworkClassroomScene({ mode = 'm1', className = '
 
   const roomStyle = useMemo(() => ({
     backgroundImage:
-      'radial-gradient(circle at 15% 55%, rgba(56,189,248,.16), transparent 28%), radial-gradient(circle at 72% 25%, rgba(124,58,237,.20), transparent 35%), linear-gradient(180deg,#081a39 0%,#020714 72%,#01030a 100%)',
+      "linear-gradient(180deg, rgba(2,8,20,.18), rgba(1,4,12,.72)), radial-gradient(circle at 16% 48%, rgba(56,189,248,.18), transparent 28%), radial-gradient(circle at 76% 24%, rgba(124,58,237,.20), transparent 35%), url('/images/classroom/classroom-interior-clean.png')",
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
   }), []);
 
   return (
