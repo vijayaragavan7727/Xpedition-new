@@ -44,9 +44,17 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
   };
 
   return (
-    <div className="w-full space-y-1.5 sm:space-y-5 select-none">
+    <div className="w-full space-y-1.5 sm:space-y-3 select-none"><style>{`
+        @keyframes xpJourneyNode { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.025); } }
+        @keyframes xpJourneyTrail { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -52; } }
+        .xp-journey-node { animation: xpJourneyNode 3.8s ease-in-out infinite; }
+        .xp-journey-node:nth-child(2n) { animation-delay: .35s; }
+        .xp-journey-node:nth-child(3n) { animation-delay: .7s; }
+        .xp-journey-trail { animation: xpJourneyTrail 8s linear infinite; }
+        @media (prefers-reduced-motion: reduce) { .xp-journey-node, .xp-journey-trail { animation: none; } }
+      `}</style>
       {/* 1. Subject & Pathway Header Card (Section C in reference) */}
-      <div className="w-full rounded-xl sm:rounded-3xl bg-white/95 border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 shadow-xs">
+      <div className="w-full rounded-xl sm:rounded-3xl bg-white/95 border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-3 shadow-xs">
         <div className="flex items-center justify-between gap-2.5 sm:gap-4">
           {/* Left: Physics Icon + Subject Title & Topic */}
           <div className="flex items-center gap-2 sm:gap-3.5">
@@ -112,7 +120,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
       )}
 
       {/* 2. Main Learning Journey Card (Map + Current Lesson) */}
-      <div className="w-full rounded-xl sm:rounded-3xl bg-white/95 border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-5 md:p-6 shadow-xs sm:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] relative select-none">
+      <div className="w-full rounded-xl sm:rounded-3xl bg-white/95 border border-[#EBE7DF] p-2 xs:p-2.5 sm:p-3 md:p-4 shadow-xs sm:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] relative select-none">
         {/* Section Header: Compass + Title */}
         <div className="flex items-center gap-1.5 sm:gap-2 pb-1.5 sm:pb-3 border-b border-[#F0ECE1]">
           <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#E8F5EE] text-[#0F5132] flex items-center justify-center p-0.5 shrink-0">
@@ -130,10 +138,10 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
         </div>
 
         {/* Desktop Grid Layout: Map (Left) + Current Lesson (Right) | Mobile Stack */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-6 pt-1.5 sm:pt-4 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 pt-1.5 sm:pt-2 items-stretch">
           {/* Interactive trail built from the learner's own pathway (all widths; the
               former phone picture had fixed "Completed" statuses painted into it). */}
-          <div className="xp-journey-map flex lg:col-span-7 xl:col-span-8 relative h-[290px] sm:h-[340px] md:min-h-[350px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-3 sm:p-4 flex-col justify-between">
+          <div className="xp-journey-map flex lg:col-span-7 xl:col-span-8 relative h-[230px] sm:h-[255px] md:min-h-[275px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-3 sm:p-4 flex-col justify-between">
             {/* Soft illustrated landscape terrain background */}
             <div className="absolute inset-0 opacity-25 pointer-events-none">
               <Image
@@ -144,7 +152,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
               />
             </div>
 
-            {/* SVG Trail Curve Vector connecting all 12 roadmap nodes */}
+            {/* SVG Trail Curve Vector connecting all 10 roadmap nodes */}
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
               viewBox="0 0 500 400"
@@ -171,7 +179,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeDasharray="6 7"
+                strokeDasharray="6 7" className="xp-journey-trail"
               />
               <g transform="translate(402, 296)">
                 <line x1="0" y1="20" x2="0" y2="0" stroke="#B48332" strokeWidth="2" strokeLinecap="round" />
@@ -179,8 +187,8 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
               </g>
             </svg>
 
-            {/* 12 Roadmap Nodes Positioned on the Trail */}
-            <div className="relative w-full h-full min-h-[260px] sm:min-h-[300px] md:min-h-[320px]">
+            {/* 10 Roadmap Nodes Positioned on the Trail */}
+            <div className="relative w-full h-full min-h-[205px] sm:min-h-[225px] md:min-h-[245px]">
               {data.nodes.map((node) => {
                 const isCompleted = node.status === 'completed';
                 const isCurrent = node.status === 'current';
@@ -200,7 +208,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
                         handleNodeClick(node);
                       }
                     }}
-                    className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5132] focus-visible:ring-offset-2 rounded-full"
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group transition-transform hover:scale-105 xp-journey-node focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5132] focus-visible:ring-offset-2 rounded-full"
                     style={{ left: `${node.coords.x}%`, top: `${node.coords.y}%` }}
                   >
                     {/* Node Badge Avatar */}
