@@ -94,18 +94,14 @@ export function resolveLearningJourneyData(
     ['neural-4', 'Loss Function', 'Measure prediction error'],
     ['neural-5', 'Backpropagation', 'Send gradients backward'],
     ['neural-6', 'Gradient Descent', 'Update the weights'],
-    ['neural-7', 'Deep Networks', 'Stack representations'],
     ['neural-8', 'Tokens & Embeddings', 'Turn language into vectors'],
     ['neural-9', 'Self-Attention', 'Connect useful context'],
     ['neural-10', 'Multi-Head Attention', 'Learn different relationships'],
-    ['neural-11', 'Transformer Block', 'Refine contextual representations'],
-    ['neural-12', 'Next-Token Prediction', 'Choose the next path'],
   ] as const;
 
   const roadmapCoords = [
     { x: 10, y: 18 }, { x: 27, y: 12 }, { x: 45, y: 20 }, { x: 63, y: 13 },
     { x: 82, y: 23 }, { x: 72, y: 40 }, { x: 53, y: 36 }, { x: 33, y: 45 },
-    { x: 15, y: 57 }, { x: 30, y: 70 }, { x: 55, y: 65 }, { x: 81, y: 76 },
   ];
 
   const defaultNodes: JourneyNode[] = roadmapTopics.map(([id, title, subtitle], index) => ({
@@ -114,7 +110,7 @@ export function resolveLearningJourneyData(
     title,
     subtitle,
     status: index === 0 ? 'current' : 'open',
-    estimatedMinutes: index === 11 ? 8 : 4,
+    estimatedMinutes: index === 9 ? 6 : 4,
     description: 'Neural-network roadmap topic ' + (index + 1) + ': ' + title + '.',
     conceptId: 'neural_network_basics',
     iconName: index < 6 ? 'brain' : 'sparkles',
@@ -123,7 +119,7 @@ export function resolveLearningJourneyData(
 
   // ---------------------------------------------------------------------------
   // Everything below reflects the learner's own record. The template path above
-  // is only a layout (8 map positions) and a suggested pathway for learners who
+  // is only a layout (10 compact map positions) and a suggested pathway for learners who
   // have not chosen a goal yet; it never marks anything completed for them.
   // ---------------------------------------------------------------------------
   const store: UserStoreData = storeData ?? {
@@ -145,7 +141,7 @@ export function resolveLearningJourneyData(
 
   const coords = defaultNodes.map((n) => n.coords);
   const masteryPercentage = attempts.length > 0 ? Math.min(100, Math.round(stats.masteryPercentage)) : 0;
-  const completedRoadmapCount = masteryPercentage >= 100 ? 12 : masteryPercentage >= 75 ? 9 : masteryPercentage >= 50 ? 6 : masteryPercentage >= 25 ? 3 : 0;
+  const completedRoadmapCount = masteryPercentage >= 100 ? 10 : masteryPercentage >= 75 ? 8 : masteryPercentage >= 50 ? 5 : masteryPercentage >= 25 ? 2 : 0;
   const nodes: JourneyNode[] = defaultNodes.map((node, index) => ({
     ...node,
     status: index === 0 ? 'current' : index < Math.max(1, completedRoadmapCount + 1) ? 'open' : 'locked',
@@ -184,11 +180,11 @@ export function resolveLearningJourneyData(
     currentLesson: {
       conceptId: current.conceptId,
       title: 'Neural Networks',
-      conceptNumberLabel: 'Concept 1 of 12',
+      conceptNumberLabel: 'Concept 1 of 10',
       estimatedMinutes: template?.estimatedMinutes ?? (home.mission.estimatedMinutes || 8),
       description:
         template?.description ??
-        'Build neural-network intuition from one neuron through attention, transformers, and next-token prediction.',
+        'Build neural-network intuition from one neuron through attention and transformer blocks.',
       imageSrc: resolveConceptVisual('neural_network_basics', 'Artificial Intelligence'),
       route: `/class?concept=${encodeURIComponent(current.conceptId)}`,
     },
