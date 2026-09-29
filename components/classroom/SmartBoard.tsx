@@ -352,7 +352,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
             height (flex-none), so the visual can never be painted over the
             theory or the check. */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 xl:gap-4 items-start flex-none">
-          {teach && concept.id !== 'neural_network_basics' ? (
+          {teach ? (
             <div className={`order-2 md:order-1 min-w-0 ${wideVisual ? 'md:col-span-12' : 'md:col-span-5'}`}>
               <BoardTeaching
                 stepId={step.id}
@@ -365,7 +365,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
             </div>
           ) : null}
           <div className={`order-1 md:order-2 ${teach && !wideVisual ? 'md:col-span-7' : 'md:col-span-12'} min-w-0 flex flex-col gap-1.5`}>
-            {teach?.observe && concept.id !== 'neural_network_basics' && (
+            {teach?.observe && (
               <p data-testid="visual-observe" className="flex items-start gap-1.5 text-[11.5px] sm:text-xs text-slate-300">
                 <Eye className="w-3.5 h-3.5 mt-0.5 text-sky-300 shrink-0" aria-hidden="true" />
                 <span>
@@ -443,7 +443,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                   </div>
                 </div>
               )}
-                {concept.id !== 'neural_network_basics' && howPoints.length > 0 && (
+                {howPoints.length > 0 && (
                   <div className="px-4 sm:px-5 py-4 bg-white border-t border-slate-100">
                     <div className="flex items-center gap-2 mb-3"><span className="text-violet-600">💡</span><span className="text-sm font-black text-[#182B8C]">What to notice</span></div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
@@ -500,7 +500,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
             Commit to an answer below. The key idea appears after your first attempt.
           </div>
         )}
-        {concept.id !== 'neural_network_basics' && showKeyPrinciple && (teach?.takeaway || step.keyPrinciple) && (
+        {showKeyPrinciple && (teach?.takeaway || step.keyPrinciple) && (
           <div data-testid="key-principle" className="shrink-0 flex items-start gap-2.5 px-3 py-2.5 rounded-2xl bg-amber-500/[0.07] border border-amber-400/30">
             <Lightbulb className="w-4 h-4 mt-0.5 text-amber-300 shrink-0" aria-hidden="true" />
             <p className="font-sans text-[12.5px] sm:text-[13px] text-slate-100 leading-relaxed whitespace-pre-line">
@@ -511,7 +511,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
         )}
 
         {/* 4. Learner action: Try This + hands-on board activity */}
-        {concept.id !== 'neural_network_basics' && (step.tryThis || activityKind) && (
+        {(step.tryThis || activityKind) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 shrink-0">
             {step.tryThis && (
               <div data-testid="try-this" className={`p-3 rounded-2xl bg-[#080E24]/90 border border-sky-500/25 space-y-1 ${activityKind ? '' : 'md:col-span-2'}`}>
