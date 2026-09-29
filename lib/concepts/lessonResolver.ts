@@ -36,6 +36,12 @@ export function resolveClassLesson(rawConceptId: unknown, rawIntent?: unknown): 
   const intent = parseClassIntent(rawIntent);
   const normalizedId = normalizeConceptId(rawConceptId);
 
+  // The current product slice is intentionally focused on the Neural Networks
+  // flagship. Legacy curriculum ids must not surface as Class lessons.
+  if (normalizedId && normalizedId !== 'neural_network_basics') {
+    return { status: 'unavailable', requestedConceptId, normalizedId, reason: 'unknown_concept', intent };
+  }
+
   if (!requestedConceptId.trim()) {
     return { status: 'unavailable', requestedConceptId, normalizedId: '', reason: 'empty_id', intent };
   }
