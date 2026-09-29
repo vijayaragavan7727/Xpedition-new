@@ -30,7 +30,7 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
   }, [initialSearch]);
 
   return (
-    <div className="xp-learn-page relative min-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-x-hidden selection:bg-[#0F5132] selection:text-white">
+    <div className="xp-learn-page relative h-[100dvh] max-h-[100dvh] w-full bg-[#FAF8F5] text-slate-900 flex flex-col md:flex-row overflow-hidden selection:bg-[#0F5132] selection:text-white">
       {/* 1. Desktop Left Sidebar (>= 768px) */}
       <HomeDesktopSidebar />
 
@@ -40,7 +40,7 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
         <LearningJourneyTopBar learnerName={data.learnerName} />
 
         {/* Scrollable Page Body */}
-        <main className="xp-learn-main flex-1 min-h-0 flex flex-col justify-start overflow-visible px-2.5 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-4 md:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-12 max-w-[1440px] w-full mx-auto box-border"><div className="xp-learn-fit w-full">
+        <main className="xp-learn-main flex-1 min-h-0 flex flex-col justify-start overflow-hidden px-2.5 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-4 md:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-12 max-w-[1440px] w-full mx-auto box-border"><div className="xp-learn-fit w-full">
           {/* Main Hero Landscape Banner with Signpost */}
           <LearningJourneyHero learnerName={data.learnerName} />
 
@@ -97,8 +97,8 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
                     onExploreTopics={() => setActiveTab('explore')}
                   />
 
-                  {/* Topic Explorer Launcher Banner */}
-                  <div className="w-full rounded-2xl bg-gradient-to-r from-[#EBF5EE] via-white to-[#F9F7F2] border border-[#C5E6D2] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* Topic Explorer Launcher Banner — hidden on the desktop fit canvas; available through Explore Topics. */}
+                  <div className="hidden md:flex w-full rounded-2xl bg-gradient-to-r from-[#EBF5EE] via-white to-[#F9F7F2] border border-[#C5E6D2] p-4 sm:p-5 shadow-xs flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#0F5132]">
                         <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -135,7 +135,7 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
               </div>
 
               {/* Lower Section: Large Buddy Companion (Desktop only) */}
-              <div className="hidden md:block mt-6">
+              <div className="hidden xl:block mt-6">
                 <LearningJourneyCompanion />
               </div>
             </>
