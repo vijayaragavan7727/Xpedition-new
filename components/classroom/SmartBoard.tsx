@@ -88,28 +88,59 @@ const NeuralReferenceVisual: React.FC<{ stepIndex: number }> = ({ stepIndex }) =
 
   return (
     <>
-      <div className="relative w-full overflow-hidden rounded-[24px] bg-[#020714]">
-        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-[#020714]/30 via-transparent to-transparent" />
-        <div
-          className="pointer-events-none absolute inset-y-0 -left-1/3 z-20 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-18deg]"
-          style={{ animation: 'xpTeachShimmer 6s ease-in-out infinite' }}
-        />
-        <img
-          src={visual.src}
-          alt={visual.alt}
-          className="block h-auto max-h-[min(54vh,600px)] w-full object-contain transition-transform duration-700 hover:scale-[1.015]"
-          draggable={false}
-        />
-        <div className="absolute left-3 top-3 z-30 rounded-xl border border-cyan-300/30 bg-[#020714]/75 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[.16em] text-cyan-100 backdrop-blur-xl">
-          Reference visual · {stepIndex + 1}/10
+      <div className="relative w-full overflow-visible rounded-[30px] px-1.5 py-1">
+        {/* Ambient depth belongs to the presentation layer; the reference artwork below is untouched. */}
+        <div aria-hidden="true" className="pointer-events-none absolute -inset-3 rounded-[34px] bg-cyan-400/[0.07] blur-2xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -inset-px rounded-[30px] bg-gradient-to-br from-cyan-300/20 via-white/[0.05] to-indigo-400/20" />
+
+        <div className="relative overflow-hidden rounded-[28px] border border-white/15 bg-[#07101f]/95 p-2 shadow-[0_28px_70px_-32px_rgba(8,145,178,.55),inset_0_1px_0_rgba(255,255,255,.10)]">
+          {/* Premium display frame / bezel */}
+          <div className="pointer-events-none absolute inset-0 rounded-[28px] ring-1 ring-cyan-200/10" />
+          <div aria-hidden="true" className="pointer-events-none absolute left-4 right-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
+
+          <div className="relative overflow-hidden rounded-[22px] bg-[#020714]">
+            {/* Small context HUD — outside the artwork itself */}
+            <div className="absolute left-3 right-3 top-3 z-30 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 rounded-xl border border-cyan-200/20 bg-[#020714]/80 px-2.5 py-1.5 backdrop-blur-xl shadow-lg">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,.8)]" />
+                <span className="text-[9px] font-black uppercase tracking-[.16em] text-cyan-100">Reference visual</span>
+              </div>
+              <div className="rounded-xl border border-white/15 bg-[#020714]/80 px-2.5 py-1.5 text-[9px] font-black tracking-[.12em] text-white/80 backdrop-blur-xl">
+                {String(stepIndex + 1).padStart(2, '0')} / {String(NEURAL_REFERENCE_VISUALS.length).padStart(2, '0')}
+              </div>
+            </div>
+
+            {/* The source image is deliberately unchanged. */}
+            <img
+              src={visual.src}
+              alt={visual.alt}
+              className="block h-auto max-h-[min(54vh,600px)] w-full object-contain transition-transform duration-700 hover:scale-[1.015]"
+              draggable={false}
+            />
+
+            {/* Physical-board style footer, kept separate from the reference image. */}
+            <div className="flex items-center justify-between gap-3 border-t border-white/[0.08] bg-[#030916]/95 px-3 py-2">
+              <div className="min-w-0">
+                <div className="text-[8px] font-black uppercase tracking-[.18em] text-cyan-300/70">Neural Networks · Teaching Board</div>
+                <div className="mt-0.5 truncate text-[10px] font-semibold text-white/80">{visual.alt.replace(' reference visual', '')}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="shrink-0 rounded-xl border border-cyan-300/25 bg-cyan-400/[0.08] px-3 py-2 text-[9px] font-black uppercase tracking-[.08em] text-cyan-100 backdrop-blur-xl transition hover:bg-cyan-400/[0.15] cursor-pointer"
+              >
+                Explore →
+              </button>
+            </div>
+          </div>
+
+          {/* Tiny board status lights add physical depth without touching the artwork. */}
+          <div aria-hidden="true" className="pointer-events-none absolute bottom-2.5 left-5 flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-300/70 shadow-[0_0_8px_rgba(103,232,249,.65)]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white/10" />
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className="absolute bottom-3 right-3 z-30 rounded-xl border border-white/20 bg-[#020714]/80 px-3 py-2 text-[9px] font-black text-white backdrop-blur-xl transition hover:bg-[#020714] cursor-pointer"
-        >
-          Explore the visual →
-        </button>
       </div>
 
       {expanded && (
