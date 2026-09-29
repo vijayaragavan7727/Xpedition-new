@@ -46,7 +46,7 @@ const PremiumPage = () => {
 
           <div className="mt-8 grid w-full max-w-[1080px] grid-cols-1 gap-5 lg:grid-cols-2">
             <Link
-              href="/experience?mode=career"
+              href="/experience"
               className="group relative min-h-[320px] overflow-hidden rounded-[32px] border border-white/90 bg-white/70 p-7 text-left shadow-[0_20px_60px_rgba(72,95,74,.12)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1"
             >
               <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-[#DDEFD9]/70 blur-2xl" />
