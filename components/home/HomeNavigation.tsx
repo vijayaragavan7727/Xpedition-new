@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, Globe, Award, User } from 'lucide-react';
+import { Home, BookOpen, Globe, Award, User, Crown } from 'lucide-react';
 import { XpeditionLogo } from '@/components/XpeditionLogo';
 
 export interface NavItem {
@@ -21,6 +21,7 @@ export const HOME_PRIMARY_NAV_ITEMS: NavItem[] = [
   { label: 'World', href: '/world', icon: Globe, matchPrefixes: ['/world'] },
   { label: 'Passports', href: '/passport', icon: Award, matchPrefixes: ['/passport'] },
   { label: 'Profile', href: '/profile', icon: User, matchPrefixes: ['/profile'] },
+  { label: 'Premium', href: '/premium', icon: Crown, matchPrefixes: ['/premium'] },
 ];
 
 export const HomeDesktopSidebar: React.FC = () => {
