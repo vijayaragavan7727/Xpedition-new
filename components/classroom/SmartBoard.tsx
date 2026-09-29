@@ -352,7 +352,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
             theory or the check. */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 xl:gap-4 items-start flex-none">
           {teach ? (
-            <div className={`order-2 md:order-1 min-w-0 ${wideVisual ? 'md:col-span-12' : 'md:col-span-5'}`}>
+            <div className={`order-2 md:order-1 min-w-0 ${concept.id === 'neural_network_basics' ? 'hidden' : (wideVisual ? 'md:col-span-12' : 'md:col-span-5')}`}>
               <BoardTeaching
                 stepId={step.id}
                 teach={teach}
@@ -363,8 +363,8 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
               />
             </div>
           ) : null}
-          <div className={`order-1 md:order-2 ${teach && !wideVisual ? 'md:col-span-7' : 'md:col-span-12'} min-w-0 flex flex-col gap-1.5`}>
-            {teach?.observe && (
+          <div className={`order-1 md:order-2 ${concept.id === 'neural_network_basics' ? 'md:col-span-12' : (teach && !wideVisual ? 'md:col-span-7' : 'md:col-span-12')} min-w-0 flex flex-col gap-1.5`}>
+            {concept.id !== 'neural_network_basics' && teach?.observe && (
               <p data-testid="visual-observe" className="flex items-start gap-1.5 text-[11.5px] sm:text-xs text-slate-300">
                 <Eye className="w-3.5 h-3.5 mt-0.5 text-sky-300 shrink-0" aria-hidden="true" />
                 <span>
@@ -398,22 +398,22 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                   </div>
                   <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-400 transition-[width] duration-700" style={{ width: `${Math.max(8, ((stepIndex + 1) / Math.max(totalSteps, 1)) * 100)}%` }} /></div>
                 </div>
-                <div className="relative min-h-[390px] sm:min-h-[430px] lg:min-h-[470px] overflow-hidden bg-[radial-gradient(circle_at_78%_44%,#d9f8ff_0%,#edf4ff_27%,#f7f5ff_55%,#fff_100%)]">
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,.9)_0%,transparent_30%,rgba(89,72,190,.06)_100%)]" />
-                  <div className="absolute -right-24 -top-28 w-80 h-80 rounded-full bg-cyan-300/20 blur-3xl" />
-                  <div className="absolute -left-24 bottom-0 w-96 h-72 rounded-full bg-violet-300/20 blur-3xl" />
-                  <div className="absolute right-[5%] sm:right-[8%] top-[18%] w-[56%] sm:w-[52%] h-[58%] rounded-[34px] bg-gradient-to-br from-white/90 via-indigo-50/70 to-cyan-50/60 border border-white shadow-[0_30px_60px_-30px_rgba(67,56,202,.45)] [transform:perspective(900px)_rotateY(-5deg)_rotateX(2deg)]" />
-                  <div className="absolute right-[9%] sm:right-[12%] top-[22%] w-[48%] sm:w-[44%] h-[49%] rounded-[28px] border border-cyan-300/60 bg-slate-950/5 shadow-[inset_0_0_35px_rgba(56,189,248,.12)] overflow-hidden">
+                <div className={`relative min-h-[390px] sm:min-h-[430px] lg:min-h-[470px] overflow-hidden ${concept.id === 'neural_network_basics' ? '!min-h-[560px] sm:!min-h-[620px] !bg-[#020714]' : 'bg-[radial-gradient(circle_at_78%_44%,#d9f8ff_0%,#edf4ff_27%,#f7f5ff_55%,#fff_100%)]'}`}>
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,.9)_0%,transparent_30%,rgba(89,72,190,.06)_100%)]'} />
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute -right-24 -top-28 w-80 h-80 rounded-full bg-cyan-300/20 blur-3xl'} />
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute -left-24 bottom-0 w-96 h-72 rounded-full bg-violet-300/20 blur-3xl'} />
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute right-[5%] sm:right-[8%] top-[18%] w-[56%] sm:w-[52%] h-[58%] rounded-[34px] bg-gradient-to-br from-white/90 via-indigo-50/70 to-cyan-50/60 border border-white shadow-[0_30px_60px_-30px_rgba(67,56,202,.45)] [transform:perspective(900px)_rotateY(-5deg)_rotateX(2deg)]'} />
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute right-[9%] sm:right-[12%] top-[22%] w-[48%] sm:w-[44%] h-[49%] rounded-[28px] border border-cyan-300/60 bg-slate-950/5 shadow-[inset_0_0_35px_rgba(56,189,248,.12)] overflow-hidden'}>
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,.18),transparent_60%)]" />
                     <div className="absolute left-1/2 top-1/2 w-36 h-36 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/50 xp-teach-spin" />
                     <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-violet-400/50 xp-teach-spin" style={{ animationDirection: 'reverse', animationDuration: '11s' }} />
                   </div>
-                  <div className="absolute z-10 right-[2%] sm:right-[6%] top-[13%] w-[65%] sm:w-[58%] h-[65%] flex items-center justify-center">
+                  <div className={concept.id === 'neural_network_basics' ? 'absolute z-10 inset-0 w-full h-full flex items-center justify-center' : 'absolute z-10 right-[2%] sm:right-[6%] top-[13%] w-[65%] sm:w-[58%] h-[65%] flex items-center justify-center'}>
                     <div className="w-full h-full drop-shadow-[0_20px_35px_rgba(30,41,59,.22)]">
                       <SmartBoardVisualRenderer payload={visualPayload} activeConceptId={concept.id} isRotating={isRotating} onToggleRotation={handleToggleRotation} onHotspotClick={handleHotspotClick} onActivity={handleActivity} focus={visualFocus} className="!h-full !min-h-0" />
                     </div>
                   </div>
-                  <div className="absolute z-20 left-[3%] sm:left-[6%] bottom-[7%] w-[46%] sm:w-[39%]">
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-20 left-[3%] sm:left-[6%] bottom-[7%] w-[46%] sm:w-[39%]'}>
                     <div className="relative ml-1 sm:ml-3 mb-2 sm:mb-3 max-w-[300px] rounded-[22px] rounded-bl-[8px] bg-white/95 border border-indigo-100 px-4 py-3 shadow-[0_15px_35px_-18px_rgba(67,56,202,.45)]">
                       <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-r border-b border-indigo-100 rotate-45" />
                       <div className="flex items-start gap-2"><span className="w-4 h-4 mt-0.5 text-violet-600 shrink-0 text-xs">🔊</span><p className="text-[11px] sm:text-[13px] leading-[1.45] font-semibold text-[#26348F]">{step.buddyDialogue}</p></div>
@@ -423,19 +423,19 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                       <img src="/images/robot.png" alt="Buddy teaching robot" className="absolute inset-0 w-full h-full object-contain drop-shadow-[0_20px_25px_rgba(30,41,59,.22)]" />
                     </div>
                   </div>
-                  <div className="absolute z-30 left-[3%] sm:left-[7%] top-[9%] xp-teach-float">
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-30 left-[3%] sm:left-[7%] top-[9%] xp-teach-float'}>
                     <div className="flex items-center gap-2 rounded-2xl bg-white/90 border border-violet-100 px-3 py-2 shadow-[0_14px_30px_-18px_rgba(67,56,202,.55)] [transform:perspective(500px)_rotateX(8deg)_rotateY(-8deg)]"><span className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shadow-lg text-xs font-black">✦</span><span className="text-[10px] sm:text-xs font-bold text-indigo-800">Learn by seeing</span></div>
                   </div>
-                  <div className="absolute z-30 right-[5%] sm:right-[9%] top-[8%] xp-teach-float" style={{ animationDelay: '1.1s' }}>
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-30 right-[5%] sm:right-[9%] top-[8%] xp-teach-float'} style={{ animationDelay: '1.1s' }}>
                     <div className="rounded-2xl bg-[#172A8A] text-white px-3 py-2 shadow-[0_14px_35px_-16px_rgba(23,42,138,.65)] [transform:perspective(500px)_rotateX(7deg)_rotateY(8deg)]"><div className="text-[9px] uppercase tracking-[.18em] text-cyan-200">Focus</div><div className="text-[11px] font-bold max-w-[140px] truncate">{teach?.observe || step.title}</div></div>
                   </div>
-                  <div className="absolute z-40 inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" style={{ animation: 'xpTeachShimmer 5.5s ease-in-out infinite' }} />
-                  <div className="absolute z-40 left-4 right-4 bottom-4 flex items-center justify-between gap-3">
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-40 inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none'} style={{ animation: 'xpTeachShimmer 5.5s ease-in-out infinite' }} />
+                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-40 left-4 right-4 bottom-4 flex items-center justify-between gap-3'}>
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] sm:text-xs text-slate-600 font-semibold"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />Interactive visual active</div>
                     <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] text-slate-500"><span className="text-violet-600">▶</span> Explore the visual <span className="text-violet-600">→</span></div>
                   </div>
                 </div>
-                {howPoints.length > 0 && (
+                {concept.id !== 'neural_network_basics' && howPoints.length > 0 && (
                   <div className="px-4 sm:px-5 py-4 bg-white border-t border-slate-100">
                     <div className="flex items-center gap-2 mb-3"><span className="text-violet-600">💡</span><span className="text-sm font-black text-[#182B8C]">What to notice</span></div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
@@ -492,7 +492,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
             Commit to an answer below. The key idea appears after your first attempt.
           </div>
         )}
-        {showKeyPrinciple && (teach?.takeaway || step.keyPrinciple) && (
+        {concept.id !== 'neural_network_basics' && showKeyPrinciple && (teach?.takeaway || step.keyPrinciple) && (
           <div data-testid="key-principle" className="shrink-0 flex items-start gap-2.5 px-3 py-2.5 rounded-2xl bg-amber-500/[0.07] border border-amber-400/30">
             <Lightbulb className="w-4 h-4 mt-0.5 text-amber-300 shrink-0" aria-hidden="true" />
             <p className="font-sans text-[12.5px] sm:text-[13px] text-slate-100 leading-relaxed whitespace-pre-line">
@@ -503,7 +503,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
         )}
 
         {/* 4. Learner action: Try This + hands-on board activity */}
-        {(step.tryThis || activityKind) && (
+        {concept.id !== 'neural_network_basics' && (step.tryThis || activityKind) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 shrink-0">
             {step.tryThis && (
               <div data-testid="try-this" className={`p-3 rounded-2xl bg-[#080E24]/90 border border-sky-500/25 space-y-1 ${activityKind ? '' : 'md:col-span-2'}`}>
