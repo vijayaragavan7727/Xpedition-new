@@ -35,11 +35,15 @@ export function resolveClassLesson(rawConceptId: unknown, rawIntent?: unknown): 
   const requestedConceptId = typeof rawConceptId === 'string' ? rawConceptId : '';
   const intent = parseClassIntent(rawIntent);
   const normalizedId = normalizeConceptId(rawConceptId);
+  const canonicalNeuralId =
+    normalizedId === 'neural_network_basics' || normalizedId.startsWith('neural_network_')
+      ? 'neural_network_basics'
+      : normalizedId;
 
   // The current product slice is intentionally focused on the Neural Networks
   // flagship. Legacy curriculum ids must not surface as Class lessons.
-  if (normalizedId && normalizedId !== 'neural_network_basics' && !normalizedId.startsWith('neural_network_')) {
-    return { status: 'unavailable', requestedConceptId, normalizedId, reason: 'unknown_concept', intent };
+  if (normalizedId && canonicalNeuralId !== 'neural_network_basics') {
+    return { status: 'unavailable', requestedConceptId, normalizedId: canonicalNeuralId, reason: 'unknown_concept', intent };
   }
 
   if (!requestedConceptId.trim()) {
@@ -49,9 +53,9 @@ export function resolveClassLesson(rawConceptId: unknown, rawIntent?: unknown): 
     return { status: 'unavailable', requestedConceptId, normalizedId: '', reason: 'invalid_id', intent };
   }
 
-  const match = lookupConcept(normalizedId);
+  const match = lookupConcept(canonicalNeuralId);
   if (match && !match.concept.hasClassLesson) {
-    return { status: 'unavailable', requestedConceptId, normalizedId, reason: 'no_class_lesson', intent };
+    return { status: 'unavailable', requestedConceptId, normalizedId: canonicalNeuralId, reason: 'no_class_lesson', intent };
   }
   const lesson = match ? getLessonForCanonicalId(match.concept.id) : null;
   if (!match || !lesson) {
