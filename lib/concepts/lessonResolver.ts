@@ -38,7 +38,7 @@ export function resolveClassLesson(rawConceptId: unknown, rawIntent?: unknown): 
 
   // The current product slice is intentionally focused on the Neural Networks
   // flagship. Legacy curriculum ids must not surface as Class lessons.
-  if (normalizedId && !['neural_network_basics', 'neural_network', 'neural_networks'].includes(normalizedId)) {
+  if (normalizedId && normalizedId !== 'neural_network_basics' && !normalizedId.startsWith('neural_network_')) {
     return { status: 'unavailable', requestedConceptId, normalizedId, reason: 'unknown_concept', intent };
   }
 
