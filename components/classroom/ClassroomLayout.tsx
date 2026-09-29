@@ -442,8 +442,8 @@ export const ClassroomLayout: React.FC<ClassroomLayoutProps> = ({
       </header>
 
       {/* Classroom stage: Buddy · Smart Board · Xira */}
-      <main className="relative z-10 flex-1 min-h-0 w-full mx-auto px-2 sm:px-3 lg:px-4 2xl:px-6 pt-1.5 lg:pt-2 pb-0.5">
-        <div className="h-full min-h-0 grid grid-cols-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-rows-1 lg:grid-cols-[minmax(190px,18%)_minmax(0,1fr)_minmax(230px,18%)] gap-2 lg:gap-3 xl:gap-4 2xl:gap-5">
+      <main className="relative z-10 flex-1 min-h-0 w-full mx-auto px-2 sm:px-3 lg:px-4 2xl:px-6 pt-1 lg:pt-1.5 pb-0 overflow-hidden">
+        <div className="h-full min-h-0 overflow-hidden grid grid-cols-1 grid-rows-[minmax(0,1fr)_auto] lg:grid-rows-1 lg:grid-cols-[minmax(190px,18%)_minmax(0,1fr)_minmax(230px,18%)] gap-2 lg:gap-3 xl:gap-4 2xl:gap-5">
           {/* Buddy: standing beside the board (desktop) / on the strip under it (phones). */}
           <div
             data-testid="buddy-column"
