@@ -8,6 +8,21 @@ type Mode =
   | 'm1' | 'm2' | 'm3' | 'm4' | 'm5' | 'm6'
   | 'm7' | 'm8' | 'm9' | 'm10' | 'm11' | 'q1';
 
+const REFERENCE_VISUALS: Record<Mode, { src: string; alt: string }> = {
+  m1: { src: '/images/neural-network/step-01-one-neuron.png', alt: 'One neuron real-world 3D teaching visual' },
+  m2: { src: '/images/neural-network/step-02-activation-functions.png', alt: 'Activation functions real-world 3D teaching visual' },
+  m3: { src: '/images/neural-network/step-03-forward-propagation.png', alt: 'Forward propagation real-world 3D teaching visual' },
+  m4: { src: '/images/neural-network/step-04-loss-function.png', alt: 'Loss function real-world 3D teaching visual' },
+  m5: { src: '/images/neural-network/step-05-backpropagation.png', alt: 'Backpropagation real-world 3D teaching visual' },
+  m6: { src: '/images/neural-network/step-06-gradient-descent.png', alt: 'Gradient descent real-world 3D teaching visual' },
+  m7: { src: '/images/neural-network/step-07-deep-networks.png', alt: 'Deep neural networks real-world 3D teaching visual' },
+  m8: { src: '/images/neural-network/step-08-tokens-embeddings.png', alt: 'Tokens and embeddings real-world 3D teaching visual' },
+  m9: { src: '/images/neural-network/step-09-self-attention.png', alt: 'Self attention real-world 3D teaching visual' },
+  m10: { src: '/images/neural-network/step-10-multi-head-position.png', alt: 'Multi-head attention and position real-world 3D teaching visual' },
+  m11: { src: '/images/neural-network/step-11-transformer-block.png', alt: 'Transformer block real-world 3D teaching visual' },
+  q1: { src: '/images/neural-network/step-12-decision-tree.png', alt: 'Neural network decision tree real-world 3D teaching visual' },
+};
+
 const TOPICS = [
   ['m1','M1 · ONE NEURON','Inputs → weights → bias → activation'],
   ['m2','M2 · ACTIVATION FUNCTIONS','Turn a weighted signal into a useful output'],
@@ -183,6 +198,43 @@ function SceneContent({ mode }: { mode: Mode }) {
   return <HoloCard><TopicHeader kicker="M11 · TRANSFORMER BLOCK" title="Inside One Transformer Block" subtitle="Attention mixes context; residuals preserve the stream; normalization stabilizes it; FFN refines each position." /><div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-center">{['Attention','Residual','Norm','FFN','Norm'].map((x, i) => <React.Fragment key={x}>{i > 0 && <ArrowRight className="hidden sm:block h-4 w-4 text-cyan-300" />}<div className="rounded-2xl border border-cyan-300/25 bg-cyan-400/[.05] p-3 text-center"><div className="text-[8px] font-black">{x}</div><div className="mx-auto mt-3 h-7 w-7 rounded-full bg-gradient-to-br from-cyan-200 to-indigo-600 shadow-[0_0_18px_rgba(34,211,238,.6)]" /></div></React.Fragment>)}</div><div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3 text-center text-[8px] text-slate-400">Context → stable residual stream → refined representation → next-token scores.</div></HoloCard>;
 }
 
+function ReferenceTeachingVisual({ mode }: { mode: Mode }) {
+  const visual = REFERENCE_VISUALS[mode];
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [mode]);
+
+  if (failed) return <SceneContent mode={mode} />;
+
+  return (
+    <div className="relative h-full min-h-[430px] w-full overflow-hidden rounded-[26px] border border-cyan-300/30 bg-[#020714] shadow-[0_24px_70px_rgba(0,0,0,.55)]">
+      <Image
+        src={visual.src}
+        alt={visual.alt}
+        fill
+        sizes="(max-width: 768px) 100vw, 900px"
+        className="object-contain"
+        onError={() => setFailed(true)}
+        priority
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#020714]/35 via-transparent to-transparent" />
+      <div className="absolute left-3 top-3 rounded-xl border border-cyan-300/25 bg-[#020714]/75 px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[.16em] text-cyan-100 backdrop-blur-xl">
+        Teaching visual · {TOPICS.findIndex((x) => x[0] === mode) + 1}/12
+      </div>
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-3">
+        <div className="rounded-xl border border-white/10 bg-[#020714]/72 px-3 py-2 text-[9px] font-semibold text-white backdrop-blur-xl">
+          {TOPICS.find((x) => x[0] === mode)?.[2]}
+        </div>
+        <div className="hidden sm:block rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-3 py-2 text-[8px] font-black uppercase tracking-wider text-emerald-200 backdrop-blur-xl">
+          Reference visual loaded
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ExplorerOverlay({ mode, onClose }: { mode: Mode; onClose: () => void }) {
   const topic = TOPICS.find((x) => x[0] === mode) ?? TOPICS[0];
   return (
@@ -274,7 +326,7 @@ export default function NeuralNetworkClassroomScene({ mode = 'm1', className = '
             <div className="rounded-xl border border-white/15 bg-white/[.05] px-2.5 py-1.5 text-right"><div className="text-[7px] text-slate-500">PATH</div><div className="font-mono text-[10px] text-cyan-100">{idx + 1} / {TOPICS.length}</div></div>
           </div>
           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-3"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 via-indigo-400 to-cyan-300 transition-[width] duration-700" style={{ width: progress + '%' }} /></div>
-          <div className="relative min-h-[430px]">{m === 'q1' && <div className="absolute inset-0 flex items-center justify-center"><DecisionTree selected={decision} setSelected={setDecision} /></div>}{m !== 'q1' && <SceneContent mode={m} />}</div>
+          <div className="relative min-h-[430px]"><ReferenceTeachingVisual mode={m} /></div>
         </div>
       </div>
 
