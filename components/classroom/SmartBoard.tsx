@@ -25,6 +25,7 @@ import { REVEAL_AFTER_ATTEMPTS } from '@/lib/classroom/classRuntime';
 import { orderOptions } from '@/lib/classroom/optionOrder';
 import { StickyNote } from '@/components/learning-objects';
 import { SmartBoardVisualRenderer } from './SmartBoardVisualRenderer';
+import NeuralNetworkClassroomScene from './visuals/NeuralNetworkClassroomScene';
 import { BoardTeaching, useTeachingState } from './BoardTeaching';
 import { buildStepVisualPayload } from '@/lib/classroom/visualIdentity';
 import { resolveStepStage, CLASS_STAGE_LABELS } from '@/lib/classroom/classStage';
@@ -378,6 +379,12 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
               data-testid="smartboard-visual-column"
               className="relative w-full min-w-0 flex flex-col items-stretch justify-center overflow-visible"
             >
+              {concept.id === 'neural_network_basics' && (
+                <div data-testid="neural-3d-classroom" className="relative overflow-hidden rounded-[28px] border border-cyan-300/25 bg-[#020714] shadow-[0_25px_70px_-30px_rgba(14,165,233,.55)]">
+                  <NeuralNetworkClassroomScene mode={String(visualPayload.visualData?.neuralMode ?? 'm1')} className="!min-h-[500px] sm:!min-h-[560px]" />
+                </div>
+              )}
+              {concept.id !== 'neural_network_basics' && (
               <div className="relative overflow-hidden rounded-[28px] border border-indigo-100 bg-white shadow-[0_22px_70px_-28px_rgba(61,45,145,0.42)]">
                 <style>{`
                   @keyframes xpTeachFloat { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-6px) rotate(1deg)} }
@@ -432,9 +439,10 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                   <div className="absolute z-40 inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" style={{ animation: 'xpTeachShimmer 5.5s ease-in-out infinite' }} />
                   <div className="absolute z-40 left-4 right-4 bottom-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] sm:text-xs text-slate-600 font-semibold"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />Interactive visual active</div>
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] text-slate-500"><span className="text-violet-600">▶</span> Explore the visual <span className="text-violet-600">→</span></div>
+                    <button type="button" onClick={() => visualColumnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] text-violet-700 hover:bg-violet-50 hover:shadow-md transition-all cursor-pointer"><span>▶</span> Explore the visual <span>→</span></button>
                   </div>
                 </div>
+              )}
                 {howPoints.length > 0 && (
                   <div className="px-4 sm:px-5 py-4 bg-white border-t border-slate-100">
                     <div className="flex items-center gap-2 mb-3"><span className="text-violet-600">💡</span><span className="text-sm font-black text-[#182B8C]">What to notice</span></div>
