@@ -111,7 +111,7 @@ export const HomeMobileBottomNav: React.FC = () => {
       aria-label="Mobile Primary Navigation"
     >
       <div className="h-[56px] sm:h-[62px] flex items-center justify-around px-2 max-w-lg mx-auto">
-        {HOME_PRIMARY_NAV_ITEMS.map((item) => {
+        {HOME_PRIMARY_NAV_ITEMS.filter((item) => item.href !== '/premium').map((item) => {
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||
