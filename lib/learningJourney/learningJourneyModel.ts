@@ -94,14 +94,16 @@ export function resolveLearningJourneyData(
     ['neural-4', 'Loss Function', 'Measure prediction error'],
     ['neural-5', 'Backpropagation', 'Send gradients backward'],
     ['neural-6', 'Gradient Descent', 'Update the weights'],
-    ['neural-8', 'Tokens & Embeddings', 'Turn language into vectors'],
-    ['neural-9', 'Self-Attention', 'Connect useful context'],
-    ['neural-10', 'Multi-Head Attention', 'Learn different relationships'],
+    ['neural-7', 'Tokens & Embeddings', 'Turn language into vectors'],
+    ['neural-8', 'Self-Attention', 'Connect useful context'],
+    ['neural-9', 'Multi-Head Attention', 'Learn different relationships'],
+    ['neural-10', 'Transformer Block', 'Refine contextual representations'],
   ] as const;
 
   const roadmapCoords = [
     { x: 10, y: 18 }, { x: 27, y: 12 }, { x: 45, y: 20 }, { x: 63, y: 13 },
-    { x: 82, y: 23 }, { x: 72, y: 40 }, { x: 53, y: 36 }, { x: 33, y: 45 },
+    { x: 82, y: 23 }, { x: 72, y: 40 }, { x: 53, y: 36 }, { x: 33, y: 48 },
+    { x: 55, y: 65 }, { x: 81, y: 76 },
   ];
 
   const defaultNodes: JourneyNode[] = roadmapTopics.map(([id, title, subtitle], index) => ({
