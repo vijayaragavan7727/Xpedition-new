@@ -38,7 +38,7 @@ export const LearningJourneyHero: React.FC<LearningJourneyHeroProps> = ({ learne
       </div>
 
       {/* Desktop (>= 640px): Spacious Dynamic Landscape Canvas */}
-      <div className="xp-learn-hero-canvas hidden sm:block relative w-full sm:h-[145px] md:h-[160px] rounded-3xl overflow-hidden border border-[#EBE7DF]/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+      <div className="xp-learn-hero-canvas hidden sm:block relative w-full sm:h-[104px] md:h-[112px] rounded-3xl overflow-hidden border border-[#EBE7DF]/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         {/* Soft landscape background */}
         <Image
           src="/images/learning-journey/learning-journey-bg.jpg"
@@ -54,7 +54,7 @@ export const LearningJourneyHero: React.FC<LearningJourneyHeroProps> = ({ learne
         <div className="absolute inset-0 bg-gradient-to-r from-[#FAF8F5]/95 via-[#FAF8F5]/80 sm:via-[#FAF8F5]/70 to-transparent sm:max-w-2xl" />
 
         {/* Floating decorative hot-air balloon in sky */}
-        <div className="absolute top-4 right-[32%] w-12 h-16 animate-pulse duration-[5000ms] pointer-events-none opacity-85 z-10">
+        <div className="absolute top-2 right-[32%] w-9 h-12 animate-pulse duration-[5000ms] pointer-events-none opacity-85 z-10">
           <Image
             src="/images/home/home-hot-air-balloon.png"
             alt=""
@@ -65,7 +65,7 @@ export const LearningJourneyHero: React.FC<LearningJourneyHeroProps> = ({ learne
         </div>
 
         {/* Buddy companion integrated into the scenic landscape */}
-        <div className="absolute bottom-0 right-[124px] md:right-[150px] w-22 md:w-28 h-24 md:h-30 drop-shadow-sm pointer-events-none z-10">
+        <div className="absolute bottom-0 right-[124px] md:right-[150px] w-18 md:w-22 h-20 md:h-24 drop-shadow-sm pointer-events-none z-10">
           <Image
             src="/images/learning-journey/buddy-wave.png"
             alt="Buddy Explorer"
@@ -76,7 +76,7 @@ export const LearningJourneyHero: React.FC<LearningJourneyHeroProps> = ({ learne
         </div>
 
         {/* Exploration wooden signpost */}
-        <div className="absolute bottom-2 right-6 md:right-8 w-26 md:w-32 h-30 md:h-36 drop-shadow-md pointer-events-none z-10">
+        <div className="absolute bottom-2 right-6 md:right-8 w-22 md:w-26 h-24 md:h-28 drop-shadow-md pointer-events-none z-10">
           <Image
             src="/images/learning-journey/explorer-sign.svg"
             alt="Explore Learn Practice Grow"
@@ -92,13 +92,13 @@ export const LearningJourneyHero: React.FC<LearningJourneyHeroProps> = ({ learne
             <span className="w-1.5 h-1.5 rounded-full bg-[#0F5132] shrink-0" />
             <span className="truncate">Welcome back, {learnerName || 'Learner'}!</span>
           </p>
-          <h1 className="font-serif font-black text-2xl md:text-3xl lg:text-4xl text-[#1F2937] tracking-tight leading-[1.15]">
+          <h1 className="font-serif font-black text-xl md:text-2xl lg:text-3xl text-[#1F2937] tracking-tight leading-[1.15]">
             <span>Your Learning Journey</span>
             <br />
             <span>Continues </span>
             <span className="text-amber-500 inline-block text-xl" aria-hidden="true">✨</span>
           </h1>
-          <p className="font-sans text-xs md:text-sm text-slate-600 mt-1 font-medium leading-relaxed">
+          <p className="font-sans text-[10px] md:text-xs text-slate-600 mt-1 font-medium leading-relaxed">
             Small steps. Big dreams. One concept at a time.
           </p>
         </div>

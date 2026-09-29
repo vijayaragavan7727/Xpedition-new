@@ -40,12 +40,12 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
         <LearningJourneyTopBar learnerName={data.learnerName} />
 
         {/* Scrollable Page Body */}
-        <main className="xp-learn-main flex-1 min-h-0 flex flex-col justify-start overflow-hidden px-2.5 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-4 md:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-12 max-w-[1440px] w-full mx-auto box-border"><div className="xp-learn-fit w-full">
+        <main className="xp-learn-main flex-1 min-h-0 flex flex-col justify-start overflow-hidden px-2.5 sm:px-6 md:px-8 lg:px-10 py-1 sm:py-2 md:py-2 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-3 max-w-[1440px] w-full mx-auto box-border"><div className="xp-learn-fit w-full">
           {/* Main Hero Landscape Banner with Signpost */}
           <LearningJourneyHero learnerName={data.learnerName} />
 
           {/* Mode Switcher Tabs: My Journey vs. Explore Topics */}
-          <div className="flex items-center justify-between gap-2 mb-3 sm:mb-5">
+          <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
             <div className="inline-flex p-1 rounded-2xl bg-[#EFECE4] border border-[#E0DBCF] shadow-inner">
               <button
                 type="button"
@@ -89,9 +89,9 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
           {activeTab === 'journey' && (
             <>
               {/* Core Content Grid: Path Card (Left) + Sidebar (Right) */}
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-2 sm:gap-6 items-start">
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-2 sm:gap-3 items-start">
                 {/* Left/Center: The Complete Journey Path & Current Lesson */}
-                <div className="xl:col-span-8 w-full space-y-4">
+                <div className="xl:col-span-8 w-full space-y-2">
                   <JourneyPathCard
                     data={data}
                     onExploreTopics={() => setActiveTab('explore')}
@@ -124,7 +124,7 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
                 </div>
 
                 {/* Right: Progress, Focus, Passports, World (Desktop only) */}
-                <div className="hidden md:block xl:col-span-4 w-full space-y-3 sm:space-y-5">
+                <div className="hidden md:block xl:col-span-4 w-full space-y-2 sm:space-y-3">
                   <JourneyProgressSidebar data={data} />
                 </div>
               </div>
@@ -135,7 +135,7 @@ export const LearningJourneyView: React.FC<LearningJourneyViewProps> = ({ data }
               </div>
 
               {/* Lower Section: Large Buddy Companion (Desktop only) */}
-              <div className="hidden xl:block mt-6">
+              <div className="hidden xl:block mt-2">
                 <LearningJourneyCompanion />
               </div>
             </>

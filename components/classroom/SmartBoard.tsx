@@ -69,6 +69,63 @@ export interface SmartBoardProps {
   className?: string;
 }
 
+const NEURAL_REFERENCE_VISUALS = [
+  { src: '/images/neural-network/step-01-one-neuron.png', alt: 'One Neuron reference visual' },
+  { src: '/images/neural-network/step-02-activation-functions.jpeg', alt: 'Activation Functions reference visual' },
+  { src: '/images/neural-network/step-03-forward-propagation.png', alt: 'Forward Propagation reference visual' },
+  { src: '/images/neural-network/step-04-loss-function.jpeg', alt: 'Loss Function reference visual' },
+  { src: '/images/neural-network/step-05-backpropagation.png', alt: 'Backpropagation reference visual' },
+  { src: '/images/neural-network/step-06-gradient-descent.png', alt: 'Gradient Descent reference visual' },
+  { src: '/images/neural-network/step-07-tokens-embeddings.jpeg', alt: 'Tokens and Embeddings reference visual' },
+  { src: '/images/neural-network/step-08-self-attention.jpeg', alt: 'Self-Attention reference visual' },
+  { src: '/images/neural-network/step-09-multi-head-attention.png', alt: 'Multi-Head Attention reference visual' },
+  { src: '/images/neural-network/step-10-transformer-block.png', alt: 'Transformer Block reference visual' },
+] as const;
+
+const NeuralReferenceVisual: React.FC<{ stepIndex: number }> = ({ stepIndex }) => {
+  const [expanded, setExpanded] = useState(false);
+  const visual = NEURAL_REFERENCE_VISUALS[Math.min(Math.max(stepIndex, 0), NEURAL_REFERENCE_VISUALS.length - 1)];
+
+  return (
+    <>
+      <div className="relative w-full overflow-hidden rounded-[24px] bg-[#020714]">
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-[#020714]/30 via-transparent to-transparent" />
+        <div
+          className="pointer-events-none absolute inset-y-0 -left-1/3 z-20 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-18deg]"
+          style={{ animation: 'xpTeachShimmer 6s ease-in-out infinite' }}
+        />
+        <img
+          src={visual.src}
+          alt={visual.alt}
+          className="block h-auto max-h-[min(54vh,600px)] w-full object-contain transition-transform duration-700 hover:scale-[1.015]"
+          draggable={false}
+        />
+        <div className="absolute left-3 top-3 z-30 rounded-xl border border-cyan-300/30 bg-[#020714]/75 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[.16em] text-cyan-100 backdrop-blur-xl">
+          Reference visual · {stepIndex + 1}/10
+        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="absolute bottom-3 right-3 z-30 rounded-xl border border-white/20 bg-[#020714]/80 px-3 py-2 text-[9px] font-black text-white backdrop-blur-xl transition hover:bg-[#020714] cursor-pointer"
+        >
+          Explore the visual →
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#01030a]/90 p-4 backdrop-blur-xl" onClick={() => setExpanded(false)}>
+          <div className="relative max-h-[94dvh] max-w-[94vw] overflow-hidden rounded-[26px] border border-cyan-300/35 bg-[#020714] shadow-[0_30px_120px_rgba(0,0,0,.85)]" onClick={(e) => e.stopPropagation()}>
+            <img src={visual.src} alt={visual.alt} className="block max-h-[88dvh] max-w-[92vw] object-contain" draggable={false} />
+            <button type="button" onClick={() => setExpanded(false)} className="absolute right-3 top-3 rounded-xl border border-white/20 bg-[#020714]/80 px-3 py-2 text-xs font-bold text-white backdrop-blur-xl cursor-pointer">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 const REVIEW_LABEL: Record<LessonEvidenceSummary['review'][number]['outcome'], string> = {
   after_retry: 'right after a retry',
   revealed: 'answer was shown',
@@ -398,42 +455,48 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                   </div>
                   <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-400 transition-[width] duration-700" style={{ width: `${Math.max(8, ((stepIndex + 1) / Math.max(totalSteps, 1)) * 100)}%` }} /></div>
                 </div>
-                <div className={`relative min-h-[390px] sm:min-h-[430px] lg:min-h-[470px] overflow-hidden ${concept.id === 'neural_network_basics' ? '!min-h-[560px] sm:!min-h-[620px] !bg-[#020714]' : 'bg-[radial-gradient(circle_at_78%_44%,#d9f8ff_0%,#edf4ff_27%,#f7f5ff_55%,#fff_100%)]'}`}>
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,.9)_0%,transparent_30%,rgba(89,72,190,.06)_100%)]'} />
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute -right-24 -top-28 w-80 h-80 rounded-full bg-cyan-300/20 blur-3xl'} />
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute -left-24 bottom-0 w-96 h-72 rounded-full bg-violet-300/20 blur-3xl'} />
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute right-[5%] sm:right-[8%] top-[18%] w-[56%] sm:w-[52%] h-[58%] rounded-[34px] bg-gradient-to-br from-white/90 via-indigo-50/70 to-cyan-50/60 border border-white shadow-[0_30px_60px_-30px_rgba(67,56,202,.45)] [transform:perspective(900px)_rotateY(-5deg)_rotateX(2deg)]'} />
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute right-[9%] sm:right-[12%] top-[22%] w-[48%] sm:w-[44%] h-[49%] rounded-[28px] border border-cyan-300/60 bg-slate-950/5 shadow-[inset_0_0_35px_rgba(56,189,248,.12)] overflow-hidden'}>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,.18),transparent_60%)]" />
-                    <div className="absolute left-1/2 top-1/2 w-36 h-36 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/50 xp-teach-spin" />
-                    <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-violet-400/50 xp-teach-spin" style={{ animationDirection: 'reverse', animationDuration: '11s' }} />
-                  </div>
-                  <div className={concept.id === 'neural_network_basics' ? 'absolute z-10 inset-0 w-full h-full flex items-center justify-center' : 'absolute z-10 right-[2%] sm:right-[6%] top-[13%] w-[65%] sm:w-[58%] h-[65%] flex items-center justify-center'}>
-                    <div className="w-full h-full drop-shadow-[0_20px_35px_rgba(30,41,59,.22)]">
-                      <SmartBoardVisualRenderer payload={visualPayload} activeConceptId={concept.id} isRotating={isRotating} onToggleRotation={handleToggleRotation} onHotspotClick={handleHotspotClick} onActivity={handleActivity} focus={visualFocus} className="!h-full !min-h-0" />
-                    </div>
-                  </div>
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-20 left-[3%] sm:left-[6%] bottom-[7%] w-[46%] sm:w-[39%]'}>
-                    <div className="relative ml-1 sm:ml-3 mb-2 sm:mb-3 max-w-[300px] rounded-[22px] rounded-bl-[8px] bg-white/95 border border-indigo-100 px-4 py-3 shadow-[0_15px_35px_-18px_rgba(67,56,202,.45)]">
-                      <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-r border-b border-indigo-100 rotate-45" />
-                      <div className="flex items-start gap-2"><span className="w-4 h-4 mt-0.5 text-violet-600 shrink-0 text-xs">🔊</span><p className="text-[11px] sm:text-[13px] leading-[1.45] font-semibold text-[#26348F]">{step.buddyDialogue}</p></div>
-                    </div>
-                    <div className="relative w-[145px] sm:w-[175px] h-[145px] sm:h-[175px] xp-teach-float">
-                      <div className="absolute left-1/2 bottom-1 w-28 sm:w-36 h-8 -translate-x-1/2 rounded-full bg-indigo-300/30 blur-xl" />
-                      <img src="/images/robot.png" alt="Buddy teaching robot" className="absolute inset-0 w-full h-full object-contain drop-shadow-[0_20px_25px_rgba(30,41,59,.22)]" />
-                    </div>
-                  </div>
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-30 left-[3%] sm:left-[7%] top-[9%] xp-teach-float'}>
-                    <div className="flex items-center gap-2 rounded-2xl bg-white/90 border border-violet-100 px-3 py-2 shadow-[0_14px_30px_-18px_rgba(67,56,202,.55)] [transform:perspective(500px)_rotateX(8deg)_rotateY(-8deg)]"><span className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shadow-lg text-xs font-black">✦</span><span className="text-[10px] sm:text-xs font-bold text-indigo-800">Learn by seeing</span></div>
-                  </div>
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-30 right-[5%] sm:right-[9%] top-[8%] xp-teach-float'} style={{ animationDelay: '1.1s' }}>
-                    <div className="rounded-2xl bg-[#172A8A] text-white px-3 py-2 shadow-[0_14px_35px_-16px_rgba(23,42,138,.65)] [transform:perspective(500px)_rotateX(7deg)_rotateY(8deg)]"><div className="text-[9px] uppercase tracking-[.18em] text-cyan-200">Focus</div><div className="text-[11px] font-bold max-w-[140px] truncate">{teach?.observe || step.title}</div></div>
-                  </div>
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-40 inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none'} style={{ animation: 'xpTeachShimmer 5.5s ease-in-out infinite' }} />
-                  <div className={concept.id === 'neural_network_basics' ? 'hidden' : 'absolute z-40 left-4 right-4 bottom-4 flex items-center justify-between gap-3'}>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] sm:text-xs text-slate-600 font-semibold"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />Interactive visual active</div>
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] text-slate-500"><span className="text-violet-600">▶</span> Explore the visual <span className="text-violet-600">→</span></div>
-                  </div>
+                <div className="relative min-h-[390px] sm:min-h-[430px] lg:min-h-[470px] overflow-hidden bg-[#020714]">
+                  {concept.id === 'neural_network_basics' ? (
+                    <NeuralReferenceVisual stepIndex={stepIndex} />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,.9)_0%,transparent 30%,rgba(89,72,190,.06)_100%)]" />
+                      <div className="absolute -right-24 -top-28 w-80 h-80 rounded-full bg-cyan-300/20 blur-3xl" />
+                      <div className="absolute -left-24 bottom-0 w-96 h-72 rounded-full bg-violet-300/20 blur-3xl" />
+                      <div className="absolute right-[5%] sm:right-[8%] top-[18%] w-[56%] sm:w-[52%] h-[58%] rounded-[34px] bg-gradient-to-br from-white/90 via-indigo-50/70 to-cyan-50/60 border border-white shadow-[0_30px_60px_-30px_rgba(67,56,202,.45)] [transform:perspective(900px)_rotateY(-5deg)_rotateX(2deg)]" />
+                      <div className="absolute right-[9%] sm:right-[12%] top-[22%] w-[48%] sm:w-[44%] h-[49%] rounded-[28px] border border-cyan-300/60 bg-slate-950/5 shadow-[inset_0_0_35px_rgba(56,189,248,.12)] overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,.18),transparent_60%)]" />
+                        <div className="absolute left-1/2 top-1/2 w-36 h-36 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/50 xp-teach-spin" />
+                        <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-violet-400/50 xp-teach-spin" style={{ animationDirection: 'reverse', animationDuration: '11s' }} />
+                      </div>
+                      <div className="absolute z-10 right-[2%] sm:right-[6%] top-[13%] w-[65%] sm:w-[58%] h-[65%] flex items-center justify-center">
+                        <div className="w-full h-full drop-shadow-[0_20px_35px_rgba(30,41,59,.22)]">
+                          <SmartBoardVisualRenderer payload={visualPayload} activeConceptId={concept.id} isRotating={isRotating} onToggleRotation={handleToggleRotation} onHotspotClick={handleHotspotClick} onActivity={handleActivity} focus={visualFocus} className="!h-full !min-h-0" />
+                        </div>
+                      </div>
+                      <div className="absolute z-20 left-[3%] sm:left-[6%] bottom-[7%] w-[46%] sm:w-[39%]">
+                        <div className="relative ml-1 sm:ml-3 mb-2 sm:mb-3 max-w-[300px] rounded-[22px] rounded-bl-[8px] bg-white/95 border border-indigo-100 px-4 py-3 shadow-[0_15px_35px_-18px_rgba(67,56,202,.45)]">
+                          <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-r border-b border-indigo-100 rotate-45" />
+                          <div className="flex items-start gap-2"><span className="w-4 h-4 mt-0.5 text-violet-600 shrink-0 text-xs">🔊</span><p className="text-[11px] sm:text-[13px] leading-[1.45] font-semibold text-[#26348F]">{step.buddyDialogue}</p></div>
+                        </div>
+                        <div className="relative w-[145px] sm:w-[175px] h-[145px] sm:h-[175px] xp-teach-float">
+                          <div className="absolute left-1/2 bottom-1 w-28 sm:w-36 h-8 -translate-x-1/2 rounded-full bg-indigo-300/30 blur-xl" />
+                          <img src="/images/robot.png" alt="Buddy teaching robot" className="absolute inset-0 w-full h-full object-contain drop-shadow-[0_20px_25px_rgba(30,41,59,.22)]" />
+                        </div>
+                      </div>
+                      <div className="absolute z-30 left-[3%] sm:left-[7%] top-[9%] xp-teach-float">
+                        <div className="flex items-center gap-2 rounded-2xl bg-white/90 border border-violet-100 px-3 py-2 shadow-[0_14px_30px_-18px_rgba(67,56,202,.55)] [transform:perspective(500px)_rotateX(8deg)_rotateY(-8deg)]"><span className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shadow-lg text-xs font-black">✦</span><span className="text-[10px] sm:text-xs font-bold text-indigo-800">Learn by seeing</span></div>
+                      </div>
+                      <div className="absolute z-30 right-[5%] sm:right-[9%] top-[8%] xp-teach-float" style={{ animationDelay: '1.1s' }}>
+                        <div className="rounded-2xl bg-[#172A8A] text-white px-3 py-2 shadow-[0_14px_35px_-16px_rgba(23,56,138,.65)] [transform:perspective(500px)_rotateX(7deg)_rotateY(8deg)]"><div className="text-[9px] uppercase tracking-[.18em] text-cyan-200">Focus</div><div className="text-[11px] font-bold max-w-[140px] truncate">{teach?.observe || step.title}</div></div>
+                      </div>
+                      <div className="absolute z-40 inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" style={{ animation: 'xpTeachShimmer 5.5s ease-in-out infinite' }} />
+                      <div className="absolute z-40 left-4 right-4 bottom-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] sm:text-xs text-slate-600 font-semibold"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />Interactive visual active</div>
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] text-slate-500"><span className="text-violet-600">▶</span> Explore the visual <span className="text-violet-600">→</span></div>
+                      </div>
+                    </>
+                  )}
                 </div>
                 {concept.id !== 'neural_network_basics' && howPoints.length > 0 && (
                   <div className="px-4 sm:px-5 py-4 bg-white border-t border-slate-100">
