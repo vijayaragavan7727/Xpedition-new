@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
-import { Lightbulb, Play, Sparkles, Volume2, ArrowRight, Box, Waves, Brain, Cpu, Activity } from 'lucide-react';
+
+const ICON_LABELS: Record<string, string> = { neural_network_teaching: 'AI', molecular_geometry: '3D', heart_anatomy: '♥', projectile_simulation: '↗', interactive_simulation: '✦', dc_motor_diagram: '⚙' };
 
 interface ReferenceTeachingVisualStageProps {
   topicTitle: string;
@@ -17,13 +17,13 @@ interface ReferenceTeachingVisualStageProps {
   children: React.ReactNode;
 }
 
-const KIND_META: Record<string, { label: string; icon: React.ReactNode }> = {
-  neural_network_teaching: { label: 'Neural visual', icon: <Brain className="w-4 h-4" /> },
-  molecular_geometry: { label: '3D molecular model', icon: <Box className="w-4 h-4" /> },
-  heart_anatomy: { label: 'Animated anatomy', icon: <Activity className="w-4 h-4" /> },
-  projectile_simulation: { label: 'Motion simulation', icon: <Waves className="w-4 h-4" /> },
-  interactive_simulation: { label: 'Interactive simulation', icon: <Sparkles className="w-4 h-4" /> },
-  dc_motor_diagram: { label: '3D mechanism', icon: <Cpu className="w-4 h-4" /> },
+const KIND_META: Record<string, { label: string }> = {
+  neural_network_teaching: { label: 'Neural visual' },
+  molecular_geometry: { label: '3D molecular model' },
+  heart_anatomy: { label: 'Animated anatomy' },
+  projectile_simulation: { label: 'Motion simulation' },
+  interactive_simulation: { label: 'Interactive simulation' },
+  dc_motor_diagram: { label: '3D mechanism' },
 };
 
 export const ReferenceTeachingVisualStage: React.FC<ReferenceTeachingVisualStageProps> = ({
@@ -38,10 +38,8 @@ export const ReferenceTeachingVisualStage: React.FC<ReferenceTeachingVisualStage
   howPoints = [],
   children,
 }) => {
-  const meta = KIND_META[visualKind ?? ''] ?? {
-    label: 'Interactive 3D visual',
-    icon: <Sparkles className="w-4 h-4" />,
-  };
+  const meta = KIND_META[visualKind ?? ''] ?? { label: 'Interactive 3D visual' };
+  const iconLabel = ICON_LABELS[visualKind ?? ''] ?? '✦';
 
   return (
     <section
@@ -90,7 +88,7 @@ export const ReferenceTeachingVisualStage: React.FC<ReferenceTeachingVisualStage
           </div>
           <div className="shrink-0 flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5" />
+              <span className="text-violet-600 text-sm">✦</span>
               {meta.label}
             </div>
             <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold text-slate-600 whitespace-nowrap">
@@ -134,7 +132,7 @@ export const ReferenceTeachingVisualStage: React.FC<ReferenceTeachingVisualStage
           <div className="relative ml-1 sm:ml-3 mb-2 sm:mb-3 max-w-[300px] rounded-[22px] rounded-bl-[8px] bg-white/95 border border-indigo-100 px-4 py-3 shadow-[0_15px_35px_-18px_rgba(67,56,202,.45)]">
             <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-r border-b border-indigo-100 rotate-45" />
             <div className="flex items-start gap-2">
-              <Volume2 className="w-4 h-4 mt-0.5 text-violet-600 shrink-0" />
+              <span className="w-4 h-4 mt-0.5 text-violet-600 shrink-0 text-xs">🔊</span>
               <p className="text-[11px] sm:text-[13px] leading-[1.45] font-semibold text-[#26348F]">
                 {buddyDialogue}
               </p>
@@ -143,13 +141,10 @@ export const ReferenceTeachingVisualStage: React.FC<ReferenceTeachingVisualStage
 
           <div className="relative w-[145px] sm:w-[175px] h-[145px] sm:h-[175px] xp-buddy-bob">
             <div className="absolute left-1/2 bottom-1 w-28 sm:w-36 h-8 -translate-x-1/2 rounded-full bg-indigo-300/30 blur-xl" />
-            <Image
+            <img
               src="/images/robot.png"
               alt="Buddy teaching robot"
-              fill
-              sizes="180px"
-              className="object-contain drop-shadow-[0_20px_25px_rgba(30,41,59,.22)]"
-              priority={false}
+              className="absolute inset-0 w-full h-full object-contain drop-shadow-[0_20px_25px_rgba(30,41,59,.22)]"
             />
           </div>
         </div>
@@ -158,7 +153,7 @@ export const ReferenceTeachingVisualStage: React.FC<ReferenceTeachingVisualStage
         <div className="absolute z-30 left-[3%] sm:left-[7%] top-[9%] xp-scene-float">
           <div className="flex items-center gap-2 rounded-2xl bg-white/90 border border-violet-100 px-3 py-2 shadow-[0_14px_30px_-18px_rgba(67,56,202,.55)] [transform:perspective(500px)_rotateX(8deg)_rotateY(-8deg)]">
             <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shadow-lg">
-              {meta.icon}
+              {iconLabel}
             </span>
             <span className="text-[10px] sm:text-xs font-bold text-indigo-800">Learn by seeing</span>
           </div>
@@ -181,9 +176,9 @@ export const ReferenceTeachingVisualStage: React.FC<ReferenceTeachingVisualStage
             Interactive visual active
           </div>
           <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 border border-slate-100 shadow-sm text-[10px] text-slate-500">
-            <Play className="w-3.5 h-3.5 text-violet-600" />
+            <span className="text-violet-600">▶</span>
             Explore the visual
-            <ArrowRight className="w-3.5 h-3.5 text-violet-600" />
+            <span className="text-violet-600">→</span>
           </div>
         </div>
       </div>
@@ -192,7 +187,7 @@ export const ReferenceTeachingVisualStage: React.FC<ReferenceTeachingVisualStage
       {howPoints.length > 0 && (
         <div className="px-4 sm:px-5 py-4 bg-white border-t border-slate-100">
           <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="w-4 h-4 text-violet-600" />
+            <span className="w-4 h-4 text-violet-600">💡</span>
             <span className="text-sm font-black text-[#182B8C]">What to notice</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
