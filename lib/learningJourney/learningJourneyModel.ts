@@ -91,90 +91,13 @@ export function resolveLearningJourneyData(
     {
       id: 'node-1',
       stepNumber: 1,
-      title: 'Foundations',
-      subtitle: 'Completed',
-      status: 'completed',
-      estimatedMinutes: 6,
-      description: 'Master scalar and vector quantities, coordinate systems, and baseline SI unit standards.',
-      conceptId: 'physics_foundations',
-      coords: { x: 14, y: 27 },
-    },
-    {
-      id: 'node-2',
-      stepNumber: 2,
-      title: 'Motion & Forces',
-      subtitle: 'Completed',
-      status: 'completed',
-      estimatedMinutes: 10,
-      description: 'Analyze acceleration, velocity vectors, and Newton’s governing laws of linear motion.',
-      conceptId: 'motion_forces',
-      coords: { x: 42, y: 25 },
-    },
-    {
-      id: 'node-3',
-      stepNumber: 3,
-      title: 'DC Motor & Commutation',
+      title: 'Neural Networks',
       subtitle: 'Current Lesson',
       status: 'current',
-      estimatedMinutes: 8,
-      description: 'Explore how a DC motor converts electrical energy into mechanical energy using electromagnetic interactions.',
-      conceptId: 'dc_motor',
-      coords: { x: 52, y: 44 },
-    },
-    {
-      id: 'node-4',
-      stepNumber: 4,
-      title: 'Electromagnetic Force',
-      subtitle: 'Locked',
-      status: 'locked',
-      estimatedMinutes: 9,
-      description: 'Investigate Lorentz force laws, magnetic flux densities, and right-hand rules.',
-      conceptId: 'electromagnetic_force',
-      coords: { x: 80, y: 48 },
-    },
-    {
-      id: 'node-5',
-      stepNumber: 5,
-      title: 'Waves & Sound',
-      subtitle: 'Locked',
-      status: 'locked',
-      estimatedMinutes: 8,
-      description: 'Study oscillatory wave propagation, resonance frequencies, and acoustic waves.',
-      conceptId: 'waves_sound',
-      coords: { x: 76, y: 76 },
-    },
-    {
-      id: 'node-6',
-      stepNumber: 6,
-      title: 'Energy & Work',
-      subtitle: 'Locked',
-      status: 'locked',
-      estimatedMinutes: 11,
-      description: 'Formulate kinetic vs. potential energy conservation across closed thermodynamic systems.',
-      conceptId: 'energy_work',
-      coords: { x: 50, y: 82 },
-    },
-    {
-      id: 'node-7',
-      stepNumber: 7,
-      title: 'Simple Machines',
-      subtitle: 'Locked',
-      status: 'locked',
-      estimatedMinutes: 7,
-      description: 'Examine levers, pulleys, mechanical advantage, and ideal mechanical efficiency.',
-      conceptId: 'simple_machines',
-      coords: { x: 26, y: 78 },
-    },
-    {
-      id: 'node-8',
-      stepNumber: 8,
-      title: 'Final Challenge',
-      subtitle: 'Locked',
-      status: 'locked',
-      estimatedMinutes: 15,
-      description: 'Synthesize mechanics, motor dynamics, and energy conservation in a unified mission.',
-      conceptId: 'mechanics_final_challenge',
-      coords: { x: 14, y: 56 },
+      estimatedMinutes: 35,
+      description: 'Build neural-network intuition from one neuron through attention, transformers, and next-token prediction.',
+      conceptId: 'neural_network_basics',
+      coords: { x: 50, y: 48 },
     },
   ];
 
@@ -197,43 +120,26 @@ export function resolveLearningJourneyData(
   const home = resolveHomeState(store);
   const stats = home.stats;
   const attempts = store.attempts ?? [];
-  const pathway = home.pathway.concepts;
+  const pathway = home.pathway.concepts.filter((c) => c.id === 'neural_network_basics');
   const levelTitle = stats.level >= 4 ? 'Rising Explorer' : stats.level >= 2 ? 'Pathfinder' : 'Apprentice';
 
   const coords = defaultNodes.map((n) => n.coords);
-  let nodes: JourneyNode[];
-  if (pathway.length > 0) {
-    const currentId = home.mission.conceptId || home.pathway.currentConceptId;
-    nodes = pathway.slice(0, coords.length).map((c, idx) => {
-      const practised = attempts.some((a) => a.conceptId === c.id);
-      const isCurrent = c.id === currentId;
-      // Only the current lesson carries the "Current Lesson" beacon; the rest of the
-      // learner's own pathway stays open (Class can teach any of its concepts).
-      const status: NodeStatus = c.isMastered ? 'completed' : isCurrent ? 'current' : 'open';
-      return {
-        id: `node-${idx + 1}`,
-        stepNumber: idx + 1,
-        title: c.name,
-        subtitle: c.isMastered ? 'Mastered' : isCurrent ? 'Current Lesson' : practised ? 'In progress' : 'Not started',
-        status,
-        conceptId: c.id,
-        coords: coords[idx],
-      };
-    });
-  } else {
-    // No goal yet: the suggested pathway, with nothing completed.
-    nodes = defaultNodes.map((n, idx) => ({
-      ...n,
-      status: idx === 0 ? 'current' : 'locked',
-      subtitle: idx === 0 ? 'Suggested start' : 'Not started',
-    }));
-  }
+  // Xpedition currently ships one focused flagship learning path:
+  // Neural Networks. Ignore legacy/pathway topics so the learner never lands
+  // on an unrelated or unavailable lesson.
+  const nodes: JourneyNode[] = [
+    {
+      ...defaultNodes[0],
+      status: 'current',
+      subtitle: 'Current Lesson',
+    },
+  ];
 
   const current = nodes.find((n) => n.status === 'current') ?? nodes.find((n) => n.status === 'open') ?? nodes[0];
   const currentIdx = nodes.indexOf(current);
   const template = defaultNodes.find((n) => n.conceptId === current.conceptId);
   const canonical = getCanonicalConcept(current.conceptId);
-  const subjectTitle = canonical?.subject || (pathway.length > 0 ? store.goalText || 'Your pathway' : 'Physics');
+  const subjectTitle = canonical?.subject || 'Artificial Intelligence';
   const masteredCount = pathway.filter((c) => c.isMastered).length;
 
   const startOfToday = new Date();
@@ -250,23 +156,23 @@ export function resolveLearningJourneyData(
     quoteSubtitle: 'Small steps. Big dreams. One concept at a time.',
     subject: {
       id: canonical?.subject?.toLowerCase().replace(/\s+/g, '_') || 'pathway',
-      title: pathway.length > 0 ? store.goalText || 'Your pathway' : 'Physics',
-      topic: pathway.length > 0 ? `Now: ${subjectTitle}` : 'Suggested pathway',
+      title: 'Artificial Intelligence',
+      topic: 'Now: Neural Networks',
       completedCount: masteredCount,
-      totalCount: pathway.length > 0 ? pathway.length : nodes.length,
+      totalCount: 1,
       progressPercentage: attempts.length > 0 ? stats.masteryPercentage : 0,
       level: stats.level,
       levelTitle,
     },
     currentLesson: {
       conceptId: current.conceptId,
-      title: current.title,
-      conceptNumberLabel: `Concept ${currentIdx + 1} of ${nodes.length}`,
+      title: 'Neural Networks',
+      conceptNumberLabel: 'Concept 1 of 1',
       estimatedMinutes: template?.estimatedMinutes ?? (home.mission.estimatedMinutes || 8),
       description:
         template?.description ??
-        (pathway.length > 0 ? `Continue ${current.title} in Class: theory on the Smart Board, then practice.` : ''),
-      imageSrc: template?.conceptId === 'dc_motor' ? '/images/learning-journey/dc-motor.png' : resolveConceptVisual(current.conceptId, subjectTitle),
+        'Build neural-network intuition from one neuron through attention, transformers, and next-token prediction.',
+      imageSrc: resolveConceptVisual('neural_network_basics', 'Artificial Intelligence'),
       route: `/class?concept=${encodeURIComponent(current.conceptId)}`,
     },
     nodes,
