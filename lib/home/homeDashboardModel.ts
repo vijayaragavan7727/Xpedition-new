@@ -100,6 +100,9 @@ export function resolveConceptVisual(conceptId: string, subject?: string, isNext
   const normId = (conceptId || '').toLowerCase();
   const normSub = (subject || '').toLowerCase();
 
+  if (normId.includes('neural_network') || normId.includes('neuralnetwork')) {
+    return '/images/neural-network/step-01-one-neuron.png';
+  }
   if (normId.includes('motor') || normId.includes('commutat') || normId.includes('mechanic') || normId.includes('torque')) {
     return '/images/home/home-dc-motor.png';
   }
@@ -173,8 +176,8 @@ export function resolveHomeDashboardData(
   
   // Use student's real concept when present; fall back cleanly to approved sample concept
   const currentTitle = isDefaultOrEmpty
-    ? 'DC Motor & Commutation'
-    : activeSession?.conceptName || homeState.mission.conceptName || 'DC Motor & Commutation';
+    ? 'Neural Networks'
+    : activeSession?.conceptName || homeState.mission.conceptName || 'Neural Networks';
 
   const currentSubject = isDefaultOrEmpty
     ? 'Physics'
@@ -184,11 +187,11 @@ export function resolveHomeDashboardData(
       );
 
   const currentTopic = isDefaultOrEmpty
-    ? 'Mechanics'
+    ? 'Neural Networks'
     : homeState.mission.experienceTypeLabel || 'Core Concept';
 
   const durationMin = homeState.mission.estimatedMinutes || 8;
-  const currentConceptId = isDefaultOrEmpty ? 'dc_motor' : homeState.mission.conceptId;
+  const currentConceptId = isDefaultOrEmpty ? 'neural_network_basics' : homeState.mission.conceptId;
   const currentRoute = `/class?concept=${encodeURIComponent(currentConceptId)}`;
 
   // Nothing recorded on this concept yet: the learner is starting it, not resuming.
@@ -258,7 +261,7 @@ export function resolveHomeDashboardData(
   const todaysFocus: FocusItem[] = [
     {
       id: 'focus-lesson',
-      label: `Complete ${isDefaultOrEmpty ? 'DC Motor' : currentTitle} lesson`,
+      label: `Complete ${isDefaultOrEmpty ? 'Neural Networks' : currentTitle} lesson`,
       completed: isLessonComplete,
     },
     {
