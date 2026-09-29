@@ -144,7 +144,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
               />
             </div>
 
-            {/* SVG Trail Curve Vector connecting nodes in 2D landscape */}
+            {/* SVG Trail Curve Vector connecting all 12 roadmap nodes */}
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
               viewBox="0 0 500 400"
@@ -153,36 +153,33 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
             >
               <defs>
                 <linearGradient id="trailRibbon" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#E2EDE6" />
-                  <stop offset="50%" stopColor="#DFEAE2" />
-                  <stop offset="100%" stopColor="#E7E3D8" />
+                  <stop offset="0%" stopColor="#DDEBE2" />
+                  <stop offset="50%" stopColor="#D5E5DB" />
+                  <stop offset="100%" stopColor="#E6E1D5" />
                 </linearGradient>
               </defs>
-
-              {/* Soft Shadow & Ground Trail Bed */}
-              <path
-                d="M 70,72 C 120,60 160,60 210,64 C 255,70 230,130 260,176 C 290,215 360,165 400,192 C 430,220 410,265 380,304 C 340,335 300,335 250,328 C 200,320 165,330 130,312 C 90,290 60,260 70,224"
+              <polyline
+                points={data.nodes.map((node) => node.coords.x * 5 + ',' + node.coords.y * 4).join(' ')}
                 stroke="url(#trailRibbon)"
-                strokeWidth="16"
+                strokeWidth="18"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               />
-              {/* Main Green Journey Path */}
-              <path
-                d="M 70,72 C 120,60 160,60 210,64 C 255,70 230,130 260,176 C 290,215 360,165 400,192 C 430,220 410,265 380,304 C 340,335 300,335 250,328 C 200,320 165,330 130,312 C 90,290 60,260 70,224"
+              <polyline
+                points={data.nodes.map((node) => node.coords.x * 5 + ',' + node.coords.y * 4).join(' ')}
                 stroke="#0F5132"
                 strokeWidth="4"
                 strokeLinecap="round"
-                strokeDasharray="6 6"
+                strokeLinejoin="round"
+                strokeDasharray="6 7"
               />
-
-              {/* Destination Flag at Final Node 8 */}
-              <g transform="translate(62, 206)">
-                <line x1="0" y1="18" x2="0" y2="0" stroke="#B48332" strokeWidth="2" strokeLinecap="round" />
-                <polygon points="0,0 12,4 0,8" fill="#D4AF37" />
+              <g transform="translate(402, 296)">
+                <line x1="0" y1="20" x2="0" y2="0" stroke="#B48332" strokeWidth="2" strokeLinecap="round" />
+                <polygon points="0,0 13,4 0,8" fill="#D4AF37" />
               </g>
             </svg>
 
-            {/* 8 Nodes Positioned on the Trail */}
+            {/* 12 Roadmap Nodes Positioned on the Trail */}
             <div className="relative w-full h-full min-h-[260px] sm:min-h-[360px] md:min-h-[400px]">
               {data.nodes.map((node) => {
                 const isCompleted = node.status === 'completed';
