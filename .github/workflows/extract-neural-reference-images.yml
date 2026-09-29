@@ -1,0 +1,66 @@
+name: Extract Neural Reference Images
+
+on:
+  push:
+    branches:
+      - neural-10-reference-visuals
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract the 10 reference visuals
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f solar.zip
+
+          rm -rf /tmp/solar
+          mkdir -p /tmp/solar
+          unzip -q solar.zip -d /tmp/solar
+
+          mkdir -p public/images/neural-network
+
+          cp /tmp/solar/solar/1.png   public/images/neural-network/step-01-one-neuron.png
+          cp /tmp/solar/solar/6.jpeg  public/images/neural-network/step-02-activation-functions.jpeg
+          cp /tmp/solar/solar/2.png   public/images/neural-network/step-03-forward-propagation.png
+          cp /tmp/solar/solar/7.jpeg  public/images/neural-network/step-04-loss-function.jpeg
+          cp /tmp/solar/solar/3.png   public/images/neural-network/step-05-backpropagation.png
+          cp /tmp/solar/solar/4.png   public/images/neural-network/step-06-gradient-descent.png
+          cp /tmp/solar/solar/3.jpeg  public/images/neural-network/step-07-tokens-embeddings.jpeg
+          cp /tmp/solar/solar/1.jpeg  public/images/neural-network/step-08-self-attention.jpeg
+          cp /tmp/solar/solar/5.png   public/images/neural-network/step-09-multi-head-attention.png
+          cp /tmp/solar/solar/6.png   public/images/neural-network/step-10-transformer-block.png
+
+          for f in public/images/neural-network/step-*; do
+            test -s "$f"
+          done
+
+      - name: Commit extracted assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/images/neural-network
+          git rm --cached --ignore-unmatch solar.zip >/dev/null 2>&1 || true
+          git rm --ignore-unmatch solar.zip >/dev/null 2>&1 || true
+
+          if git diff --cached --quiet; then
+            echo "No asset changes to commit."
+            exit 0
+          fi
+
+          git commit -m "feat: extract 10 neural network reference visuals"
+          git push origin HEAD:neural-10-reference-visuals
