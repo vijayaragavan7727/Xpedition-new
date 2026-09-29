@@ -1,5 +1,7 @@
 'use client';
 
+// Production reference-style neural classroom visual pass.
+
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { ArrowRight, BrainCircuit, CheckCircle2, GitBranch, Play, Target, Zap } from 'lucide-react';
