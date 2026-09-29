@@ -226,7 +226,17 @@ export default function NeuralNetworkClassroomScene({ mode = 'm1', className = '
         .xp-scan{animation:xpScan 5.5s ease-in-out infinite}.xp-float{animation:xpFloat 4s ease-in-out infinite}.xp-pulse{animation:xpPulse 2.8s ease-in-out infinite}
       `}</style>
 
-      <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(56,189,248,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,.12)_1px,transparent_1px)] [background-size:46px_46px] [transform:perspective(900px)_rotateX(62deg)_translateY(28%)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/10 via-slate-950/20 to-slate-950/80" />
+      <div className="absolute left-[8%] right-[8%] bottom-[6%] h-16 rounded-[50%] bg-[#0a1224]/85 border border-cyan-300/20 shadow-[0_22px_55px_rgba(0,0,0,.65)] [transform:perspective(900px)_rotateX(58deg)]" />
+      <div className="absolute left-1/2 bottom-[8%] h-3 w-[52%] -translate-x-1/2 rounded-full bg-cyan-300/20 blur-md" />
+      <div className="absolute right-[12%] bottom-[12%] hidden md:block h-20 w-28 rounded-xl border border-white/10 bg-slate-900/75 shadow-2xl [transform:perspective(600px)_rotateY(-12deg)_rotateX(5deg)]">
+        <div className="m-2 h-10 rounded-lg border border-cyan-300/20 bg-[radial-gradient(circle_at_50%_40%,rgba(34,211,238,.28),transparent_58%),#020814]">
+          <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-cyan-300/40" />
+          <div className="mx-auto mt-1.5 h-5 w-16 rounded-full border border-violet-300/30" />
+        </div>
+        <div className="mx-auto h-1 w-20 rounded-full bg-slate-700" />
+      </div>
+            <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(56,189,248,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,.12)_1px,transparent_1px)] [background-size:46px_46px] [transform:perspective(900px)_rotateX(62deg)_translateY(28%)]" />
       <div className="absolute -left-16 top-1/3 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl" />
       <div className="absolute left-1/2 bottom-8 h-20 w-[72%] -translate-x-1/2 rounded-[50%] border border-cyan-300/25 bg-cyan-400/[.04] shadow-[0_0_80px_rgba(34,211,238,.15)]" />
@@ -235,13 +245,13 @@ export default function NeuralNetworkClassroomScene({ mode = 'm1', className = '
       <div className="absolute left-3 top-3 z-30 flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-black/50 px-2.5 py-1.5 backdrop-blur-xl">
         <BrainCircuit className="h-4 w-4 text-cyan-300" />
         <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[.18em] text-cyan-100">Neural Networks</span>
-        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[7px]">INTERACTIVE 3D</span>
+        <span className="rounded bg-emerald-400/10 px-1.5 py-0.5 text-[7px] text-emerald-200">REAL-WORLD 3D LAB</span>
       </div>
 
       <div className="absolute left-3 top-[15%] z-30 hidden lg:block w-48 xl:w-56 xp-float">
         <div className="rounded-[22px] border border-cyan-300/30 bg-black/55 p-3 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,.4)]">
           <div className="flex items-center gap-2">
-            <Image src="/images/robot.png" alt="Buddy" width={54} height={54} className="object-contain drop-shadow-[0_0_15px_rgba(34,211,238,.4)]" />
+            <Image src="/images/classroom/buddy-teacher-exact.png" alt="Buddy" width={62} height={62} className="object-contain drop-shadow-[0_0_15px_rgba(34,211,238,.4)]" />
             <div><div className="text-[10px] font-black text-cyan-200">Buddy</div><div className="text-[8px] text-emerald-300">TEACHING LIVE</div></div>
           </div>
           <p className="mt-2 text-[9px] leading-relaxed text-slate-200">Follow the glowing model. Watch the calculation, then predict what changes when the parameters move.</p>
