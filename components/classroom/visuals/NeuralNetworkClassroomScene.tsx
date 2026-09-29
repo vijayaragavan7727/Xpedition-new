@@ -109,6 +109,7 @@ function Bar({label,value,good}:{label:string;value:string;good?:boolean}){retur
 
 export default function NeuralNetworkClassroomScene({mode='m1',className=''}:{mode?:string;className?:string}) {
   const m=clampMode(mode);
+  const [explored,setExplored]=useState(false);
   const idx=TOPICS.findIndex(x=>x[0]===m);
   const topic=TOPICS[idx] || TOPICS[0];
   return <div className={'relative h-full w-full overflow-hidden rounded-[28px] border border-cyan-300/30 bg-[#020714] text-white shadow-[0_30px_80px_-35px_rgba(14,165,233,.75)] '+className}>
@@ -122,6 +123,6 @@ export default function NeuralNetworkClassroomScene({mode='m1',className=''}:{mo
     <div className="absolute right-3 top-[16%] z-20 hidden w-40 xl:block"><div className="rounded-2xl border border-violet-300/20 bg-black/45 p-3 backdrop-blur"><div className="mb-2 text-[8px] font-bold uppercase tracking-[.18em] text-violet-200">Focus</div>{TOPICS.slice(Math.max(0,idx-1),Math.min(TOPICS.length,idx+2)).map(x=><div key={x[0]} className={'mb-1 rounded-lg px-2 py-1.5 text-[8px] '+(x[0]===m?'border border-cyan-300/20 bg-cyan-400/15 text-cyan-100':'bg-white/5 text-slate-400')}>{x[1]}</div>)}</div></div>
     <div className="relative z-10 flex min-h-[430px] items-center justify-center p-3 pt-10 sm:min-h-[500px] sm:p-6 sm:pt-8"><div className="w-full max-w-[900px]"><div className="mb-3 flex items-center justify-between gap-3"><div><div className="text-[9px] uppercase tracking-[.22em] text-cyan-300">{topic[1]}</div><h3 className="mt-1 text-base font-black sm:text-xl">{topic[2]}</h3></div><div className="rounded-xl border border-white/15 bg-white/5 px-2.5 py-1.5 text-right"><div className="text-[8px] text-slate-500">PATH</div><div className="font-mono text-[10px] text-cyan-100">{idx+1} / {TOPICS.length}</div></div></div><SceneContent m={m}/></div></div>
     <div className="absolute bottom-2 left-3 z-30 flex items-center gap-2 rounded-xl border border-emerald-300/25 bg-black/50 px-3 py-1.5 text-[9px] text-emerald-100 backdrop-blur"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400"/>Interactive visual active</div>
-    <div className="absolute bottom-2 right-3 z-30 rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-[9px] text-white/75 backdrop-blur">{m.startsWith('q')?'Decision tree':'Explore the visual'} <ArrowRight className="ml-1 inline h-3 w-3"/></div>
+    <button type="button" aria-pressed={explored} onClick={()=>setExplored(v=>!v)} className="absolute bottom-2 right-3 z-30 rounded-xl border border-cyan-300/25 bg-white/10 px-3 py-1.5 text-[9px] text-white/85 backdrop-blur hover:bg-cyan-400/15 transition-colors cursor-pointer">{m.startsWith('q')?'Decision tree':(explored?'Visual explored ✓':'Explore the visual')} <ArrowRight className="ml-1 inline h-3 w-3"/></button>
   </div>;
 }
