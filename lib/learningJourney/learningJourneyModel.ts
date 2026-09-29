@@ -87,19 +87,32 @@ export function resolveLearningJourneyData(
     storeData?.learnerProfile?.name ||
     'Learner';
 
-  const defaultNodes: JourneyNode[] = [
-    {
-      id: 'node-1',
-      stepNumber: 1,
-      title: 'Neural Networks',
-      subtitle: 'Current Lesson',
-      status: 'current',
-      estimatedMinutes: 35,
-      description: 'Build neural-network intuition from one neuron through attention, transformers, and next-token prediction.',
-      conceptId: 'neural_network_basics',
-      coords: { x: 50, y: 48 },
-    },
-  ];
+  const roadmap = [
+    ['What Is a Neuron?', 'neural_network_basics', 6, 'Understand the basic idea of an artificial neuron.'],
+    ['Inputs & Features', 'neural_network_inputs', 6, 'See how real-world information becomes numeric inputs.'],
+    ['Weights', 'neural_network_weights', 7, 'Discover how weights control the importance of each input.'],
+    ['Weighted Sum', 'neural_network_weighted_sum', 7, 'Calculate how inputs and weights combine.'],
+    ['Bias', 'neural_network_bias', 6, 'See why a neuron needs a bias term.'],
+    ['Activation Function', 'neural_network_activation', 8, 'Turn a weighted signal into a useful neuron output.'],
+    ['Hidden Layers', 'neural_network_hidden_layers', 10, 'Stack neurons to learn more complex patterns.'],
+    ['Forward Propagation', 'neural_network_forward', 10, 'Watch information travel through the network.'],
+    ['Prediction & Loss', 'neural_network_loss', 9, 'Compare a prediction with the correct answer.'],
+    ['Backpropagation', 'neural_network_backprop', 12, 'Trace error backward through the network.'],
+    ['Attention & Transformers', 'neural_network_attention', 15, 'See how modern models decide what to focus on.'],
+    ['LLM Next-Token Prediction', 'neural_network_llm', 15, 'Connect neural networks to modern language models.'],
+  ] as const;
+
+  const defaultNodes: JourneyNode[] = roadmap.map(([title, conceptId, estimatedMinutes, description], idx) => ({
+    id: `node-${idx + 1}`,
+    stepNumber: idx + 1,
+    title,
+    subtitle: idx === 0 ? 'Current Lesson' : 'Next',
+    status: idx === 0 ? 'current' : 'locked',
+    estimatedMinutes,
+    description,
+    conceptId,
+    coords: { x: 50, y: 8 + idx * 7.5 },
+  }));
 
   // ---------------------------------------------------------------------------
   // Everything below reflects the learner's own record. The template path above
@@ -127,13 +140,24 @@ export function resolveLearningJourneyData(
   // Xpedition currently ships one focused flagship learning path:
   // Neural Networks. Ignore legacy/pathway topics so the learner never lands
   // on an unrelated or unavailable lesson.
-  const nodes: JourneyNode[] = [
-    {
-      ...defaultNodes[0],
-      status: 'current',
-      subtitle: 'Current Lesson',
-    },
-  ];
+  const completedConcepts = new Set(attempts.filter((a) => a.score >= 0.7).map((a) => a.conceptId));
+  const firstIncomplete = defaultNodes.findIndex((n) => !completedConcepts.has(n.conceptId));
+  const currentNodeIndex = firstIncomplete < 0 ? defaultNodes.length - 1 : firstIncomplete;
+  const nodes: JourneyNode[] = defaultNodes.map((node, idx) => ({
+    ...node,
+    status: completedConcepts.has(node.conceptId)
+      ? 'completed'
+      : idx === currentNodeIndex
+      ? 'current'
+      : idx < currentNodeIndex
+      ? 'completed'
+      : 'locked',
+    subtitle: completedConcepts.has(node.conceptId)
+      ? 'Mastered'
+      : idx === currentNodeIndex
+      ? 'Current Lesson'
+      : 'Next',
+  }));
 
   const current = nodes.find((n) => n.status === 'current') ?? nodes.find((n) => n.status === 'open') ?? nodes[0];
   const currentIdx = nodes.indexOf(current);
@@ -159,7 +183,7 @@ export function resolveLearningJourneyData(
       title: 'Artificial Intelligence',
       topic: 'Now: Neural Networks',
       completedCount: masteredCount,
-      totalCount: 1,
+      totalCount: nodes.length,
       progressPercentage: attempts.length > 0 ? stats.masteryPercentage : 0,
       level: stats.level,
       levelTitle,
@@ -167,7 +191,7 @@ export function resolveLearningJourneyData(
     currentLesson: {
       conceptId: current.conceptId,
       title: 'Neural Networks',
-      conceptNumberLabel: 'Concept 1 of 1',
+      conceptNumberLabel: `Concept ${currentIdx + 1} of ${nodes.length}`,
       estimatedMinutes: template?.estimatedMinutes ?? (home.mission.estimatedMinutes || 8),
       description:
         template?.description ??
