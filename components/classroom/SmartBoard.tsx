@@ -488,7 +488,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
                   </div>
                   <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-400 transition-[width] duration-700" style={{ width: `${Math.max(8, ((stepIndex + 1) / Math.max(totalSteps, 1)) * 100)}%` }} /></div>
                 </div>
-                <div className="relative min-h-[390px] sm:min-h-[430px] lg:min-h-[470px] overflow-hidden bg-[#020714]">
+                <div className="relative min-h-[clamp(300px,38vh,470px)] overflow-hidden bg-[#020714]">
                   {concept.id === 'neural_network_basics' ? (
                     <NeuralReferenceVisual stepIndex={stepIndex} />
                   ) : (
