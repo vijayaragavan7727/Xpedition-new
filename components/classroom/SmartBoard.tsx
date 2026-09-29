@@ -25,6 +25,7 @@ import { REVEAL_AFTER_ATTEMPTS } from '@/lib/classroom/classRuntime';
 import { orderOptions } from '@/lib/classroom/optionOrder';
 import { StickyNote } from '@/components/learning-objects';
 import { SmartBoardVisualRenderer } from './SmartBoardVisualRenderer';
+import { ReferenceTeachingVisualStage } from './ReferenceTeachingVisualStage';
 import { BoardTeaching, useTeachingState } from './BoardTeaching';
 import { buildStepVisualPayload } from '@/lib/classroom/visualIdentity';
 import { resolveStepStage, CLASS_STAGE_LABELS } from '@/lib/classroom/classStage';
@@ -376,19 +377,30 @@ export const SmartBoard: React.FC<SmartBoardProps> = React.memo(({
             <div
               ref={visualColumnRef}
               data-testid="smartboard-visual-column"
-              className={`relative w-full min-w-0 flex flex-col items-stretch justify-center overflow-hidden ${
-                concept.visualKind === 'periodic_table_interactive' ? 'min-h-[380px]' : 'min-h-[260px]'
-              }`}
+              className="relative w-full min-w-0 flex flex-col items-stretch justify-center overflow-visible"
             >
-              <SmartBoardVisualRenderer
-                payload={visualPayload}
-                activeConceptId={concept.id}
-                isRotating={isRotating}
-                onToggleRotation={handleToggleRotation}
-                onHotspotClick={handleHotspotClick}
-                onActivity={handleActivity}
-                focus={visualFocus}
-              />
+              <ReferenceTeachingVisualStage
+                topicTitle={lesson.topicTitle}
+                subject={lesson.subject}
+                stepTitle={boardView?.title ?? step.boardTitle}
+                stepNumber={stepIndex + 1}
+                totalSteps={totalSteps}
+                buddyDialogue={step.buddyDialogue}
+                observe={teach?.observe}
+                visualKind={String(concept.visualKind)}
+                howPoints={howPoints}
+              >
+                <SmartBoardVisualRenderer
+                  payload={visualPayload}
+                  activeConceptId={concept.id}
+                  isRotating={isRotating}
+                  onToggleRotation={handleToggleRotation}
+                  onHotspotClick={handleHotspotClick}
+                  onActivity={handleActivity}
+                  focus={visualFocus}
+                  className="!h-full !min-h-0"
+                />
+              </ReferenceTeachingVisualStage>
             </div>
             {activeHow && (
               <div
