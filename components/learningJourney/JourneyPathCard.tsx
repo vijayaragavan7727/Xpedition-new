@@ -133,7 +133,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-6 pt-1.5 sm:pt-4 items-stretch">
           {/* Interactive trail built from the learner's own pathway (all widths; the
               former phone picture had fixed "Completed" statuses painted into it). */}
-          <div className="xp-journey-map flex lg:col-span-7 xl:col-span-8 relative h-[290px] sm:h-[400px] md:min-h-[440px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-3 sm:p-4 flex-col justify-between">
+          <div className="xp-journey-map flex lg:col-span-7 xl:col-span-8 relative h-[290px] sm:h-[340px] md:min-h-[350px] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#EBF4EE] via-[#FAF9F5] to-[#F3EDE2] border border-[#EBE7DF] p-3 sm:p-4 flex-col justify-between">
             {/* Soft illustrated landscape terrain background */}
             <div className="absolute inset-0 opacity-25 pointer-events-none">
               <Image
@@ -180,7 +180,7 @@ export const JourneyPathCard: React.FC<JourneyPathCardProps> = ({ data, onExplor
             </svg>
 
             {/* 12 Roadmap Nodes Positioned on the Trail */}
-            <div className="relative w-full h-full min-h-[260px] sm:min-h-[360px] md:min-h-[400px]">
+            <div className="relative w-full h-full min-h-[260px] sm:min-h-[300px] md:min-h-[320px]">
               {data.nodes.map((node) => {
                 const isCompleted = node.status === 'completed';
                 const isCurrent = node.status === 'current';
