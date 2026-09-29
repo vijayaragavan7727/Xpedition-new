@@ -15,10 +15,10 @@ const REFERENCE_VISUALS: Record<Mode, { src: string; alt: string }> = {
   m4: { src: '/images/neural-network/step-04-loss-function.png', alt: 'Loss function real-world 3D teaching visual' },
   m5: { src: '/images/neural-network/step-05-backpropagation.png', alt: 'Backpropagation real-world 3D teaching visual' },
   m6: { src: '/images/neural-network/step-06-gradient-descent.png', alt: 'Gradient descent real-world 3D teaching visual' },
-  m7: { src: '/images/neural-network/step-07-deep-networks.png', alt: 'Deep neural networks real-world 3D teaching visual' },
-  m8: { src: '/images/neural-network/step-08-tokens-embeddings.png', alt: 'Tokens and embeddings real-world 3D teaching visual' },
-  m9: { src: '/images/neural-network/step-09-self-attention.png', alt: 'Self attention real-world 3D teaching visual' },
-  m10: { src: '/images/neural-network/step-10-multi-head-position.png', alt: 'Multi-head attention and position real-world 3D teaching visual' },
+  m7: { src: '/images/neural-network/step-07-tokens-embeddings.jpg', alt: 'Tokens and embeddings real-world 3D teaching visual' },
+  m8: { src: '/images/neural-network/step-08-self-attention.jpg', alt: 'Self attention real-world 3D teaching visual' },
+  m9: { src: '/images/neural-network/step-09-multi-head-position.jpg', alt: 'Multi-head attention and position real-world 3D teaching visual' },
+  m10: { src: '/images/neural-network/step-10-transformer-block.jpg', alt: 'Transformer block real-world 3D teaching visual' },
   m11: { src: '/images/neural-network/step-11-transformer-block.png', alt: 'Transformer block real-world 3D teaching visual' },
   q1: { src: '/images/neural-network/step-12-decision-tree.png', alt: 'Neural network decision tree real-world 3D teaching visual' },
 };
@@ -30,12 +30,10 @@ const TOPICS = [
   ['m4','M4 · LOSS FUNCTION','Measure prediction error'],
   ['m5','M5 · BACKPROPAGATION','Send the error signal backward'],
   ['m6','M6 · GRADIENT DESCENT','Update parameters to reduce loss'],
-  ['m7','M7 · DEEP NETWORKS','Stack representations into richer features'],
-  ['m8','M8 · TOKENS & EMBEDDINGS','Turn language into vectors'],
-  ['m9','M9 · SELF-ATTENTION','Let each token use context'],
-  ['m10','M10 · MULTI-HEAD + POSITION','Relationships plus token order'],
-  ['m11','M11 · TRANSFORMER BLOCK','Attention → residual → norm → FFN'],
-  ['q1','FINAL · DECISION CHECK','Your answer chooses the next neural-network path'],
+  ['m7','M7 · TOKENS & EMBEDDINGS','Turn language into vectors'],
+  ['m8','M8 · SELF-ATTENTION','Let each token use context'],
+  ['m9','M9 · MULTI-HEAD + POSITION','Relationships plus token order'],
+  ['m10','M10 · TRANSFORMER BLOCK','Attention → residual → norm → FFN'],
 ] as const;
 
 function clampMode(raw: string): Mode {
@@ -221,7 +219,7 @@ function ReferenceTeachingVisual({ mode }: { mode: Mode }) {
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#020714]/35 via-transparent to-transparent" />
       <div className="absolute left-3 top-3 rounded-xl border border-cyan-300/25 bg-[#020714]/75 px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[.16em] text-cyan-100 backdrop-blur-xl">
-        Teaching visual · {TOPICS.findIndex((x) => x[0] === mode) + 1}/12
+        Teaching visual · {TOPICS.findIndex((x) => x[0] === mode) + 1}/10
       </div>
       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-3">
         <div className="rounded-xl border border-white/10 bg-[#020714]/72 px-3 py-2 text-[9px] font-semibold text-white backdrop-blur-xl">
